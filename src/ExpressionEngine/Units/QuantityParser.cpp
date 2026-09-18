@@ -5,6 +5,7 @@
 #include <charconv>
 #include <cmath>
 #include <cstddef>
+#include <cstdint>
 #include <format>
 #include <limits>
 #include <numbers>
@@ -16,10 +17,40 @@ namespace ExpressionEngine::Units
 {
     namespace
     {
+        /// 判断是否为 ASCII 十进制数字
         constexpr bool isDecimalDigit(const char character)
         {
             return character >= '0' && character <= '9';
         }
+
+        /// 判断是否为数量文本里的空白字符
+        constexpr bool isInsignificantWhitespace(const char character)
+        {
+            return character == ' ' || character == '\t' || character == '\n' || character == '\r';
+        }
+
+        /// 热路径上的字符类别位图：把逐字节谓词在编译期铺成 256 项查表，扫描不再走判定函数链
+        struct CharacterClassBitmaps
+        {
+            std::array<std::uint8_t, 256> decimalDigit{}; ///< 十进制数字
+            std::array<std::uint8_t, 256> whitespace{};   ///< 空白：空格、制表符、换行、回车
+        };
+
+        /// 在编译期把字符类别谓词铺成位图，下标是字节值
+        constexpr CharacterClassBitmaps buildCharacterClassBitmaps()
+        {
+            CharacterClassBitmaps bitmaps;
+            for (std::size_t index = 0; index < bitmaps.decimalDigit.size(); ++index)
+            {
+                const char character        = static_cast<char>(static_cast<unsigned char>(index));
+                bitmaps.decimalDigit[index] = isDecimalDigit(character) ? 1 : 0;
+                bitmaps.whitespace[index]   = isInsignificantWhitespace(character) ? 1 : 0;
+            }
+            return bitmaps;
+        }
+
+        /// 编译期建好的字符类别位图；静态存储期且无运行时初始化
+        constexpr CharacterClassBitmaps characterClasses = buildCharacterClassBitmaps();
 
         /// 记号类别
         enum class TokenKind
@@ -195,6 +226,113 @@ constexpr std::array unitTokenSpecs {
                 FunctionTokenSpec{"sqrt", FunctionId::Sqrt},
         };
 
+        /// 首字节相同的候选在分组数组里的区间；组内保持总表顺序，等长匹配时靠前者胜出
+        struct FirstByteBucket
+        {
+            std::uint16_t begin{0}; ///< 区间在分组数组里的起始下标
+            std::uint16_t count{0}; ///< 区间里的候选条数
+        };
+
+        /// 首字节分派表：256 项索引加一张按首字节分好组的候选指针数组
+        template<typename Spec, std::size_t Count>
+        struct FirstByteDispatch
+        {
+            std::array<const Spec *, Count>  entries{}; ///< 按首字节分组的候选指针
+            std::array<FirstByteBucket, 256> buckets{}; ///< 每个首字节对应的候选区间
+        };
+
+        /// 取候选原文的首字节值，用作分派表的索引
+        constexpr std::size_t firstByteOf(const std::string_view text)
+        {
+            return static_cast<unsigned char>(text.front());
+        }
+
+        /// 编译期按首字节做计数排序，把候选指针按组铺进分派表；Member 给出候选的符号原文
+        template<typename Spec, std::size_t Count, std::string_view Spec::*Member>
+        constexpr FirstByteDispatch<Spec, Count> buildFirstByteDispatch(const std::array<Spec, Count> &specs)
+        {
+            FirstByteDispatch<Spec, Count> dispatch;
+            std::array<std::size_t, 256>   counts{};
+            for (const Spec &spec: specs)
+            {
+                ++counts[firstByteOf(spec.*Member)];
+            }
+
+            std::size_t begin = 0;
+            for (std::size_t byte = 0; byte < counts.size(); ++byte)
+            {
+                dispatch.buckets[byte] = {static_cast<std::uint16_t>(begin), static_cast<std::uint16_t>(counts[byte])};
+                begin += counts[byte];
+            }
+
+            // 游标从各分组起点向后推进，于是同一分组的候选保持它们在总表里的先后
+            std::array<std::size_t, 256> cursors{};
+            for (std::size_t byte = 0; byte < cursors.size(); ++byte)
+            {
+                cursors[byte] = dispatch.buckets[byte].begin;
+            }
+            for (const Spec &spec: specs)
+            {
+                dispatch.entries[cursors[firstByteOf(spec.*Member)]++] = &spec;
+            }
+            return dispatch;
+        }
+
+        /// 编译期建好的单位符号分派表：查找时先按首字节把候选缩到一组；静态存储期，无运行时初始化与堆分配
+        constexpr FirstByteDispatch<UnitTokenSpec, unitTokenSpecs.size()> unitSpecDispatch =
+                buildFirstByteDispatch<UnitTokenSpec, unitTokenSpecs.size(), &UnitTokenSpec::symbol>(unitTokenSpecs);
+
+        /// 编译期建好的标量函数名分派表
+        constexpr FirstByteDispatch<FunctionTokenSpec, functionTokenSpecs.size()> functionSpecDispatch =
+                buildFirstByteDispatch<FunctionTokenSpec, functionTokenSpecs.size(), &FunctionTokenSpec::name>(functionTokenSpecs);
+
+        /// 单位符号的最长匹配结果
+        struct UnitMatch
+        {
+            const UnitTokenSpec *spec{nullptr}; ///< 命中的符号表条目；nullptr 表示没有命中
+            std::size_t          length{0};     ///< 匹配到的字节数
+        };
+
+        /// 在 text 开头对单位符号做最长匹配：先按首字节把候选缩到一组，再在组内挑最长；
+        /// 只在严格更长时替换，因此等长时保留表里靠前的符号
+        [[nodiscard]] UnitMatch matchUnitSymbol(const std::string_view text)
+        {
+            const FirstByteBucket bucket = unitSpecDispatch.buckets[firstByteOf(text)];
+            UnitMatch             best;
+            for (std::size_t index = 0; index < bucket.count; ++index)
+            {
+                const UnitTokenSpec *spec = unitSpecDispatch.entries[bucket.begin + index];
+                if (spec->symbol.size() > best.length && text.starts_with(spec->symbol))
+                {
+                    best = {spec, spec->symbol.size()};
+                }
+            }
+            return best;
+        }
+
+        /// 函数名的最长匹配结果
+        struct FunctionMatch
+        {
+            const FunctionTokenSpec *spec{nullptr}; ///< 命中的函数表条目；nullptr 表示没有命中
+            std::size_t              length{0};     ///< 匹配到的字节数
+        };
+
+        /// 在 text 开头对函数名做最长匹配；分组与胜出规则同 matchUnitSymbol
+        [[nodiscard]] FunctionMatch matchFunctionName(const std::string_view text)
+        {
+            const FirstByteBucket bucket = functionSpecDispatch.buckets[firstByteOf(text)];
+            FunctionMatch         best;
+            for (std::size_t index = 0; index < bucket.count; ++index)
+            {
+                const FunctionTokenSpec *spec = functionSpecDispatch.entries[bucket.begin + index];
+                if (spec->name.size() > best.length && text.starts_with(spec->name))
+                {
+                    best = {spec, spec->name.size()};
+                }
+            }
+            return best;
+        }
+
         /// 求标量函数值；入参必须是纯数值，单位由调用方保证已被剥掉
         [[nodiscard]] double applyFunction(const FunctionId function, const double argument)
         {
@@ -236,7 +374,7 @@ constexpr std::array unitTokenSpecs {
         [[nodiscard]] std::size_t matchDigits(const std::string_view text, const std::size_t position)
         {
             std::size_t count = 0;
-            while (position + count < text.size() && isDecimalDigit(text[position + count]))
+            while (position + count < text.size() && characterClasses.decimalDigit[static_cast<unsigned char>(text[position + count])] != 0)
             {
                 ++count;
             }
@@ -428,7 +566,7 @@ constexpr std::array unitTokenSpecs {
             while (m_position < m_text.size())
             {
                 const char character = m_text[m_position];
-                if (character == ' ' || character == '\t' || character == '\n' || character == '\r')
+                if (characterClasses.whitespace[static_cast<unsigned char>(character)] != 0)
                 {
                     ++m_position;
                     continue;
@@ -511,27 +649,8 @@ constexpr std::array unitTokenSpecs {
 
             // 单位、函数名与常量都在字母区，必须按最长匹配竞争而不是按类别先后判定：
             // 否则 "sin(" 会被拆成单位 "s" + 单位 "in"，"tan(" 会被拆成吨 + 埃。
-            const UnitTokenSpec *matchedUnit       = nullptr;
-            std::size_t          matchedUnitLength = 0;
-            for (const auto &spec: unitTokenSpecs)
-            {
-                if (spec.symbol.size() > matchedUnitLength && remaining.starts_with(spec.symbol))
-                {
-                    matchedUnit       = &spec;
-                    matchedUnitLength = spec.symbol.size();
-                }
-            }
-
-            const FunctionTokenSpec *matchedFunction       = nullptr;
-            std::size_t              matchedFunctionLength = 0;
-            for (const auto &spec: functionTokenSpecs)
-            {
-                if (spec.name.size() > matchedFunctionLength && remaining.starts_with(spec.name))
-                {
-                    matchedFunction       = &spec;
-                    matchedFunctionLength = spec.name.size();
-                }
-            }
+            const UnitMatch     unitMatch     = matchUnitSymbol(remaining);
+            const FunctionMatch functionMatch = matchFunctionName(remaining);
 
             std::size_t matchedConstantLength = 0;
             double      matchedConstantValue  = 0.0;
@@ -545,18 +664,18 @@ constexpr std::array unitTokenSpecs {
                 matchedConstantValue  = std::numbers::e;
             }
 
-            const auto bestLength = std::max({matchedUnitLength, matchedFunctionLength, matchedConstantLength});
+            const auto bestLength = std::max({unitMatch.length, functionMatch.length, matchedConstantLength});
             if (bestLength != 0)
             {
                 // 长度相同时按「单位 → 函数 → 常量」定序，与需求里记号类别的优先级一致
-                if (matchedUnitLength == bestLength)
+                if (unitMatch.length == bestLength)
                 {
                     token.kind  = TokenKind::Unit;
-                    token.value = *matchedUnit->quantity;
-                } else if (matchedFunctionLength == bestLength)
+                    token.value = *unitMatch.spec->quantity;
+                } else if (functionMatch.length == bestLength)
                 {
                     token.kind     = TokenKind::Function;
-                    token.function = matchedFunction->function;
+                    token.function = functionMatch.spec->function;
                 } else
                 {
                     token.kind  = TokenKind::Number;
@@ -879,12 +998,18 @@ constexpr std::array unitTokenSpecs {
 
     const Quantity *findPredefinedUnit(const std::string_view symbol)
     {
-        // 符号表按最长匹配语义使用，这里只需精确相等；遍历 150 条对本场景足够快
-        for (const auto &spec: unitTokenSpecs)
+        // 符号表按最长匹配语义使用，这里只需精确相等；先按首字节把候选缩到一组再比原文
+        if (symbol.empty())
         {
-            if (spec.symbol == symbol)
+            return nullptr;
+        }
+        const FirstByteBucket bucket = unitSpecDispatch.buckets[firstByteOf(symbol)];
+        for (std::size_t index = 0; index < bucket.count; ++index)
+        {
+            const UnitTokenSpec *spec = unitSpecDispatch.entries[bucket.begin + index];
+            if (spec->symbol == symbol)
             {
-                return spec.quantity;
+                return spec->quantity;
             }
         }
         return nullptr;
