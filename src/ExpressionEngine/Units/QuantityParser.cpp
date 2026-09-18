@@ -1,4 +1,5 @@
 #include <ExpressionEngine/Units/QuantityParser.h>
+#include <ExpressionEngine/Base/FirstByteDispatch.h>
 
 #include <algorithm>
 #include <array>
@@ -229,65 +230,23 @@ constexpr std::array unitTokenSpecifications {
                 FunctionTokenSpecification{"sqrt", FunctionId::Sqrt},
         };
 
-        /// 首字节相同的候选在分组数组里的区间；组内保持总表顺序，等长匹配时靠前者胜出
-        struct FirstByteBucket
-        {
-            std::uint16_t begin{0}; ///< 区间在分组数组里的起始下标
-            std::uint16_t count{0}; ///< 区间里的候选条数
-        };
-
-        /// 首字节分派表：256 项索引加一张按首字节分好组的候选指针数组
-        template<typename Specification, std::size_t Count>
-        struct FirstByteDispatch
-        {
-            std::array<const Specification *, Count> entries{}; ///< 按首字节分组的候选指针
-            std::array<FirstByteBucket, 256>         buckets{}; ///< 每个首字节对应的候选区间
-        };
-
         /// 取候选原文的首字节值，用作分派表的索引
         constexpr std::size_t firstByteOf(const std::string_view text)
         {
             return static_cast<unsigned char>(text.front());
         }
 
-        /// 编译期按首字节做计数排序，把候选指针按组铺进分派表；Member 给出候选的符号原文
-        template<typename Specification, std::size_t Count, std::string_view Specification::*Member>
-        constexpr FirstByteDispatch<Specification, Count> buildFirstByteDispatch(const std::array<Specification, Count> &specifications)
-        {
-            FirstByteDispatch<Specification, Count> dispatch;
-            std::array<std::size_t, 256>            counts{};
-            for (const Specification &specification: specifications)
-            {
-                ++counts[firstByteOf(specification.*Member)];
-            }
-
-            std::size_t begin = 0;
-            for (std::size_t byte = 0; byte < counts.size(); ++byte)
-            {
-                dispatch.buckets[byte] = {static_cast<std::uint16_t>(begin), static_cast<std::uint16_t>(counts[byte])};
-                begin += counts[byte];
-            }
-
-            // 游标从各分组起点向后推进，于是同一分组的候选保持它们在总表里的先后
-            std::array<std::size_t, 256> cursors{};
-            for (std::size_t byte = 0; byte < cursors.size(); ++byte)
-            {
-                cursors[byte] = dispatch.buckets[byte].begin;
-            }
-            for (const Specification &specification: specifications)
-            {
-                dispatch.entries[cursors[firstByteOf(specification.*Member)]++] = &specification;
-            }
-            return dispatch;
-        }
-
         /// 编译期建好的单位符号分派表：查找时先按首字节把候选缩到一组；静态存储期，无运行时初始化与堆分配
-        constexpr FirstByteDispatch<UnitTokenSpecification, unitTokenSpecifications.size()> unitSpecificationDispatch =
-                buildFirstByteDispatch<UnitTokenSpecification, unitTokenSpecifications.size(), &UnitTokenSpecification::symbol>(unitTokenSpecifications);
+        constexpr Base::FirstByteDispatch<UnitTokenSpecification, unitTokenSpecifications.size()> unitSpecificationDispatch = Base::buildFirstByteDispatch(
+            unitTokenSpecifications,
+            [](const UnitTokenSpecification &specification) { return firstByteOf(specification.symbol); }
+        );
 
         /// 编译期建好的标量函数名分派表
-        constexpr FirstByteDispatch<FunctionTokenSpecification, functionTokenSpecifications.size()> functionSpecificationDispatch =
-                buildFirstByteDispatch<FunctionTokenSpecification, functionTokenSpecifications.size(), &FunctionTokenSpecification::name>(functionTokenSpecifications);
+        constexpr Base::FirstByteDispatch<FunctionTokenSpecification, functionTokenSpecifications.size()> functionSpecificationDispatch = Base::buildFirstByteDispatch(
+            functionTokenSpecifications,
+            [](const FunctionTokenSpecification &specification) { return firstByteOf(specification.name); }
+        );
 
         /// 单位符号的最长匹配结果
         struct UnitMatch
@@ -300,7 +259,7 @@ constexpr std::array unitTokenSpecifications {
         /// 只在严格更长时替换，因此等长时保留表里靠前的符号
         [[nodiscard]] UnitMatch matchUnitSymbol(const std::string_view text)
         {
-            const FirstByteBucket bucket = unitSpecificationDispatch.buckets[firstByteOf(text)];
+            const Base::FirstByteBucket bucket = unitSpecificationDispatch.buckets[firstByteOf(text)];
             UnitMatch             best;
             for (std::size_t index = 0; index < bucket.count; ++index)
             {
@@ -323,7 +282,7 @@ constexpr std::array unitTokenSpecifications {
         /// 在 text 开头对函数名做最长匹配；分组与胜出规则同 matchUnitSymbol
         [[nodiscard]] FunctionMatch matchFunctionName(const std::string_view text)
         {
-            const FirstByteBucket bucket = functionSpecificationDispatch.buckets[firstByteOf(text)];
+            const Base::FirstByteBucket bucket = functionSpecificationDispatch.buckets[firstByteOf(text)];
             FunctionMatch         best;
             for (std::size_t index = 0; index < bucket.count; ++index)
             {
@@ -993,7 +952,7 @@ constexpr std::array unitTokenSpecifications {
         {
             return nullptr;
         }
-        const FirstByteBucket bucket = unitSpecificationDispatch.buckets[firstByteOf(symbol)];
+        const Base::FirstByteBucket bucket = unitSpecificationDispatch.buckets[firstByteOf(symbol)];
         for (std::size_t index = 0; index < bucket.count; ++index)
         {
             const UnitTokenSpecification *specification = unitSpecificationDispatch.entries[bucket.begin + index];

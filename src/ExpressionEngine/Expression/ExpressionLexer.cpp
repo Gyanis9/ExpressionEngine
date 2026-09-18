@@ -1,5 +1,7 @@
 #include <ExpressionEngine/Expression/ExpressionLexer.h>
 
+#include <ExpressionEngine/Base/FirstByteDispatch.h>
+
 #include <algorithm>
 #include <array>
 #include <charconv>
@@ -174,64 +176,29 @@ constexpr std::string_view unitSymbols[]{
             ExpressionTokenKind kind;   ///< Unit 或 UsUnit
         };
 
-        /// 首字节相同的一组候选在分组数组里的区间；组内保持总表顺序，等长匹配时靠前者胜出
-        struct UnitSymbolBucket
+        /// 单位符号候选总表：国际单位在前、英制建筑单位在后，各带上记号类别
+        constexpr std::array<UnitSymbolEntry, std::size(unitSymbols) + std::size(usUnitSymbols)>
+        buildUnitSymbolEntries()
         {
-            std::uint16_t begin{0}; ///< 区间在分组数组里的起始下标
-            std::uint16_t count{0}; ///< 区间里的候选条数
-        };
-
-        /// 单位符号的首字节分派表：256 项索引加一张按首字节分好组的候选数组
-        struct UnitSymbolDispatch
-        {
-            std::array<UnitSymbolEntry, std::size(unitSymbols) + std::size(usUnitSymbols)> entries{}; ///< 按首字节分组的候选
-            std::array<UnitSymbolBucket, 256>                                              buckets{}; ///< 每个首字节对应的候选区间
-        };
-
-        /// 取符号文本的首字节值，用作分派表的索引
-        constexpr std::size_t unitSymbolFirstByte(const std::string_view symbol)
-        {
-            return static_cast<unsigned char>(symbol.front());
-        }
-
-        /// 编译期用计数排序把单位符号按首字节分组：索引表给出每个首字节的区间，组内保持总表顺序
-        constexpr UnitSymbolDispatch buildUnitSymbolDispatch()
-        {
-            UnitSymbolDispatch           dispatch;
-            std::array<std::size_t, 256> counts{};
+            std::array<UnitSymbolEntry, std::size(unitSymbols) + std::size(usUnitSymbols)> entries{};
+            std::size_t                                                        index = 0;
             for (const std::string_view symbol: unitSymbols)
             {
-                ++counts[unitSymbolFirstByte(symbol)];
+                entries[index++] = {symbol, ExpressionTokenKind::Unit};
             }
             for (const std::string_view symbol: usUnitSymbols)
             {
-                ++counts[unitSymbolFirstByte(symbol)];
+                entries[index++] = {symbol, ExpressionTokenKind::UsUnit};
             }
-            std::size_t begin = 0;
-            for (std::size_t byte = 0; byte < counts.size(); ++byte)
-            {
-                dispatch.buckets[byte] = {static_cast<std::uint16_t>(begin), static_cast<std::uint16_t>(counts[byte])};
-                begin += counts[byte];
-            }
-            // 游标从各分组起点向后推进，于是同一分组的候选保持它们在总表里的先后
-            std::array<std::size_t, 256> cursors{};
-            for (std::size_t byte = 0; byte < cursors.size(); ++byte)
-            {
-                cursors[byte] = dispatch.buckets[byte].begin;
-            }
-            for (const std::string_view symbol: unitSymbols)
-            {
-                dispatch.entries[cursors[unitSymbolFirstByte(symbol)]++] = {symbol, ExpressionTokenKind::Unit};
-            }
-            for (const std::string_view symbol: usUnitSymbols)
-            {
-                dispatch.entries[cursors[unitSymbolFirstByte(symbol)]++] = {symbol, ExpressionTokenKind::UsUnit};
-            }
-            return dispatch;
+            return entries;
         }
 
-        /// 编译期建好的单位符号分派表；静态存储期且无运行时初始化，也没有堆分配
-        constexpr UnitSymbolDispatch unitSymbolDispatch = buildUnitSymbolDispatch();
+        /// 候选总表与它的首字节分派表；静态存储期、编译期建好，无运行时初始化与堆分配
+        constexpr auto unitSymbolEntries = buildUnitSymbolEntries();
+        constexpr Base::FirstByteDispatch<UnitSymbolEntry, unitSymbolEntries.size()> unitSymbolDispatch = Base::buildFirstByteDispatch(
+            unitSymbolEntries,
+            [](const UnitSymbolEntry &entry) { return static_cast<std::size_t>(static_cast<unsigned char>(entry.symbol.front())); }
+        );
 
         /// 单位符号匹配结果
         struct UnitMatch
@@ -244,12 +211,12 @@ constexpr std::string_view unitSymbols[]{
         /// 只在严格更长时替换，因此等长时保留表里靠前的符号
         UnitMatch matchUnitSymbol(std::string_view text, const std::size_t offset)
         {
-            const UnitSymbolBucket bucket    = unitSymbolDispatch.buckets[static_cast<unsigned char>(text[offset])];
+            const Base::FirstByteBucket bucket    = unitSymbolDispatch.buckets[static_cast<unsigned char>(text[offset])];
             const std::string_view remainder = text.substr(offset);
             UnitMatch              best;
             for (std::size_t index = 0; index < bucket.count; ++index)
             {
-                const UnitSymbolEntry &entry = unitSymbolDispatch.entries[bucket.begin + index];
+                const UnitSymbolEntry &entry = *unitSymbolDispatch.entries[bucket.begin + index];
                 if (entry.symbol.size() > best.length && remainder.starts_with(entry.symbol))
                 {
                     best = {entry.symbol.size(), entry.kind};
