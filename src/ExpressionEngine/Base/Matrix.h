@@ -38,7 +38,7 @@ namespace ExpressionEngine::Base
     class Matrix4D
     {
         /** @brief 双精度数值特征类型 */
-        using traits_type = float_traits<double>;
+        using TraitsType = FloatTraits<double>;
 
     public:
         /**
@@ -784,7 +784,7 @@ namespace ExpressionEngine::Base
         {
             for (int column = 0; column < 4; ++column)
             {
-                if (std::abs(m_matrix[row][column] - other.m_matrix[row][column]) > traits_type::epsilon())
+                if (std::abs(m_matrix[row][column] - other.m_matrix[row][column]) > TraitsType::epsilon())
                 {
                     return false;
                 }

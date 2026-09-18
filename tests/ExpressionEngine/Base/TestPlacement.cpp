@@ -1,5 +1,5 @@
 // 覆盖 Placement 的关键行为：恒等位姿、multVec 的「先旋转后平移」语义、复合顺序与取逆、
-// 矩阵与对偶四元数往返、pow/sclerp 的螺旋插值，以及 DualQuat 的取值与拒绝面。
+// 矩阵与对偶四元数往返、pow/sclerp 的螺旋插值，以及 DualQuaternion 的取值与拒绝面。
 
 #include <gtest/gtest.h>
 
@@ -11,7 +11,7 @@
 #include <ExpressionEngine/Base/Placement.h>
 #include <ExpressionEngine/Base/Rotation.h>
 
-using ExpressionEngine::Base::DualQuat;
+using ExpressionEngine::Base::DualQuaternion;
 using ExpressionEngine::Base::Matrix4D;
 using ExpressionEngine::Base::Placement;
 using ExpressionEngine::Base::Rotation;
@@ -143,8 +143,8 @@ TEST(PlacementTest, DualQuaternionRoundTripAndMove)
     const Rotation  rotation(Vector3d(0.0, 0.0, 1.0), QuarterTurn);
     const Placement original(Vector3d(1.0, 2.0, 3.0), rotation);
 
-    const DualQuat  asDualQuaternion = original.toDualQuaternion();
-    const Placement back             = Placement::fromDualQuaternion(asDualQuaternion);
+    const DualQuaternion asDualQuaternion = original.toDualQuaternion();
+    const Placement      back             = Placement::fromDualQuaternion(asDualQuaternion);
     EXPECT_TRUE(back.isSame(original, 1e-12));
 
     // 实部即旋转四元数，长度应为 1
@@ -199,31 +199,31 @@ TEST(PlacementTest, SlerpAndSclerpHitEndpoints)
 }
 
 /**
- * @brief 钉住：DualQuat 的取值与基本量，以及 (real, dual) 构造拒绝含非零对偶分量的参数
+ * @brief 钉住：DualQuaternion 的取值与基本量，以及 (real, dual) 构造拒绝含非零对偶分量的参数
  */
 TEST(DualQuaternionTest, ValuesAndPurityRejection)
 {
-    const DualQuat identity = DualQuat::identity();
+    const DualQuaternion identity = DualQuaternion::identity();
     EXPECT_DOUBLE_EQ(identity.length(), 1.0);
     EXPECT_DOUBLE_EQ(identity.theta(), 0.0);
     EXPECT_DOUBLE_EQ(identity.w.re, 1.0);
 
-    const DualQuat negated = -DualQuat(1.0, 2.0, 3.0, 4.0);
+    const DualQuaternion negated = -DualQuaternion(1.0, 2.0, 3.0, 4.0);
     EXPECT_DOUBLE_EQ(negated.x.re, -1.0);
     EXPECT_DOUBLE_EQ(negated.w.re, -4.0);
 
     // 共轭只取反向量部分
-    const DualQuat conjugate = DualQuat(1.0, 2.0, 3.0, 4.0).conj();
+    const DualQuaternion conjugate = DualQuaternion(1.0, 2.0, 3.0, 4.0).conj();
     EXPECT_DOUBLE_EQ(conjugate.x.re, -1.0);
     EXPECT_DOUBLE_EQ(conjugate.w.re, 4.0);
 
     // real()/dual() 只取一层，用于把对偶四元数拆成两个纯实四元数
-    const DualQuat mixed(0.0, 0.0, 0.0, 1.0, 0.5, 0.0, 0.0, 0.0);
+    const DualQuaternion mixed(0.0, 0.0, 0.0, 1.0, 0.5, 0.0, 0.0, 0.0);
     EXPECT_DOUBLE_EQ(mixed.real().x.du, 0.0);
     EXPECT_DOUBLE_EQ(mixed.dual().x.re, 0.5);
 
     // 拒绝面：实部参数带非零对偶分量时必须抛错，而不是静默丢弃那些分量
-    EXPECT_THROW(static_cast<void>(DualQuat(mixed, DualQuat())), ValueError);
-    EXPECT_THROW(static_cast<void>(DualQuat(DualQuat::identity(), mixed)), ValueError);
-    EXPECT_NO_THROW(static_cast<void>(DualQuat(mixed.real(), mixed.dual())));
+    EXPECT_THROW(static_cast<void>(DualQuaternion(mixed, DualQuaternion())), ValueError);
+    EXPECT_THROW(static_cast<void>(DualQuaternion(DualQuaternion::identity(), mixed)), ValueError);
+    EXPECT_NO_THROW(static_cast<void>(DualQuaternion(mixed.real(), mixed.dual())));
 }

@@ -18,10 +18,10 @@ namespace ExpressionEngine::Base
     /**
      * @brief 浮点类型数值特征的通用模板
      * @details 为 Vector3 提供 pi/epsilon/maximum 三个编译期常量；未特化的类型无法实例化 Vector3。
-     * @tparam floatingType 浮点类型
+     * @tparam FloatingType 浮点类型
      */
-    template<class floatingType>
-    struct float_traits
+    template<class FloatingType>
+    struct FloatTraits
     {
     };
 
@@ -29,36 +29,36 @@ namespace ExpressionEngine::Base
      * @brief float 的数值特征
      */
     template<>
-    struct float_traits<float>
+    struct FloatTraits<float>
     {
         /** @brief 分量类型 */
-        using float_type = float;
+        using FloatingType = float;
 
         /**
          * @brief 取圆周率
          * @return 分量类型的 π 值
          */
-        [[nodiscard]] static consteval float_type pi()
+        [[nodiscard]] static consteval FloatingType pi()
         {
-            return std::numbers::pi_v<float_type>;
+            return std::numbers::pi_v<FloatingType>;
         }
 
         /**
          * @brief 取机器精度
          * @return 分量类型的 epsilon，即相邻可表示浮点数之间的最小相对差异
          */
-        [[nodiscard]] static consteval float_type epsilon()
+        [[nodiscard]] static consteval FloatingType epsilon()
         {
-            return std::numeric_limits<float_type>::epsilon();
+            return std::numeric_limits<FloatingType>::epsilon();
         }
 
         /**
          * @brief 取可表示的最大有限值
          * @return 分量类型的最大有限值
          */
-        [[nodiscard]] static consteval float_type maximum()
+        [[nodiscard]] static consteval FloatingType maximum()
         {
-            return std::numeric_limits<float_type>::max();
+            return std::numeric_limits<FloatingType>::max();
         }
     };
 
@@ -66,36 +66,36 @@ namespace ExpressionEngine::Base
      * @brief double 的数值特征
      */
     template<>
-    struct float_traits<double>
+    struct FloatTraits<double>
     {
         /** @brief 分量类型 */
-        using float_type = double;
+        using FloatingType = double;
 
         /**
          * @brief 取圆周率
          * @return 分量类型的 π 值
          */
-        [[nodiscard]] static consteval float_type pi()
+        [[nodiscard]] static consteval FloatingType pi()
         {
-            return std::numbers::pi_v<float_type>;
+            return std::numbers::pi_v<FloatingType>;
         }
 
         /**
          * @brief 取机器精度
          * @return 分量类型的 epsilon，即相邻可表示浮点数之间的最小相对差异
          */
-        [[nodiscard]] static consteval float_type epsilon()
+        [[nodiscard]] static consteval FloatingType epsilon()
         {
-            return std::numeric_limits<float_type>::epsilon();
+            return std::numeric_limits<FloatingType>::epsilon();
         }
 
         /**
          * @brief 取可表示的最大有限值
          * @return 分量类型的最大有限值
          */
-        [[nodiscard]] static consteval float_type maximum()
+        [[nodiscard]] static consteval FloatingType maximum()
         {
-            return std::numeric_limits<float_type>::max();
+            return std::numeric_limits<FloatingType>::max();
         }
     };
 
@@ -103,9 +103,9 @@ namespace ExpressionEngine::Base
      * @brief 三维向量模板
      * @details 值语义的数学类型：x/y/z 按数学惯例公开，便于结构化访问与就地运算。
      *          operator==/operator!= 按机器精度做分量容差比较，并非逐位相等。
-     * @tparam float_type 分量类型，支持 float 与 double
+     * @tparam FloatingType 分量类型，支持 float 与 double
      */
-    template<class float_type>
+    template<class FloatingType>
     class Vector3
     {
     public:
@@ -113,21 +113,21 @@ namespace ExpressionEngine::Base
         static const Vector3 UnitY; ///< Y 轴单位向量
         static const Vector3 UnitZ; ///< Z 轴单位向量
 
-        using num_type    = float_type;             ///< 分量类型
-        using traits_type = float_traits<num_type>; ///< 数值特征类型
+        using NumberType = FloatingType;            ///< 分量类型
+        using TraitsType = FloatTraits<NumberType>; ///< 数值特征类型
 
         /**
          * @brief 取分量类型的机器精度
          * @return 分量类型 epsilon 的最小可分辨差异
          */
-        [[nodiscard]] static constexpr num_type epsilon()
+        [[nodiscard]] static constexpr NumberType epsilon()
         {
-            return traits_type::epsilon();
+            return TraitsType::epsilon();
         }
 
-        float_type x; ///< x 分量
-        float_type y; ///< y 分量
-        float_type z; ///< z 分量
+        FloatingType x; ///< x 分量
+        FloatingType y; ///< y 分量
+        FloatingType z; ///< z 分量
 
         /**
          * @brief 构造向量
@@ -135,19 +135,19 @@ namespace ExpressionEngine::Base
          * @param yValue y 分量，默认 0
          * @param zValue z 分量，默认 0
          */
-        explicit Vector3(float_type xValue = 0.0, float_type yValue = 0.0, float_type zValue = 0.0);
+        explicit Vector3(FloatingType xValue = 0.0, FloatingType yValue = 0.0, FloatingType zValue = 0.0);
 
         /**
          * @brief 拷贝构造
          * @param other 被拷贝的向量
          */
-        Vector3(const Vector3<float_type> &other) = default;
+        Vector3(const Vector3<FloatingType> &other) = default;
 
         /**
          * @brief 移动构造
          * @param other 被移动的向量，移动后处于有效但未指定状态
          */
-        Vector3(Vector3<float_type> &&other) noexcept = default;
+        Vector3(Vector3<FloatingType> &&other) noexcept = default;
 
         /**
          * @brief 析构函数
@@ -160,7 +160,7 @@ namespace ExpressionEngine::Base
          * @return 对应分量的引用
          * @throws IndexError 下标超出 [0,2] 时抛出，避免越界写入静默破坏相邻内存
          */
-        [[nodiscard]] float_type &operator[](unsigned short index);
+        [[nodiscard]] FloatingType &operator[](unsigned short index);
 
         /**
          * @brief 取只读分量引用
@@ -168,28 +168,28 @@ namespace ExpressionEngine::Base
          * @return 对应分量的常量引用
          * @throws IndexError 下标超出 [0,2] 时抛出
          */
-        [[nodiscard]] const float_type &operator[](unsigned short index) const;
+        [[nodiscard]] const FloatingType &operator[](unsigned short index) const;
 
         /**
          * @brief 向量加法
          * @param other 加数
          * @return 逐分量相加的新向量
          */
-        [[nodiscard]] Vector3 operator+(const Vector3<float_type> &other) const;
+        [[nodiscard]] Vector3 operator+(const Vector3<FloatingType> &other) const;
 
         /**
          * @brief 逐分量乘以另一向量各分量的绝对值
          * @param other 提供绝对值因子的向量
          * @return 结果向量
          */
-        [[nodiscard]] Vector3 operator&(const Vector3<float_type> &other) const;
+        [[nodiscard]] Vector3 operator&(const Vector3<FloatingType> &other) const;
 
         /**
          * @brief 向量减法
          * @param other 减数
          * @return 逐分量相减的新向量
          */
-        [[nodiscard]] Vector3 operator-(const Vector3<float_type> &other) const;
+        [[nodiscard]] Vector3 operator-(const Vector3<FloatingType> &other) const;
 
         /**
          * @brief 取反向量
@@ -202,98 +202,98 @@ namespace ExpressionEngine::Base
          * @param other 加数
          * @return 自身引用
          */
-        Vector3 &operator+=(const Vector3<float_type> &other);
+        Vector3 &operator+=(const Vector3<FloatingType> &other);
 
         /**
          * @brief 就地累减
          * @param other 减数
          * @return 自身引用
          */
-        Vector3 &operator-=(const Vector3<float_type> &other);
+        Vector3 &operator-=(const Vector3<FloatingType> &other);
 
         /**
          * @brief 向量缩放
          * @param scale 缩放因子
          * @return 缩放后的新向量
          */
-        [[nodiscard]] Vector3 operator*(float_type scale) const;
+        [[nodiscard]] Vector3 operator*(FloatingType scale) const;
 
         /**
          * @brief 向量除以标量
          * @param divisor 除数
          * @return 相除后的新向量
          */
-        [[nodiscard]] Vector3 operator/(float_type divisor) const;
+        [[nodiscard]] Vector3 operator/(FloatingType divisor) const;
 
         /**
          * @brief 就地缩放
          * @param scale 缩放因子
          * @return 自身引用
          */
-        Vector3 &operator*=(float_type scale);
+        Vector3 &operator*=(FloatingType scale);
 
         /**
          * @brief 就地除以标量
          * @param divisor 除数
          * @return 自身引用
          */
-        Vector3 &operator/=(float_type divisor);
+        Vector3 &operator/=(FloatingType divisor);
 
         /**
          * @brief 拷贝赋值
          * @param other 被赋值的向量
          * @return 自身引用
          */
-        Vector3 &operator=(const Vector3<float_type> &other) = default;
+        Vector3 &operator=(const Vector3<FloatingType> &other) = default;
 
         /**
          * @brief 移动赋值
          * @param other 被移动的向量，移动后处于有效但未指定状态
          * @return 自身引用
          */
-        Vector3 &operator=(Vector3<float_type> &&other) noexcept = default;
+        Vector3 &operator=(Vector3<FloatingType> &&other) noexcept = default;
 
         /**
          * @brief 点积（标量积）
          * @param other 另一向量
          * @return 点积结果
          */
-        [[nodiscard]] float_type operator*(const Vector3<float_type> &other) const;
+        [[nodiscard]] FloatingType operator*(const Vector3<FloatingType> &other) const;
 
         /**
          * @brief 点积（标量积）
          * @param other 另一向量
          * @return 点积结果
          */
-        [[nodiscard]] float_type Dot(const Vector3<float_type> &other) const;
+        [[nodiscard]] FloatingType Dot(const Vector3<FloatingType> &other) const;
 
         /**
          * @brief 叉积（向量积）
          * @param other 另一向量
          * @return 同时垂直于两向量的新向量
          */
-        [[nodiscard]] Vector3 operator%(const Vector3<float_type> &other) const;
+        [[nodiscard]] Vector3 operator%(const Vector3<FloatingType> &other) const;
 
         /**
          * @brief 叉积（向量积）
          * @param other 另一向量
          * @return 同时垂直于两向量的新向量
          */
-        [[nodiscard]] Vector3 Cross(const Vector3<float_type> &other) const;
+        [[nodiscard]] Vector3 Cross(const Vector3<FloatingType> &other) const;
 
         /**
          * @brief 按容差比较不等
          * @param other 另一向量
          * @return 任一分量差异超过机器精度时返回 true
          */
-        [[nodiscard]] bool operator!=(const Vector3<float_type> &other) const;
+        [[nodiscard]] bool operator!=(const Vector3<FloatingType> &other) const;
 
         /**
          * @brief 按容差比较相等
          * @param other 另一向量
          * @return 三分量差异都不超过机器精度时返回 true
          */
-        [[nodiscard]] bool operator==(const Vector3<float_type> &other) const;
+        [[nodiscard]] bool operator==(const Vector3<FloatingType> &other) const;
 
         /**
          * @brief 判断本点是否落在线段上
@@ -301,25 +301,25 @@ namespace ExpressionEngine::Base
          * @param endPoint 线段终点
          * @return 与线段共线且投影落在线段范围内时返回 true
          */
-        [[nodiscard]] bool IsOnLineSegment(const Vector3<float_type> &startPoint, const Vector3<float_type> &endPoint) const;
+        [[nodiscard]] bool IsOnLineSegment(const Vector3<FloatingType> &startPoint, const Vector3<FloatingType> &endPoint) const;
 
         /**
          * @brief 就地缩放 X 分量
          * @param factor 缩放因子
          */
-        void ScaleX(float_type factor);
+        void ScaleX(FloatingType factor);
 
         /**
          * @brief 就地缩放 Y 分量
          * @param factor 缩放因子
          */
-        void ScaleY(float_type factor);
+        void ScaleY(FloatingType factor);
 
         /**
          * @brief 就地缩放 Z 分量
          * @param factor 缩放因子
          */
-        void ScaleZ(float_type factor);
+        void ScaleZ(FloatingType factor);
 
         /**
          * @brief 三分量分别就地缩放
@@ -327,25 +327,25 @@ namespace ExpressionEngine::Base
          * @param yFactor Y 分量缩放因子
          * @param zFactor Z 分量缩放因子
          */
-        void Scale(float_type xFactor, float_type yFactor, float_type zFactor);
+        void Scale(FloatingType xFactor, FloatingType yFactor, FloatingType zFactor);
 
         /**
          * @brief 就地平移 X 分量
          * @param offset 偏移量
          */
-        void MoveX(float_type offset);
+        void MoveX(FloatingType offset);
 
         /**
          * @brief 就地平移 Y 分量
          * @param offset 偏移量
          */
-        void MoveY(float_type offset);
+        void MoveY(FloatingType offset);
 
         /**
          * @brief 就地平移 Z 分量
          * @param offset 偏移量
          */
-        void MoveZ(float_type offset);
+        void MoveZ(FloatingType offset);
 
         /**
          * @brief 三分量分别就地平移
@@ -353,25 +353,25 @@ namespace ExpressionEngine::Base
          * @param yOffset Y 分量偏移
          * @param zOffset Z 分量偏移
          */
-        void Move(float_type xOffset, float_type yOffset, float_type zOffset);
+        void Move(FloatingType xOffset, FloatingType yOffset, FloatingType zOffset);
 
         /**
          * @brief 绕 X 轴就地旋转
          * @param angle 旋转角（弧度）
          */
-        void RotateX(float_type angle);
+        void RotateX(FloatingType angle);
 
         /**
          * @brief 绕 Y 轴就地旋转
          * @param angle 旋转角（弧度）
          */
-        void RotateY(float_type angle);
+        void RotateY(FloatingType angle);
 
         /**
          * @brief 绕 Z 轴就地旋转
          * @param angle 旋转角（弧度）
          */
-        void RotateZ(float_type angle);
+        void RotateZ(FloatingType angle);
 
         /**
          * @brief 一次性重设三分量
@@ -379,19 +379,19 @@ namespace ExpressionEngine::Base
          * @param yValue y 分量
          * @param zValue z 分量
          */
-        void Set(float_type xValue, float_type yValue, float_type zValue);
+        void Set(FloatingType xValue, FloatingType yValue, FloatingType zValue);
 
         /**
          * @brief 取向量长度
          * @return 欧几里得范数
          */
-        [[nodiscard]] float_type Length() const;
+        [[nodiscard]] FloatingType Length() const;
 
         /**
          * @brief 取长度平方
          * @return 三分量平方和，比 Length() 少一次开方
          */
-        [[nodiscard]] float_type Sqr() const;
+        [[nodiscard]] FloatingType squaredLength() const;
 
         /**
          * @brief 就地归一化
@@ -418,7 +418,7 @@ namespace ExpressionEngine::Base
          * @param other 另一向量
          * @return 夹角弧度，落在 [0, pi]；任一方为零向量时返回 NaN（无法定义夹角）
          */
-        [[nodiscard]] float_type GetAngle(const Vector3 &other) const;
+        [[nodiscard]] FloatingType GetAngle(const Vector3 &other) const;
 
         /**
          * @brief 取带符号夹角
@@ -426,7 +426,7 @@ namespace ExpressionEngine::Base
          * @param normal 用于确定旋向的参考法向
          * @return 夹角弧度，落在 [0, 2*pi]
          */
-        [[nodiscard]] float_type GetAngleOriented(const Vector3 &other, const Vector3 &normal) const;
+        [[nodiscard]] FloatingType GetAngleOriented(const Vector3 &other, const Vector3 &normal) const;
 
         /**
          * @brief 把本点变换到给定坐标系
@@ -443,7 +443,7 @@ namespace ExpressionEngine::Base
          * @param tolerance 容差
          * @return 两点距离不超过容差时返回 true
          */
-        [[nodiscard]] bool IsEqual(const Vector3 &point, float_type tolerance) const;
+        [[nodiscard]] bool IsEqual(const Vector3 &point, FloatingType tolerance) const;
 
         /**
          * @brief 判断两向量是否平行
@@ -451,7 +451,7 @@ namespace ExpressionEngine::Base
          * @param tolerance 角度容差（弧度）
          * @return 夹角接近 0 或 pi 时返回 true；任一方为零向量时返回 false
          */
-        [[nodiscard]] bool IsParallel(const Vector3 &direction, float_type tolerance) const;
+        [[nodiscard]] bool IsParallel(const Vector3 &direction, FloatingType tolerance) const;
 
         /**
          * @brief 判断两向量是否垂直
@@ -459,7 +459,7 @@ namespace ExpressionEngine::Base
          * @param tolerance 角度容差（弧度）
          * @return 夹角接近 pi/2 时返回 true；任一方为零向量时返回 false
          */
-        [[nodiscard]] bool IsNormal(const Vector3 &direction, float_type tolerance) const;
+        [[nodiscard]] bool IsNormal(const Vector3 &direction, FloatingType tolerance) const;
 
         /**
          * @brief 就地把点投影到平面
@@ -500,7 +500,7 @@ namespace ExpressionEngine::Base
          * @param normal 平面法向
          * @return 与法向同侧为正、异侧为负的距离
          */
-        [[nodiscard]] float_type DistanceToPlane(const Vector3 &base, const Vector3 &normal) const;
+        [[nodiscard]] FloatingType DistanceToPlane(const Vector3 &base, const Vector3 &normal) const;
 
         /**
          * @brief 求点到直线的距离
@@ -508,7 +508,7 @@ namespace ExpressionEngine::Base
          * @param direction 直线方向
          * @return 垂直距离
          */
-        [[nodiscard]] float_type DistanceToLine(const Vector3 &base, const Vector3 &direction) const;
+        [[nodiscard]] FloatingType DistanceToLine(const Vector3 &base, const Vector3 &direction) const;
 
         /**
          * @brief 求点到线段的最短位移向量
@@ -520,12 +520,12 @@ namespace ExpressionEngine::Base
         [[nodiscard]] Vector3 DistanceToLineSegment(const Vector3 &firstPoint, const Vector3 &secondPoint) const;
     };
 
-    template<class float_type>
-    Vector3<float_type> const Vector3<float_type>::UnitX(1.0, 0.0, 0.0);
-    template<class float_type>
-    Vector3<float_type> const Vector3<float_type>::UnitY(0.0, 1.0, 0.0);
-    template<class float_type>
-    Vector3<float_type> const Vector3<float_type>::UnitZ(0.0, 0.0, 1.0);
+    template<class FloatingType>
+    Vector3<FloatingType> const Vector3<FloatingType>::UnitX(1.0, 0.0, 0.0);
+    template<class FloatingType>
+    Vector3<FloatingType> const Vector3<FloatingType>::UnitY(0.0, 1.0, 0.0);
+    template<class FloatingType>
+    Vector3<FloatingType> const Vector3<FloatingType>::UnitZ(0.0, 0.0, 1.0);
 
     /**
      * @brief 求两点距离
@@ -533,13 +533,13 @@ namespace ExpressionEngine::Base
      * @param second 第二个点
      * @return 欧几里得距离
      */
-    template<class float_type>
-    [[nodiscard]] inline float_type Distance(const Vector3<float_type> &first, const Vector3<float_type> &second)
+    template<class FloatingType>
+    [[nodiscard]] inline FloatingType Distance(const Vector3<FloatingType> &first, const Vector3<FloatingType> &second)
     {
-        const float_type deltaX = first.x - second.x;
-        const float_type deltaY = first.y - second.y;
-        const float_type deltaZ = first.z - second.z;
-        return static_cast<float_type>(std::sqrt((deltaX * deltaX) + (deltaY * deltaY) + (deltaZ * deltaZ)));
+        const FloatingType deltaX = first.x - second.x;
+        const FloatingType deltaY = first.y - second.y;
+        const FloatingType deltaZ = first.z - second.z;
+        return static_cast<FloatingType>(std::sqrt((deltaX * deltaX) + (deltaY * deltaY) + (deltaZ * deltaZ)));
     }
 
     /**
@@ -548,12 +548,12 @@ namespace ExpressionEngine::Base
      * @param second 第二个点
      * @return 距离的平方，比较远近时用它可省去开方
      */
-    template<class float_type>
-    [[nodiscard]] inline float_type DistanceP2(const Vector3<float_type> &first, const Vector3<float_type> &second)
+    template<class FloatingType>
+    [[nodiscard]] inline FloatingType DistanceP2(const Vector3<FloatingType> &first, const Vector3<FloatingType> &second)
     {
-        const float_type deltaX = first.x - second.x;
-        const float_type deltaY = first.y - second.y;
-        const float_type deltaZ = first.z - second.z;
+        const FloatingType deltaX = first.x - second.x;
+        const FloatingType deltaY = first.y - second.y;
+        const FloatingType deltaZ = first.z - second.z;
         return deltaX * deltaX + deltaY * deltaY + deltaZ * deltaZ;
     }
 
@@ -563,10 +563,10 @@ namespace ExpressionEngine::Base
      * @param vector 被缩放的向量
      * @return 缩放后的新向量
      */
-    template<class float_type>
-    [[nodiscard]] inline Vector3<float_type> operator*(float_type factor, const Vector3<float_type> &vector)
+    template<class FloatingType>
+    [[nodiscard]] inline Vector3<FloatingType> operator*(FloatingType factor, const Vector3<FloatingType> &vector)
     {
-        return Vector3<float_type>(vector.x * factor, vector.y * factor, vector.z * factor);
+        return Vector3<FloatingType>(vector.x * factor, vector.y * factor, vector.z * factor);
     }
 
     /**

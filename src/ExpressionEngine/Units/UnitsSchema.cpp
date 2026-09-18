@@ -119,7 +119,7 @@ namespace ExpressionEngine::Units
         return m_spec.description == nullptr ? std::string{} : std::string{m_spec.description};
     }
 
-    int UnitsSchema::getNum() const
+    int UnitsSchema::getNumber() const
     {
         return static_cast<int>(m_spec.num);
     }

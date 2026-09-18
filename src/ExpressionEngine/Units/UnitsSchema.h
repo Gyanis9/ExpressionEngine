@@ -49,7 +49,7 @@ namespace ExpressionEngine::Units
         [[nodiscard]] std::string getDescription() const;
 
         /// 取方案编号
-        [[nodiscard]] int getNum() const;
+        [[nodiscard]] int getNumber() const;
 
         /**
          * @brief 按当前发布的区域上下文换算并排版

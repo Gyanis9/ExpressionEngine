@@ -2330,11 +2330,11 @@ namespace ExpressionEngine::Expression
                     case Function::VectorLineProjection:
                         // 垂足 = 直线上一点 + 位移在直线方向上的分量。
                         // 不用 Vector3d::ProjectToLine：该函数的公式不读取自身，结果与待投影的点无关。
-                        if (thirdVector.Sqr() == 0.0)
+                        if (thirdVector.squaredLength() == 0.0)
                         {
                             throw Base::ValueError("vlineproj() 的直线方向是零向量，无法确定直线；请给出非零方向");
                         }
-                        return secondVector + (((firstVector - secondVector) * thirdVector) / thirdVector.Sqr()) * thirdVector;
+                        return secondVector + (((firstVector - secondVector) * thirdVector) / thirdVector.squaredLength()) * thirdVector;
                     case Function::VectorPlaneDistance:
                         return Units::Quantity(firstVector.DistanceToPlane(secondVector, thirdVector), Units::Unit::Length);
                     case Function::VectorPlaneProjection:

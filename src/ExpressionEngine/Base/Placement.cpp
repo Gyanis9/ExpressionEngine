@@ -27,12 +27,12 @@ namespace ExpressionEngine::Base
         m_position = position + center - rotatedCenter;
     }
 
-    Placement Placement::fromDualQuaternion(DualQuat dualQuaternion)
+    Placement Placement::fromDualQuaternion(DualQuaternion dualQuaternion)
     {
         // 实部就是旋转四元数，分量顺序为 x, y, z, w
         const Rotation rotation(dualQuaternion.x.re, dualQuaternion.y.re, dualQuaternion.z.re, dualQuaternion.w.re);
         // 平移按 t = 2·d·r* 还原：d 为对偶部、r* 为旋转共轭
-        const DualQuat moveQuaternion = 2 * dualQuaternion.dual() * dualQuaternion.real().conj();
+        const DualQuaternion moveQuaternion = 2 * dualQuaternion.dual() * dualQuaternion.real().conj();
         return Placement(Vector3d(moveQuaternion.x.re, moveQuaternion.y.re, moveQuaternion.z.re), rotation);
     }
 
@@ -56,14 +56,14 @@ namespace ExpressionEngine::Base
         m_position.z = matrix[2][3];
     }
 
-    DualQuat Placement::toDualQuaternion() const
+    DualQuaternion Placement::toDualQuaternion() const
     {
         // 平移向量以 w = 0 的纯四元数参与运算
-        const DualQuat positionQuaternion(m_position.x, m_position.y, m_position.z, 0.0);
-        DualQuat       rotationQuaternion;
+        const DualQuaternion positionQuaternion(m_position.x, m_position.y, m_position.z, 0.0);
+        DualQuaternion       rotationQuaternion;
         m_rotation.getValue(rotationQuaternion.x.re, rotationQuaternion.y.re, rotationQuaternion.z.re, rotationQuaternion.w.re);
         // 对偶部按 0.5·t·r 编码
-        const DualQuat result(rotationQuaternion, 0.5 * positionQuaternion * rotationQuaternion);
+        const DualQuaternion result(rotationQuaternion, 0.5 * positionQuaternion * rotationQuaternion);
         return result;
     }
 

@@ -16,7 +16,7 @@ namespace ExpressionEngine::Base
     /**
      * @brief 对偶数，形如 a + b·ε，其中 ε² = 0
      * @details 对偶数把函数值与其导数打包进一个数：把 f 作用在 a + b·ε 上，结果的 ε 分量即
-     *          f'(a)·b。DualQuat 用它同时承载旋转与平移两部分。
+     *          f'(a)·b。DualQuaternion 用它同时承载旋转与平移两部分。
      */
     class DualNumber
     {

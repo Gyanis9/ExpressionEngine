@@ -20,7 +20,7 @@ namespace ExpressionEngine::Base
      * @details 旋转存放在实部，平移编码进对偶部：dual() = 0.5·t·r，其中 t 为平移量对应的纯四元数、
      *          r 为旋转四元数。四个分量 x、y、z、w 是构成值语义的公开数据，按数学惯例不加前缀。
      */
-    class DualQuat
+    class DualQuaternion
     {
     public:
         DualNumber x; ///< x 分量
@@ -31,7 +31,7 @@ namespace ExpressionEngine::Base
         /**
          * @brief 构造零四元数（所有分量为零）
          */
-        DualQuat() = default;
+        DualQuaternion() = default;
 
         /**
          * @brief 按对偶分量构造
@@ -40,7 +40,7 @@ namespace ExpressionEngine::Base
          * @param z z 分量
          * @param w w 分量
          */
-        DualQuat(DualNumber x, DualNumber y, DualNumber z, DualNumber w) : x(x), y(y), z(z), w(w)
+        DualQuaternion(DualNumber x, DualNumber y, DualNumber z, DualNumber w) : x(x), y(y), z(z), w(w)
         {
         }
 
@@ -55,7 +55,7 @@ namespace ExpressionEngine::Base
          * @param dualZ z 分量对偶部
          * @param dualW w 分量对偶部
          */
-        DualQuat(double x, double y, double z, double w, double dualX, double dualY, double dualZ, double dualW) : x(x, dualX), y(y, dualY), z(z, dualZ), w(w, dualW)
+        DualQuaternion(double x, double y, double z, double w, double dualX, double dualY, double dualZ, double dualW) : x(x, dualX), y(y, dualY), z(z, dualZ), w(w, dualW)
         {
         }
 
@@ -66,7 +66,7 @@ namespace ExpressionEngine::Base
          * @param z z 分量实部
          * @param w w 分量实部
          */
-        DualQuat(const double x, double y, double z, double w) : x(x), y(y), z(z), w(w)
+        DualQuaternion(const double x, double y, double z, double w) : x(x), y(y), z(z), w(w)
         {
         }
 
@@ -78,13 +78,13 @@ namespace ExpressionEngine::Base
          * @param dualPart 对偶部，即平移编码
          * @throws ValueError 任一参数含非零对偶分量
          */
-        DualQuat(const DualQuat &realPart, const DualQuat &dualPart);
+        DualQuaternion(const DualQuaternion &realPart, const DualQuaternion &dualPart);
 
         /**
          * @brief 取恒等位姿对应的对偶四元数
          * @return 四元数 (0, 0, 0, 1)
          */
-        static DualQuat identity()
+        static DualQuaternion identity()
         {
             return {0.0, 0.0, 0.0, 1.0};
         }
@@ -93,7 +93,7 @@ namespace ExpressionEngine::Base
          * @brief 取实部（对偶部清零）
          * @return 纯实四元数
          */
-        [[nodiscard]] DualQuat real() const
+        [[nodiscard]] DualQuaternion real() const
         {
             return {x.re, y.re, z.re, w.re};
         }
@@ -102,7 +102,7 @@ namespace ExpressionEngine::Base
          * @brief 取对偶部（作为纯实四元数返回）
          * @return 由各分量对偶部组成的纯实四元数
          */
-        [[nodiscard]] DualQuat dual() const
+        [[nodiscard]] DualQuaternion dual() const
         {
             return {x.du, y.du, z.du, w.du};
         }
@@ -111,7 +111,7 @@ namespace ExpressionEngine::Base
          * @brief 取共轭
          * @return 向量部分取反的结果
          */
-        [[nodiscard]] DualQuat conj() const
+        [[nodiscard]] DualQuaternion conj() const
         {
             return {-x, -y, -z, w};
         }
@@ -120,7 +120,7 @@ namespace ExpressionEngine::Base
          * @brief 取向量部分（标量分量 w 清零）
          * @return w 为零的四元数
          */
-        [[nodiscard]] DualQuat vec() const
+        [[nodiscard]] DualQuaternion vector() const
         {
             return {x, y, z, 0.0};
         }
@@ -140,7 +140,7 @@ namespace ExpressionEngine::Base
          */
         [[nodiscard]] double theta() const
         {
-            return 2.0 * std::atan2(vec().length(), w.re);
+            return 2.0 * std::atan2(vector().length(), w.re);
         }
 
         /**
@@ -150,7 +150,7 @@ namespace ExpressionEngine::Base
          * @param right 右操作数
          * @return 实部四元数的点积
          */
-        static double dot(const DualQuat &left, const DualQuat &right);
+        static double dot(const DualQuaternion &left, const DualQuaternion &right);
 
         /**
          * @brief 螺旋插值（ScLERP）
@@ -160,13 +160,13 @@ namespace ExpressionEngine::Base
          * @param shorten 是否取短弧，默认取
          * @return 插值结果
          */
-        [[nodiscard]] DualQuat pow(double t, bool shorten = true) const;
+        [[nodiscard]] DualQuaternion pow(double t, bool shorten = true) const;
 
         /**
          * @brief 取相反数
          * @return 各分量的实部与对偶部都取反的结果
          */
-        DualQuat operator-() const
+        DualQuaternion operator-() const
         {
             return {-x, -y, -z, -w};
         }
@@ -178,7 +178,7 @@ namespace ExpressionEngine::Base
      * @param right 右操作数
      * @return 逐分量之和
      */
-    DualQuat operator+(const DualQuat &left, const DualQuat &right);
+    DualQuaternion operator+(const DualQuaternion &left, const DualQuaternion &right);
 
     /**
      * @brief 对偶四元数相减
@@ -186,7 +186,7 @@ namespace ExpressionEngine::Base
      * @param right 右操作数
      * @return 逐分量之差
      */
-    DualQuat operator-(const DualQuat &left, const DualQuat &right);
+    DualQuaternion operator-(const DualQuaternion &left, const DualQuaternion &right);
 
     /**
      * @brief 对偶四元数相乘
@@ -194,7 +194,7 @@ namespace ExpressionEngine::Base
      * @param right 右操作数
      * @return 乘积，对应两次位姿变换的复合
      */
-    DualQuat operator*(const DualQuat &left, const DualQuat &right);
+    DualQuaternion operator*(const DualQuaternion &left, const DualQuaternion &right);
 
     /**
      * @brief 对偶四元数乘实数
@@ -202,7 +202,7 @@ namespace ExpressionEngine::Base
      * @param right 缩放因子
      * @return 逐分量缩放的结果
      */
-    DualQuat operator*(const DualQuat &left, double right);
+    DualQuaternion operator*(const DualQuaternion &left, double right);
 
     /**
      * @brief 实数乘对偶四元数
@@ -210,7 +210,7 @@ namespace ExpressionEngine::Base
      * @param right 被缩放的对偶四元数
      * @return 逐分量缩放的结果
      */
-    DualQuat operator*(double left, const DualQuat &right);
+    DualQuaternion operator*(double left, const DualQuaternion &right);
 
     /**
      * @brief 对偶四元数乘对偶数
@@ -218,7 +218,7 @@ namespace ExpressionEngine::Base
      * @param right 对偶数缩放因子
      * @return 逐分量缩放的结果
      */
-    DualQuat operator*(const DualQuat &left, DualNumber right);
+    DualQuaternion operator*(const DualQuaternion &left, DualNumber right);
 
     /**
      * @brief 对偶数乘对偶四元数
@@ -226,5 +226,5 @@ namespace ExpressionEngine::Base
      * @param right 被缩放的对偶四元数
      * @return 逐分量缩放的结果
      */
-    DualQuat operator*(DualNumber left, const DualQuat &right);
+    DualQuaternion operator*(DualNumber left, const DualQuaternion &right);
 } // namespace ExpressionEngine::Base

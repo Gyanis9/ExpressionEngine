@@ -15,7 +15,7 @@
 
 namespace ExpressionEngine::Base
 {
-    class DualQuat;
+    class DualQuaternion;
     class Matrix4D;
 
     /**
@@ -69,7 +69,7 @@ namespace ExpressionEngine::Base
          * @param dualQuaternion 对偶四元数，实部为旋转、对偶部按 0.5·t·r 编码平移
          * @return 对应位姿
          */
-        static Placement fromDualQuaternion(DualQuat dualQuaternion);
+        static Placement fromDualQuaternion(DualQuaternion dualQuaternion);
 
         /**
          * @brief 析构函数
@@ -92,7 +92,7 @@ namespace ExpressionEngine::Base
          * @brief 输出对偶四元数形式
          * @return 实部为旋转四元数，对偶部为 0.5·t·r
          */
-        DualQuat toDualQuaternion() const;
+        DualQuaternion toDualQuaternion() const;
 
         /**
          * @brief 取位置

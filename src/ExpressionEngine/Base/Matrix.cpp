@@ -892,15 +892,15 @@ Matrix4D::Matrix4D(double a11, double a12, double a13, double a14,
         };
 
         // 列向量的平方长度及其几何平均，用于判定从右侧作用的缩放
-        const double columnSquaredX = getCol(0).Sqr();
-        const double columnSquaredY = getCol(1).Sqr();
-        const double columnSquaredZ = getCol(2).Sqr();
+        const double columnSquaredX = getCol(0).squaredLength();
+        const double columnSquaredY = getCol(1).squaredLength();
+        const double columnSquaredZ = getCol(2).squaredLength();
         const double columnProduct  = std::sqrt(columnSquaredX * columnSquaredY * columnSquaredZ);
 
         // 行向量的平方长度及其几何平均，用于判定从左侧作用的缩放
-        const double rowSquaredX = getRow(0).Sqr();
-        const double rowSquaredY = getRow(1).Sqr();
-        const double rowSquaredZ = getRow(2).Sqr();
+        const double rowSquaredX = getRow(0).squaredLength();
+        const double rowSquaredY = getRow(1).squaredLength();
+        const double rowSquaredZ = getRow(2).squaredLength();
         const double rowProduct  = std::sqrt(rowSquaredX * rowSquaredY * rowSquaredZ);
 
         const double determinant = determinant3();
