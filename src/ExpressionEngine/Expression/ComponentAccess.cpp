@@ -36,14 +36,14 @@ namespace ExpressionEngine::Expression
          * @param index 字符下标
          * @return 该字符的起始偏移与字节长度
          */
-        [[nodiscard]] CharacterSpan locateCharacter(std::string_view text, std::size_t index)
+        [[nodiscard]] CharacterSpan locateCharacter(const std::string_view text, const std::size_t index)
         {
             std::size_t characterIndex = 0;
             std::size_t offset         = 0;
             while (offset < text.size())
             {
-                const unsigned char leadByte = static_cast<unsigned char>(text[offset]);
-                std::size_t         length   = 1;
+                const auto  leadByte = static_cast<unsigned char>(text[offset]);
+                std::size_t length   = 1;
                 if ((leadByte & 0xE0U) == 0xC0U)
                 {
                     length = 2;
@@ -61,12 +61,12 @@ namespace ExpressionEngine::Expression
                 }
                 if (characterIndex == index)
                 {
-                    return CharacterSpan{offset, length};
+                    return CharacterSpan{.offset = offset, .length = length};
                 }
                 offset += length;
                 ++characterIndex;
             }
-            return CharacterSpan{text.size(), 0};
+            return CharacterSpan{.offset = text.size(), .length = 0};
         }
 
         /**
@@ -74,7 +74,7 @@ namespace ExpressionEngine::Expression
          * @param text 文本
          * @return 字符个数；续字节（10xxxxxx）不计数
          */
-        [[nodiscard]] std::size_t characterCount(std::string_view text)
+        [[nodiscard]] std::size_t characterCount(const std::string_view text)
         {
             std::size_t count = 0;
             for (const char byte: text)
@@ -116,8 +116,8 @@ namespace ExpressionEngine::Expression
             {
                 throw Base::ValueError(std::format("{}：{}必须是整数，当前为 {}；请改成整数后再求值", context, description, number));
             }
-            constexpr double longMinimum = static_cast<double>(std::numeric_limits<long>::min());
-            constexpr double longMaximum = static_cast<double>(std::numeric_limits<long>::max());
+            constexpr auto longMinimum = static_cast<double>(std::numeric_limits<long>::min());
+            constexpr auto longMaximum = static_cast<double>(std::numeric_limits<long>::max());
             if (number < longMinimum || number > longMaximum)
             {
                 throw Base::OverflowError(std::format("{}：{}超出可处理范围（当前为 {}）；请缩小下标", context, description, number));
@@ -143,7 +143,7 @@ namespace ExpressionEngine::Expression
                                                    "也支持 -1 到 -3 从末尾计数",
                                                    context, index));
             }
-            return Value(vector[static_cast<unsigned short>(offset)]);
+            return {vector[static_cast<unsigned short>(offset)]};
         }
 
         /**
@@ -167,15 +167,13 @@ namespace ExpressionEngine::Expression
                 if (offset < 0 || offset >= characters)
                 {
                     throw Base::IndexError(std::format("{}：文本下标 {} 越界；文本共 {} 个字符，"
-                                                       "也支持负下标从末尾计数",
-                                                       context, index, characters));
+                                                       "也支持负下标从末尾计数", context, index, characters));
                 }
                 const CharacterSpan span = locateCharacter(*text, static_cast<std::size_t>(offset));
-                return Value(text->substr(span.offset, span.length));
+                return {text->substr(span.offset, span.length)};
             }
             throw Base::TypeError(std::format("{}：{}不支持下标分量；下标只支持向量（如 v[0] 取 x 分量）"
-                                              "与文本（如 'abc'[0] 取首字符）",
-                                              context, valueTypeName(value)));
+                                              "与文本（如 'abc'[0] 取首字符）", context, valueTypeName(value)));
         }
 
     } // namespace
@@ -189,18 +187,15 @@ namespace ExpressionEngine::Expression
             case Expression::ComponentKind::MapKey:
                 // 值模型里没有映射类型：键是宿主自定义属性的定位方式，不是值的一部分
                 throw Base::TypeError(std::format("{}：映射键分量 '{}' 在值层面无法使用——当前值模型没有映射类型，"
-                                                  "键分量只能用于宿主自定义属性；请改用属性路径或下标分量",
-                                                  context, component.name));
+                                                  "键分量只能用于宿主自定义属性；请改用属性路径或下标分量", context, component.name));
             case Expression::ComponentKind::Name:
                 // 名字分量指向对象的子属性，而值是纯数据、没有属性表可查
                 throw Base::AttributeError(std::format("{}：名字分量 '{}' 在值层面无法解析——它指向对象的子属性，"
                                                        "不是值的一部分；请在引用路径里补全该段（如 Box.{}.Length），"
-                                                       "或改用 [下标] 分量",
-                                                       context, component.name, component.name));
+                                                       "或改用 [下标] 分量", context, component.name, component.name));
             case Expression::ComponentKind::Range:
                 throw EvaluationError(std::format("{}：区间分量不能按单个子值取用，"
-                                                  "区间分量只能作为聚合函数的实参（如 sum(v[0:2])）",
-                                                  context));
+                                                  "区间分量只能作为聚合函数的实参（如 sum(v[0:2])）", context));
         }
         // 分量种类只有上面四种，走到这里说明枚举被写坏；不做静默兜底
         throw EvaluationError(std::format("{}：未知的分量种类，无法取值", context));
@@ -217,8 +212,7 @@ namespace ExpressionEngine::Expression
         if (vector == nullptr)
         {
             throw Base::TypeError(std::format("{}：{}不支持区间分量；区间分量目前只支持向量（如 v[0:2]），"
-                                              "其它类型请改用聚合函数或单个下标",
-                                              context, valueTypeName(value)));
+                                              "其它类型请改用聚合函数或单个下标", context, valueTypeName(value)));
         }
 
         constexpr long componentCount = 3;
@@ -243,14 +237,12 @@ namespace ExpressionEngine::Expression
         if (begin < 0 || begin >= componentCount)
         {
             throw Base::IndexError(std::format("{}：区间起点越界（换算后为 {}）；向量分量下标只能是 "
-                                               "0（x）、1（y）、2（z）",
-                                               context, begin));
+                                               "0（x）、1（y）、2（z）", context, begin));
         }
         if (end < 0 || end >= componentCount)
         {
             throw Base::IndexError(std::format("{}：区间终点越界（换算后为 {}）；向量分量下标只能是 "
-                                               "0（x）、1（y）、2（z）",
-                                               context, end));
+                                               "0（x）、1（y）、2（z）", context, end));
         }
 
         // 两端都算在取值范围内；起点越过终点时结果为空，由聚合函数决定空集的处理方式
@@ -259,13 +251,13 @@ namespace ExpressionEngine::Expression
         {
             for (long index = begin; index <= end; index += step)
             {
-                values.push_back(Value((*vector)[static_cast<unsigned short>(index)]));
+                values.emplace_back((*vector)[static_cast<unsigned short>(index)]);
             }
         } else
         {
             for (long index = begin; index >= end; index += step)
             {
-                values.push_back(Value((*vector)[static_cast<unsigned short>(index)]));
+                values.emplace_back((*vector)[static_cast<unsigned short>(index)]);
             }
         }
         return values;
