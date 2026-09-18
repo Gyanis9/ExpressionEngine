@@ -179,7 +179,7 @@ namespace ExpressionEngine::Expression
                 return Units::Quantity::parse(*text);
             } catch (const Base::Exception &error)
             {
-                // 文本形态的数值解析不出来时改成解析错，并说清该怎么改
+                // 文本形态的数值解析失败时报解析错，并说明该怎么改
                 throw Base::ParserError(std::format("{}需要数量，但文本 '{}' 不是可解析的数量（{}）；"
                                                     "请写成 '1.5 mm'、'90 deg' 这样的形式",
                                                     context, *text, error.message()));

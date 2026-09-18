@@ -150,34 +150,112 @@ namespace ExpressionEngine::Units
 
         /** 四则运算与比较。 */
         //@{
+        /**
+         * @brief 量相乘，量纲指数相加
+         * @param other 右乘的量
+         * @return 乘积
+         */
         Quantity operator*(const Quantity &other) const;
 
+        /**
+         * @brief 量乘纯数，量纲不变
+         * @param factor 缩放系数
+         * @return 缩放后的量
+         */
         Quantity operator*(double factor) const;
 
+        /**
+         * @brief 量相加，要求两侧量纲相同
+         * @param other 加数
+         * @return 和
+         * @throws UnitsMismatchError 两侧量纲不同
+         */
         Quantity operator+(const Quantity &other) const;
 
+        /**
+         * @brief 就地加上另一个量
+         * @param other 加数
+         * @return 自身引用
+         * @throws UnitsMismatchError 两侧量纲不同
+         */
         Quantity &operator+=(const Quantity &other);
 
+        /**
+         * @brief 量相减，要求两侧量纲相同
+         * @param other 减数
+         * @return 差
+         * @throws UnitsMismatchError 两侧量纲不同
+         */
         Quantity operator-(const Quantity &other) const;
 
+        /**
+         * @brief 就地减去另一个量
+         * @param other 减数
+         * @return 自身引用
+         * @throws UnitsMismatchError 两侧量纲不同
+         */
         Quantity &operator-=(const Quantity &other);
 
         Quantity operator-() const;
 
+        /**
+         * @brief 量相除，量纲指数相减
+         * @param other 除数
+         * @return 商
+         */
         Quantity operator/(const Quantity &other) const;
 
+        /**
+         * @brief 量除以纯数，量纲不变
+         * @param factor 除数，不能为 0
+         * @return 商
+         */
         Quantity operator/(double factor) const;
 
+        /**
+         * @brief 判断数值与量纲是否都相等
+         * @param other 待比较的量
+         * @return 相等为 true；仅量纲不同时返回 false 而不抛错
+         */
         bool operator==(const Quantity &other) const;
 
+        /**
+         * @brief 判断数值或量纲是否不同
+         * @param other 待比较的量
+         * @return 不等为 true
+         */
         bool operator!=(const Quantity &other) const;
 
+        /**
+         * @brief 比较数值大小，要求两侧量纲相同
+         * @param other 右侧的量
+         * @return 本量数值更小为 true
+         * @throws UnitsMismatchError 两侧量纲不同
+         */
         bool operator<(const Quantity &other) const;
 
+        /**
+         * @brief 比较数值大小，要求两侧量纲相同
+         * @param other 右侧的量
+         * @return 本量数值更大为 true
+         * @throws UnitsMismatchError 两侧量纲不同
+         */
         bool operator>(const Quantity &other) const;
 
+        /**
+         * @brief 比较数值大小，要求两侧量纲相同
+         * @param other 右侧的量
+         * @return 本量数值更小或相等为 true
+         * @throws UnitsMismatchError 两侧量纲不同
+         */
         bool operator<=(const Quantity &other) const;
 
+        /**
+         * @brief 比较数值大小，要求两侧量纲相同
+         * @param other 右侧的量
+         * @return 本量数值更大或相等为 true
+         * @throws UnitsMismatchError 两侧量纲不同
+         */
         bool operator>=(const Quantity &other) const;
 
         Quantity &operator=(const Quantity &) = default;

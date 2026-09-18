@@ -79,16 +79,50 @@ namespace ExpressionEngine::Units
         explicit Unit(const int length, const int mass = 0, const int time = 0, const int electricCurrent = 0, const int thermodynamicTemperature = 0,
                       const int amountOfSubstance = 0, const int luminousIntensity = 0, const int angle = 0);
 
+        /**
+         * @brief 判断各量纲指数是否全等，不比较比例
+         * @param that 待比较的单位
+         * @return 各指数都相同时为 true
+         */
         bool operator==(const Unit &that) const;
 
+        /**
+         * @brief 判断各量纲指数是否不全等
+         * @param that 待比较的单位
+         * @return 任一指数组不同为 true
+         */
         bool operator!=(const Unit &that) const;
 
+        /**
+         * @brief 就地相乘，指数相加
+         * @param that 右乘的单位
+         * @return 自身引用
+         * @throws OverflowError/UnderflowError 结果指数越界
+         */
         Unit &operator*=(const Unit &that);
 
+        /**
+         * @brief 就地相除，指数相减
+         * @param that 右除的单位
+         * @return 自身引用
+         * @throws OverflowError/UnderflowError 结果指数越界
+         */
         Unit &operator/=(const Unit &that);
 
+        /**
+         * @brief 相乘，指数相加
+         * @param that 右乘的单位
+         * @return 新的单位
+         * @throws OverflowError/UnderflowError 结果指数越界
+         */
         Unit operator*(const Unit &that) const;
 
+        /**
+         * @brief 相除，指数相减
+         * @param that 右除的单位
+         * @return 新的单位
+         * @throws OverflowError/UnderflowError 结果指数越界
+         */
         Unit operator/(const Unit &that) const;
 
         /**

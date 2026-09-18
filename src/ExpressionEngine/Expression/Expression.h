@@ -101,14 +101,32 @@ namespace ExpressionEngine::Expression
              */
             explicit Component(std::string componentName);
 
+            /**
+             * @brief 拷贝构造，子节点深拷贝
+             * @param other 被拷贝的分量
+             */
             Component(const Component &other);
 
+            /**
+             * @brief 移动构造
+             * @param other 被移动的分量，移动后处于有效但未指定状态
+             */
             Component(Component &&other) noexcept;
 
             ~Component();
 
+            /**
+             * @brief 拷贝赋值，子节点深拷贝
+             * @param other 被赋值的分量
+             * @return 自身引用
+             */
             Component &operator=(const Component &other);
 
+            /**
+             * @brief 移动赋值
+             * @param other 被移动的分量，移动后处于有效但未指定状态
+             * @return 自身引用
+             */
             Component &operator=(Component &&other) noexcept;
 
             /**
