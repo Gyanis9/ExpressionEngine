@@ -121,6 +121,6 @@ namespace ExpressionEngine::Units
 
     int UnitsSchema::getNumber() const
     {
-        return static_cast<int>(m_spec.num);
+        return static_cast<int>(m_spec.number);
     }
 } // namespace ExpressionEngine::Units

@@ -21,8 +21,8 @@ namespace ExpressionEngine::Base
     class DualNumber
     {
     public:
-        double re = 0.0; ///< 实部（函数值）
-        double du = 0.0; ///< 对偶部（ε 分量，承载导数值）
+        double real = 0.0; ///< 实部（函数值）
+        double dual = 0.0; ///< 对偶部（ε 分量，承载导数值）
 
         /**
          * @brief 默认构造为零对偶数
@@ -34,8 +34,7 @@ namespace ExpressionEngine::Base
          * @param reValue 实部
          * @param dualValue 对偶部，默认 0 表示纯实数
          */
-        DualNumber(const double reValue, const double dualValue = 0.0) :
-            re(reValue), du(dualValue)
+        DualNumber(const double reValue, const double dualValue = 0.0) : real(reValue), dual(dualValue)
         {
         }
 
@@ -45,7 +44,7 @@ namespace ExpressionEngine::Base
          */
         DualNumber operator-() const
         {
-            return {-re, -du};
+            return {-real, -dual};
         }
     };
 
@@ -57,7 +56,7 @@ namespace ExpressionEngine::Base
      */
     inline DualNumber operator+(const DualNumber left, const DualNumber right)
     {
-        return {left.re + right.re, left.du + right.du};
+        return {left.real + right.real, left.dual + right.dual};
     }
 
     /**
@@ -68,7 +67,7 @@ namespace ExpressionEngine::Base
      */
     inline DualNumber operator+(DualNumber left, const double right)
     {
-        return {left.re + right, left.du};
+        return {left.real + right, left.dual};
     }
 
     /**
@@ -79,7 +78,7 @@ namespace ExpressionEngine::Base
      */
     inline DualNumber operator+(const double left, DualNumber right)
     {
-        return {left + right.re, right.du};
+        return {left + right.real, right.dual};
     }
 
     /**
@@ -90,7 +89,7 @@ namespace ExpressionEngine::Base
      */
     inline DualNumber operator-(const DualNumber left, const DualNumber right)
     {
-        return {left.re - right.re, left.du - right.du};
+        return {left.real - right.real, left.dual - right.dual};
     }
 
     /**
@@ -101,7 +100,7 @@ namespace ExpressionEngine::Base
      */
     inline DualNumber operator-(DualNumber left, double right)
     {
-        return {left.re - right, left.du};
+        return {left.real - right, left.dual};
     }
 
     /**
@@ -112,7 +111,7 @@ namespace ExpressionEngine::Base
      */
     inline DualNumber operator-(const double left, const DualNumber right)
     {
-        return {left - right.re, -right.du};
+        return {left - right.real, -right.dual};
     }
 
     /**
@@ -123,7 +122,7 @@ namespace ExpressionEngine::Base
      */
     inline DualNumber operator*(const DualNumber left, const DualNumber right)
     {
-        return {left.re * right.re, left.re * right.du + left.du * right.re};
+        return {left.real * right.real, left.real * right.dual + left.dual * right.real};
     }
 
     /**
@@ -134,7 +133,7 @@ namespace ExpressionEngine::Base
      */
     inline DualNumber operator*(const double left, const DualNumber right)
     {
-        return {left * right.re, left * right.du};
+        return {left * right.real, left * right.dual};
     }
 
     /**
@@ -145,7 +144,7 @@ namespace ExpressionEngine::Base
      */
     inline DualNumber operator*(const DualNumber left, const double right)
     {
-        return {left.re * right, left.du * right};
+        return {left.real * right, left.dual * right};
     }
 
     /**
@@ -156,7 +155,7 @@ namespace ExpressionEngine::Base
      */
     inline DualNumber operator/(const DualNumber left, const DualNumber right)
     {
-        return {left.re / right.re, (left.du * right.re - left.re * right.du) / (right.re * right.re)};
+        return {left.real / right.real, (left.dual * right.real - left.real * right.dual) / (right.real * right.real)};
     }
 
     /**
@@ -167,7 +166,7 @@ namespace ExpressionEngine::Base
      */
     inline DualNumber operator/(const DualNumber left, const double right)
     {
-        return {left.re / right, left.du / right};
+        return {left.real / right, left.dual / right};
     }
 
     /**
@@ -178,6 +177,6 @@ namespace ExpressionEngine::Base
      */
     inline DualNumber pow(const DualNumber base, const double power)
     {
-        return {std::pow(base.re, power), power * std::pow(base.re, power - 1.0) * base.du};
+        return {std::pow(base.real, power), power * std::pow(base.real, power - 1.0) * base.dual};
     }
 } // namespace ExpressionEngine::Base

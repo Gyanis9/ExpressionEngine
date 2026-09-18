@@ -55,9 +55,9 @@ namespace ExpressionEngine::Units
         return s_denominator < 0 ? static_cast<int>(s_schemas->defaultFractionDenominator()) : s_denominator;
     }
 
-    std::unique_ptr<UnitsSchema> UnitsApi::createSchema(const std::size_t num)
+    std::unique_ptr<UnitsSchema> UnitsApi::createSchema(const std::size_t schemaNumber)
     {
-        return std::make_unique<UnitsSchema>(s_schemas->spec(num));
+        return std::make_unique<UnitsSchema>(s_schemas->spec(schemaNumber));
     }
 
     void UnitsApi::setSchema(const std::string &name)
@@ -65,9 +65,9 @@ namespace ExpressionEngine::Units
         s_schemas->select(name);
     }
 
-    void UnitsApi::setSchema(const std::size_t num)
+    void UnitsApi::setSchema(const std::size_t schemaNumber)
     {
-        s_schemas->select(num);
+        s_schemas->select(schemaNumber);
     }
 
     std::string UnitsApi::schemaTranslate(const Quantity &quant, double &factor, std::string &unitString)
@@ -94,8 +94,8 @@ namespace ExpressionEngine::Units
         return s_schemas->currentSchema()->translate(quant, formatting, unusedFactor, unusedUnitString);
     }
 
-    std::size_t UnitsApi::getDefaultSchemaNum()
+    std::size_t UnitsApi::getDefaultSchemaNumber()
     {
-        return s_schemas->spec().num;
+        return s_schemas->spec().number;
     }
 } // namespace ExpressionEngine::Units

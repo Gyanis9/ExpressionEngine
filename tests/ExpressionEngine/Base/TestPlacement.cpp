@@ -206,21 +206,21 @@ TEST(DualQuaternionTest, ValuesAndPurityRejection)
     const DualQuaternion identity = DualQuaternion::identity();
     EXPECT_DOUBLE_EQ(identity.length(), 1.0);
     EXPECT_DOUBLE_EQ(identity.theta(), 0.0);
-    EXPECT_DOUBLE_EQ(identity.w.re, 1.0);
+    EXPECT_DOUBLE_EQ(identity.w.real, 1.0);
 
     const DualQuaternion negated = -DualQuaternion(1.0, 2.0, 3.0, 4.0);
-    EXPECT_DOUBLE_EQ(negated.x.re, -1.0);
-    EXPECT_DOUBLE_EQ(negated.w.re, -4.0);
+    EXPECT_DOUBLE_EQ(negated.x.real, -1.0);
+    EXPECT_DOUBLE_EQ(negated.w.real, -4.0);
 
     // 共轭只取反向量部分
     const DualQuaternion conjugate = DualQuaternion(1.0, 2.0, 3.0, 4.0).conj();
-    EXPECT_DOUBLE_EQ(conjugate.x.re, -1.0);
-    EXPECT_DOUBLE_EQ(conjugate.w.re, 4.0);
+    EXPECT_DOUBLE_EQ(conjugate.x.real, -1.0);
+    EXPECT_DOUBLE_EQ(conjugate.w.real, 4.0);
 
     // real()/dual() 只取一层，用于把对偶四元数拆成两个纯实四元数
     const DualQuaternion mixed(0.0, 0.0, 0.0, 1.0, 0.5, 0.0, 0.0, 0.0);
-    EXPECT_DOUBLE_EQ(mixed.real().x.du, 0.0);
-    EXPECT_DOUBLE_EQ(mixed.dual().x.re, 0.5);
+    EXPECT_DOUBLE_EQ(mixed.real().x.dual, 0.0);
+    EXPECT_DOUBLE_EQ(mixed.dual().x.real, 0.5);
 
     // 拒绝面：实部参数带非零对偶分量时必须抛错，而不是静默丢弃那些分量
     EXPECT_THROW(static_cast<void>(DualQuaternion(mixed, DualQuaternion())), ValueError);

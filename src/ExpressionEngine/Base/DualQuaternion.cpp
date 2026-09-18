@@ -54,7 +54,7 @@ namespace ExpressionEngine::Base
     }
 
     DualQuaternion::DualQuaternion(const DualQuaternion &realPart, const DualQuaternion &dualPart) :
-        x(realPart.x.re, dualPart.x.re), y(realPart.y.re, dualPart.y.re), z(realPart.z.re, dualPart.z.re), w(realPart.w.re, dualPart.w.re)
+        x(realPart.x.real, dualPart.x.real), y(realPart.y.real, dualPart.y.real), z(realPart.z.real, dualPart.z.real), w(realPart.w.real, dualPart.w.real)
     {
         // 本构造只读两个参数的实部-实部：参数若带有对偶分量，那些分量会被静默丢弃，
         // 因此这里显式拒绝，要求调用方先用 real()/dual() 取出纯实四元数
@@ -72,7 +72,7 @@ namespace ExpressionEngine::Base
     double DualQuaternion::dot(const DualQuaternion &left, const DualQuaternion &right)
     {
         // 只比较实部：旋转方向一致与否决定插值是否走短弧
-        return left.x.re * right.x.re + left.y.re * right.y.re + left.z.re * right.z.re + left.w.re * right.w.re;
+        return left.x.real * right.x.real + left.y.real * right.y.real + left.z.real * right.z.real + left.w.real * right.w.real;
     }
 
     DualQuaternion DualQuaternion::pow(const double t, const bool shorten) const
@@ -101,7 +101,7 @@ namespace ExpressionEngine::Base
 
         // 换算到螺旋坐标：theta 为转角、pitch 为沿轴位移，轴方向与力矩向量借 DualQuaternion 承载
         double               theta       = self.theta();
-        double               pitch       = -2.0 * self.w.du * normalizeMultiplier;
+        double               pitch       = -2.0 * self.w.dual * normalizeMultiplier;
         const DualQuaternion screwAxis   = self.real().vector() * normalizeMultiplier;
         const DualQuaternion screwMoment = (self.dual().vector() - pitch / 2 * std::cos(theta / 2) * screwAxis) * normalizeMultiplier;
 

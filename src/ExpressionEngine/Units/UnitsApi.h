@@ -33,11 +33,11 @@ namespace ExpressionEngine::Units
     public:
         /**
          * @brief 按编号新建一个方案对象
-         * @param num 方案编号
+         * @param schemaNumber 方案编号
          * @return 方案对象，调用方持有所有权
          * @throws NameError 找不到该编号的方案
          */
-        [[nodiscard]] static std::unique_ptr<UnitsSchema> createSchema(std::size_t num);
+        [[nodiscard]] static std::unique_ptr<UnitsSchema> createSchema(std::size_t schemaNumber);
 
         /**
          * @brief 切换当前方案
@@ -48,10 +48,10 @@ namespace ExpressionEngine::Units
 
         /**
          * @brief 切换当前方案
-         * @param num 方案编号
+         * @param schemaNumber 方案编号
          * @throws NameError 找不到该编号的方案
          */
-        static void setSchema(std::size_t num);
+        static void setSchema(std::size_t schemaNumber);
 
         /**
          * @brief 按当前方案换算并排版
@@ -109,7 +109,7 @@ namespace ExpressionEngine::Units
         [[nodiscard]] static std::string getBasicLengthUnit();
 
         /// 取默认方案的编号
-        [[nodiscard]] static std::size_t getDefaultSchemaNum();
+        [[nodiscard]] static std::size_t getDefaultSchemaNumber();
 
     protected:
         static inline auto s_schemas = std::make_unique<UnitsSchemas>(UnitsSchemasData::unitSchemasDataPack); ///< 方案集合

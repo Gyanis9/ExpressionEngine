@@ -37,7 +37,7 @@ namespace ExpressionEngine::Units
      */
     struct UnitsSchemaSpec
     {
-        std::size_t num;                      ///< 方案编号
+        std::size_t number;                   ///< 方案编号
         std::string name;                     ///< 方案名
         std::string basicLengthUnitString;    ///< 基准长度单位
         bool        isMultiUnitLength{false}; ///< 长度是否用多个单位复合表示

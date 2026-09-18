@@ -19,10 +19,10 @@ namespace ExpressionEngine::Units
             ASSERT_EQ(names.size(), 10U);
             // 列表按方案编号排序，编号 0 的 Internal 排在最前
             EXPECT_EQ(names.front(), "Internal");
-            EXPECT_EQ(UnitsApi::getDefaultSchemaNum(), 0U);
+            EXPECT_EQ(UnitsApi::getDefaultSchemaNumber(), 0U);
             EXPECT_EQ(UnitsApi::count(), 10U);
 
-            UnitsApi::setSchema(UnitsApi::getDefaultSchemaNum());
+            UnitsApi::setSchema(UnitsApi::getDefaultSchemaNumber());
             EXPECT_EQ(UnitsApi::getBasicLengthUnit(), "mm");
         }
 
@@ -103,7 +103,7 @@ namespace ExpressionEngine::Units
             EXPECT_TRUE(UnitsApi::isMultiUnitAngle());
             EXPECT_FALSE(UnitsApi::isMultiUnitLength());
 
-            UnitsApi::setSchema(UnitsApi::getDefaultSchemaNum());
+            UnitsApi::setSchema(UnitsApi::getDefaultSchemaNumber());
         }
 
     } // namespace

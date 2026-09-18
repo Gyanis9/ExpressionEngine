@@ -95,7 +95,7 @@ namespace ExpressionEngine::Base
          */
         [[nodiscard]] DualQuaternion real() const
         {
-            return {x.re, y.re, z.re, w.re};
+            return {x.real, y.real, z.real, w.real};
         }
 
         /**
@@ -104,7 +104,7 @@ namespace ExpressionEngine::Base
          */
         [[nodiscard]] DualQuaternion dual() const
         {
-            return {x.du, y.du, z.du, w.du};
+            return {x.dual, y.dual, z.dual, w.dual};
         }
 
         /**
@@ -131,7 +131,7 @@ namespace ExpressionEngine::Base
          */
         [[nodiscard]] double length() const
         {
-            return std::sqrt(x.re * x.re + y.re * y.re + z.re * z.re + w.re * w.re);
+            return std::sqrt(x.real * x.real + y.real * y.real + z.real * z.real + w.real * w.real);
         }
 
         /**
@@ -140,7 +140,7 @@ namespace ExpressionEngine::Base
          */
         [[nodiscard]] double theta() const
         {
-            return 2.0 * std::atan2(vector().length(), w.re);
+            return 2.0 * std::atan2(vector().length(), w.real);
         }
 
         /**

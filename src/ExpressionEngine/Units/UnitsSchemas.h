@@ -47,10 +47,10 @@ namespace ExpressionEngine::Units
 
         /**
          * @brief 按序号选中方案
-         * @param num 方案编号
+         * @param schemaNumber 方案编号
          * @throws IndexError 找不到该编号的方案
          */
-        void select(std::size_t num);
+        void select(std::size_t schemaNumber);
 
         /// 取默认方案（标记 isDefault 的方案，没有标记时取第一个）
         [[nodiscard]] UnitsSchemaSpec spec();
@@ -65,11 +65,11 @@ namespace ExpressionEngine::Units
 
         /**
          * @brief 按序号取方案
-         * @param num 方案编号
+         * @param schemaNumber 方案编号
          * @return 方案定义
          * @throws IndexError 找不到该编号的方案
          */
-        [[nodiscard]] UnitsSchemaSpec spec(std::size_t num);
+        [[nodiscard]] UnitsSchemaSpec spec(std::size_t schemaNumber);
 
         /// 取方案总数
         [[nodiscard]] std::size_t count() const;

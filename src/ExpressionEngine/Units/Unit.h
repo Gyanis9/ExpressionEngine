@@ -102,12 +102,12 @@ namespace ExpressionEngine::Units
 
         /**
          * @brief 求单位的整数次根
-         * @param num 根次数，必须大于 0
+         * @param rootDegree 根次数，必须大于 0
          * @return 新的单位
-         * @throws UnitsMismatchError num 等于 0，或某个量纲指数不能被 num 整除
+         * @throws UnitsMismatchError rootDegree 等于 0，或某个量纲指数不能被 rootDegree 整除
          * @throws OverflowError/UnderflowError 结果指数越界
          */
-        [[nodiscard]] Unit root(const uint8_t num) const;
+        [[nodiscard]] Unit root(const uint8_t rootDegree) const;
 
         /// 取各量纲指数
         [[nodiscard]] UnitExponents exponents() const;

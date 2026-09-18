@@ -22,7 +22,7 @@ namespace ExpressionEngine::Units
     {
         // 对外列表按方案编号排序，保证调用方看到的顺序与编号一致
         auto sortedSpecs = m_pack.specs;
-        std::sort(sortedSpecs.begin(), sortedSpecs.end(), [](const UnitsSchemaSpec &left, const UnitsSchemaSpec &right) { return left.num < right.num; });
+        std::sort(sortedSpecs.begin(), sortedSpecs.end(), [](const UnitsSchemaSpec &left, const UnitsSchemaSpec &right) { return left.number < right.number; });
 
         std::vector<std::string> values;
         values.reserve(sortedSpecs.size());
@@ -67,9 +67,9 @@ namespace ExpressionEngine::Units
         makeCurrent(spec(name));
     }
 
-    void UnitsSchemas::select(const std::size_t num)
+    void UnitsSchemas::select(const std::size_t schemaNumber)
     {
-        makeCurrent(spec(num));
+        makeCurrent(spec(schemaNumber));
     }
 
     UnitsSchema *UnitsSchemas::currentSchema() const
@@ -104,8 +104,8 @@ namespace ExpressionEngine::Units
         return findSpec([name](const UnitsSchemaSpec &spec) { return spec.name == name; });
     }
 
-    UnitsSchemaSpec UnitsSchemas::spec(const std::size_t num)
+    UnitsSchemaSpec UnitsSchemas::spec(const std::size_t schemaNumber)
     {
-        return findSpec([num](const UnitsSchemaSpec &spec) { return spec.num == num; });
+        return findSpec([schemaNumber](const UnitsSchemaSpec &spec) { return spec.number == schemaNumber; });
     }
 } // namespace ExpressionEngine::Units

@@ -164,23 +164,23 @@ namespace ExpressionEngine::Units
         return Unit{result};
     }
 
-    Unit Unit::root(const uint8_t num) const
+    Unit Unit::root(const uint8_t rootDegree) const
     {
-        if (num < 1)
+        if (rootDegree < 1)
         {
             throw Base::UnitsMismatchError("开方次数必须大于 0，请传入 2 表示平方根、3 表示立方根");
         }
 
         UnitExponents result{};
         std::transform(m_exponents.begin(), m_exponents.end(), result.begin(),
-                       [num](const auto exponent)
+                       [rootDegree](const auto exponent)
                        {
                            // 指数必须能被开方次数整除，否则会得到分数次幂，单位无法表示
-                           if (exponent % num != 0)
+                           if (exponent % rootDegree != 0)
                            {
-                               throw Base::UnitsMismatchError(std::format("单位指数 {} 不能被开方次数 {} 整除，请改用 pow() 或先换算量纲", exponent, num));
+                               throw Base::UnitsMismatchError(std::format("单位指数 {} 不能被开方次数 {} 整除，请改用 pow() 或先换算量纲", exponent, rootDegree));
                            }
-                           return static_cast<std::int8_t>(exponent / num);
+                           return static_cast<std::int8_t>(exponent / rootDegree);
                        });
 
         return Unit{result};
