@@ -437,18 +437,18 @@ namespace ExpressionEngine::Base
         // 方向向量为零时旋转无从定义，报错而不是给出无意义的四元数
         if (rotateFrom.IsNull() || rotateTo.IsNull())
         {
-            throw ValueError("setValue(from, to) 需要两个非零方向向量：零向量没有方向，"
+            throw ValueError("setValue(rotateFrom, rotateTo) 需要两个非零方向向量：零向量没有方向，"
                              "请先给向量赋值，或改用 setValue(axis, angle) 直接给出转轴与转角。");
         }
 
-        Vector3d from = rotateFrom;
-        from.Normalize();
-        Vector3d to = rotateTo;
-        to.Normalize();
+        Vector3d normalizedSource = rotateFrom;
+        normalizedSource.Normalize();
+        Vector3d normalizedTarget = rotateTo;
+        normalizedTarget.Normalize();
 
-        // 两个方向的叉积是旋转轴：它是 (0, from, to) 三点所定平面的法向
-        const double   dot        = from * to;
-        const Vector3d axis       = from % to;
+        // 两个方向的叉积是旋转轴：它是 (0, normalizedSource, normalizedTarget) 三点所定平面的法向
+        const double   dot        = normalizedSource * normalizedTarget;
+        const Vector3d axis       = normalizedSource % normalizedTarget;
         const double   axisLength = axis.Length();
 
         if (axisLength == 0.0)
@@ -460,12 +460,12 @@ namespace ExpressionEngine::Base
                 this->setValue(0.0, 0.0, 0.0, 1.0);
             } else
             {
-                // 反向：任一垂直于 from 的轴都可作 180° 旋转轴，优先取与 X 轴的叉积
-                Vector3d perpendicular = from % Vector3d(1.0, 0.0, 0.0);
+                // 反向：任一垂直于 normalizedSource 的轴都可作 180° 旋转轴，优先取与 X 轴的叉积
+                Vector3d perpendicular = normalizedSource % Vector3d(1.0, 0.0, 0.0);
                 if (perpendicular.Length() < Vector3d::epsilon())
                 {
-                    // from 与 X 轴平行时叉积退化，改与 Y 轴叉乘
-                    perpendicular = from % Vector3d(0.0, 1.0, 0.0);
+                    // normalizedSource 与 X 轴平行时叉积退化，改与 Y 轴叉乘
+                    perpendicular = normalizedSource % Vector3d(0.0, 1.0, 0.0);
                 }
                 this->setValue(perpendicular.x, perpendicular.y, perpendicular.z, 0.0);
             }
