@@ -156,5 +156,30 @@ namespace ExpressionEngine::Units
             EXPECT_THROW(static_cast<void>(QuantityParser::parse("1 furlong")), Base::ParserError);
         }
 
+        /**
+         * @brief 钉住：非异常通道——非法输入以 ParseFailure 返回，且文案与异常通道逐字一致
+         */
+        TEST(QuantityParserTest, TryParseReportsFailureAsValue)
+        {
+            const auto parsed = QuantityParser::tryParse("1.5 mm");
+            ASSERT_TRUE(parsed.has_value());
+            EXPECT_DOUBLE_EQ(parsed->getValue(), 1.5);
+
+            const auto failed = QuantityParser::tryParse("1 mm $");
+            ASSERT_FALSE(failed.has_value());
+            EXPECT_FALSE(failed.error().message.empty());
+
+            // 两个通道必须给出同一份文案，否则调用方换通道时行为会变
+            try
+            {
+                static_cast<void>(QuantityParser::parse("1 mm $"));
+                FAIL() << "非法输入应当抛错";
+            }
+            catch (const Base::ParserError &error)
+            {
+                EXPECT_EQ(failed.error().message, error.message());
+            }
+        }
+
     } // namespace
 } // namespace ExpressionEngine::Units

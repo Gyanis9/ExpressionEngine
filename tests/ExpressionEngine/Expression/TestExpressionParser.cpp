@@ -214,5 +214,30 @@ namespace ExpressionEngine::Expression
             EXPECT_THROW(static_cast<void>(expression->evaluate()), Base::UnitsMismatchError);
         }
 
+        /**
+         * @brief 钉住：非异常通道——非法文本以 ParseFailure 返回，且文案与异常通道逐字一致
+         */
+        TEST(ExpressionParserTest, TryParseReportsFailureAsValue)
+        {
+            const auto parsed = ExpressionParser::tryParse(nullptr, "Box.Length * 2");
+            ASSERT_TRUE(parsed.has_value());
+            EXPECT_NE(*parsed, nullptr);
+
+            const auto failed = ExpressionParser::tryParse(nullptr, "1 +");
+            ASSERT_FALSE(failed.has_value());
+            EXPECT_FALSE(failed.error().message.empty());
+
+            // 两个通道必须给出同一份文案，否则调用方换通道时行为会变
+            try
+            {
+                static_cast<void>(ExpressionParser::parse(nullptr, "1 +"));
+                FAIL() << "非法文本应当抛错";
+            }
+            catch (const Base::ParserError &error)
+            {
+                EXPECT_EQ(failed.error().message, error.message());
+            }
+        }
+
     } // namespace
 } // namespace ExpressionEngine::Expression

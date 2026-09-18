@@ -973,6 +973,19 @@ constexpr std::array unitTokenSpecifications {
         return parser.parseInput();
     }
 
+    std::expected<Quantity, Base::ParseFailure> QuantityParser::tryParse(const std::string_view text)
+    {
+        try
+        {
+            return parse(text);
+        }
+        catch (const Base::ParserError &error)
+        {
+            // 输入非法属可恢复错误：转成值返回，文案与异常通道逐字一致
+            return std::unexpected(Base::ParseFailure{error.message()});
+        }
+    }
+
     const Quantity *findPredefinedUnit(const std::string_view symbol)
     {
         // 符号表按最长匹配语义使用，这里只需精确相等；先按首字节把候选缩到一组再比原文

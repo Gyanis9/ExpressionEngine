@@ -589,4 +589,20 @@ namespace ExpressionEngine::Expression
         return parser.parseDocument();
     }
 
+    std::expected<ExpressionPtr, Base::ParseFailure> ExpressionParser::tryParse(
+        IObjectResolver *resolver,
+        const std::string_view text
+    )
+    {
+        try
+        {
+            return parse(resolver, text);
+        }
+        catch (const Base::ParserError &error)
+        {
+            // 输入非法属可恢复错误：转成值返回，文案与异常通道逐字一致
+            return std::unexpected(Base::ParseFailure{error.message()});
+        }
+    }
+
 } // namespace ExpressionEngine::Expression

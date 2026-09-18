@@ -9,9 +9,11 @@
 
 #pragma once
 
+#include <expected>
 #include <string>
 #include <string_view>
 
+#include <ExpressionEngine/Base/ParseFailure.h>
 #include <ExpressionEngine/Units/Quantity.h>
 
 namespace ExpressionEngine::Units
@@ -33,6 +35,15 @@ namespace ExpressionEngine::Units
          * @throws ParserError 文本存在词法或语法错误，消息中带出错位置
          */
         [[nodiscard]] static Quantity parse(std::string_view text);
+
+        /**
+         * @brief 解析数量文本，失败时以值返回错误
+         * @details 与 parse() 同语义但不抛异常：输入非法属可恢复错误，调用方拿到
+         *          ParseFailure 即可分支或降级，无需 try/catch；文案与异常通道一致。
+         * @param text 待解析文本，可为空（空输入得到「最小正数」量，与原文法一致）
+         * @return 成功返回解析结果；失败返回 ParseFailure，其 message 为中文原因与替代做法
+         */
+        [[nodiscard]] static std::expected<Quantity, Base::ParseFailure> tryParse(std::string_view text);
     };
 
     /**

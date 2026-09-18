@@ -9,8 +9,10 @@
 
 #pragma once
 
+#include <expected>
 #include <string_view>
 
+#include <ExpressionEngine/Base/ParseFailure.h>
 #include <ExpressionEngine/Expression/Expression.h>
 #include <ExpressionEngine/Expression/PropertyModel.h>
 
@@ -34,6 +36,17 @@ namespace ExpressionEngine::Expression
          * @throws Base::ParserError 词法或语法错误，消息中带出错列号
          */
         [[nodiscard]] static ExpressionPtr parse(IObjectResolver *resolver, std::string_view text);
+
+        /**
+         * @brief 解析表达式文本，失败时以值返回错误
+         * @details 与 parse() 同语义但不抛异常：输入非法属可恢复错误，调用方拿到
+         *          ParseFailure 即可分支或降级，无需 try/catch；文案与异常通道一致。
+         * @param resolver 对象解析器，可为空；为空时变量引用仍能解析出结构，求值时才会报错
+         * @param text 待解析文本，可为空（空文本报错：表达式不能为空）
+         * @return 成功返回解析结果；失败返回 ParseFailure，其 message 为中文原因与出错列号
+         */
+        [[nodiscard]] static std::expected<ExpressionPtr, Base::ParseFailure>
+        tryParse(IObjectResolver *resolver, std::string_view text);
     };
 
 } // namespace ExpressionEngine::Expression
