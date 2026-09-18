@@ -1,0 +1,7 @@
+@PACKAGE_INIT@
+
+# 零外部依赖，导出目标文件即全部内容；@PACKAGE_INIT@ 已处理前缀重定位，
+# 因此整个安装树可以整体搬到别的路径而不失效。
+include("${CMAKE_CURRENT_LIST_DIR}/ExpressionEngineTargets.cmake")
+
+check_required_components(ExpressionEngine)
