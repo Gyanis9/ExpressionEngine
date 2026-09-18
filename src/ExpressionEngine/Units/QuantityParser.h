@@ -32,4 +32,13 @@ public:
      */
     [[nodiscard]] static Quantity parse(std::string_view text);
 };
+
+/**
+ * @brief 按符号查预定义单位量
+ * @details 单位符号表只在本模块维护一份，表达式解析器等使用方按符号查表即可，不必各自
+ *          抄录；`"` 与 `'` 分别对应英寸与英尺，`°`、`′`、`″` 对应角度符号。
+ * @param symbol 单位符号，如 "mm"、"kg"、"in"
+ * @return 指向预定义量的指针（静态存储期，无需释放）；符号未登记时返回 nullptr
+ */
+[[nodiscard]] const Quantity* findPredefinedUnit(std::string_view symbol);
 }  // namespace ExpressionEngine::Units

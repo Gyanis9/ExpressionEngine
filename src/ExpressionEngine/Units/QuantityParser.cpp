@@ -801,4 +801,14 @@ Quantity QuantityParser::parse(const std::string_view text) {
     QuantityParserImpl parser{text};
     return parser.parseInput();
 }
+
+const Quantity* findPredefinedUnit(const std::string_view symbol) {
+    // 符号表按最长匹配语义使用，这里只需精确相等；遍历 150 条对本场景足够快
+    for (const auto& spec : unitTokenSpecs) {
+        if (spec.symbol == symbol) {
+            return spec.quantity;
+        }
+    }
+    return nullptr;
+}
 }  // namespace ExpressionEngine::Units
