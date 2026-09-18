@@ -1,0 +1,18 @@
+来源与许可
+==========
+
+本库的表达式引擎与单位模块派生自 FreeCAD（https://www.freecad.org）的 src/Base 与 src/App 模块，
+原始代码版权归 FreeCAD 项目及其贡献者所有，按 GNU Lesser General Public License 2.1 或更新版本
+（LGPL-2.1-or-later）授权，全文见 LICENSE。
+
+派生与改动
+==========
+
+- 命名空间由 Base:: / App:: 调整为 ExpressionEngine::Base / ::Units / ::Expression；
+- 移除对 Qt、Python（PyCXX）、Boost、ICU 的依赖，改用 C++23 标准库设施；
+- 词法与语法分析由 flex + bison 生成代码改为手写词法分析器与 Pratt 解析器；
+- 文档对象模型（DocumentObject / Property / PropertyContainer）改为抽象接口，由宿主应用实现；
+- 错误文案改为中文可操作文案，可恢复错误以 std::expected 返回。
+
+本库为自由软件：你可以依据自由软件基金会发布的 GNU 宽通用公共许可证（第 2.1 版或更新版本）
+的条款重新发布和/或修改它。
