@@ -1,0 +1,3 @@
+# 第三方源码保持原样，禁止被本仓的格式化配置改写
+DisableFormat: true
+SortIncludes: Never

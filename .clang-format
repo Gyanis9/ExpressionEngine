@@ -1,0 +1,38 @@
+# 本库的排版基线：花括号同行、命名空间内容不缩进、&/* 贴类型名，
+# 与 cpp-coding-standards 的示例一致；改动此文件需要一次性重排全仓源码。
+BasedOnStyle: LLVM
+Language: Cpp
+Standard: c++23
+
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+ColumnLimit: 100
+AccessModifierOffset: -4
+ConstructorInitializerIndentWidth: 4
+ContinuationIndentWidth: 4
+
+BreakBeforeBraces: Attach
+NamespaceIndentation: None
+FixNamespaceComments: true
+
+PointerAlignment: Left
+ReferenceAlignment: Pointer
+DerivePointerAlignment: false
+
+AllowShortFunctionsOnASingleLine: None
+AllowShortBlocksOnASingleLine: Never
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AllowShortEnumsOnASingleLine: false
+
+AlignAfterOpenBracket: Align
+BinPackArguments: false
+BinPackParameters: false
+BreakBeforeBinaryOperators: None
+
+# 头文件分组与顺序由人工维护（标准库在前、本库在后），格式化器不得重排
+SortIncludes: Never
+IncludeBlocks: Preserve
+SpacesBeforeTrailingComments: 2
+QualifierAlignment: Leave
