@@ -2,6 +2,7 @@
 # GoogleTest 已 vendor 进仓库，构建期不联网下载。
 add_subdirectory(ExpressionEngine/Base)
 add_subdirectory(ExpressionEngine/Units)
+add_subdirectory(ExpressionEngine/Expression)
 
 set(FETCHCONTENT_FULLY_DISCONNECTED ON)
 add_subdirectory(
@@ -12,7 +13,7 @@ add_subdirectory(
 
 include(GoogleTest)
 
-foreach(MODULE Base Units)
+foreach(MODULE Base Units Expression)
     get_property(TEST_SOURCES GLOBAL PROPERTY ExpressionEngine${MODULE}TestSources)
     if(TEST_SOURCES)
         add_executable(ExpressionEngine${MODULE}Tests ${TEST_SOURCES})
