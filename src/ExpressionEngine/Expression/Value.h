@@ -2,7 +2,7 @@
  * @file Value.h
  * @brief 表达式求值的值模型
  * @author Gyanis
- * @date 2026-09-18
+ * @date 2026-09-19
  * @version 1.0.0
  * @copyright Copyright (c) 2026 Gyanis. LGPL-2.1-or-later，派生自 FreeCAD
  */

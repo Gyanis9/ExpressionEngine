@@ -2,7 +2,7 @@
  * @file Rotation.h
  * @brief 三维旋转（内部为四元数，附轴角与欧拉角转换）
  * @author Gyanis
- * @date 2026-09-18
+ * @date 2026-09-19
  * @version 1.0.0
  * @copyright Copyright (c) 2026 Gyanis. LGPL-2.1-or-later，派生自 FreeCAD
  */
@@ -66,10 +66,21 @@ namespace ExpressionEngine::Base
          */
         Rotation(const Vector3d &rotateFrom, const Vector3d &rotateTo);
 
-        Rotation(const Rotation &rot) = default;
+        /**
+         * @brief 拷贝构造
+         * @param other 被拷贝的旋转
+         */
+        Rotation(const Rotation &other) = default;
 
-        Rotation(Rotation &&rot) = default;
+        /**
+         * @brief 移动构造
+         * @param other 被移动的旋转，移动后处于有效但未指定状态
+         */
+        Rotation(Rotation &&other) = default;
 
+        /**
+         * @brief 析构函数
+         */
         ~Rotation() = default;
 
         /**
@@ -81,11 +92,9 @@ namespace ExpressionEngine::Base
         {
             Invalid, ///< 非法序列，名字解析失败时返回
 
-            /// 经典欧拉角，等价于 Intrinsic_ZXZ
-            EulerAngles,
+            EulerAngles, ///< 经典欧拉角，等价于 Intrinsic_ZXZ
 
-            /// 偏航-俯仰-滚转（航海角），等价于 Intrinsic_ZYX
-            YawPitchRoll,
+            YawPitchRoll, ///< 偏航-俯仰-滚转（航海角），等价于 Intrinsic_ZYX
 
             // 泰特-布莱恩角（三个轴互不相同）
             Extrinsic_XYZ, ///< 外旋，轴序 XYZ
@@ -213,26 +222,26 @@ namespace ExpressionEngine::Base
 
         /**
          * @brief 以偏航-俯仰-滚转角设置
-         * @param y 偏航角，单位度
-         * @param p 俯仰角，单位度
-         * @param r 滚转角，单位度
+         * @param yaw 偏航角，单位度
+         * @param pitch 俯仰角，单位度
+         * @param roll 滚转角，单位度
          */
-        void setYawPitchRoll(double y, double p, double r);
+        void setYawPitchRoll(double yaw, double pitch, double roll);
 
         /**
          * @brief 取偏航-俯仰-滚转角
-         * @param y 输出偏航角，单位度
-         * @param p 输出俯仰角，单位度
-         * @param r 输出滚转角，单位度
+         * @param yaw 输出偏航角，单位度
+         * @param pitch 输出俯仰角，单位度
+         * @param roll 输出滚转角，单位度
          */
-        void getYawPitchRoll(double &y, double &p, double &r) const;
+        void getYawPitchRoll(double &yaw, double &pitch, double &roll) const;
 
         /**
          * @brief 取序列对应的名字
-         * @param seq 欧拉角序列
+         * @param sequence 欧拉角序列
          * @return 名字字面量；Invalid 或越界时返回 nullptr
          */
-        static const char *eulerSequenceName(EulerSequence seq);
+        static const char *eulerSequenceName(EulerSequence sequence);
 
         /**
          * @brief 按名字解析欧拉角序列，大小写不敏感
@@ -269,10 +278,10 @@ namespace ExpressionEngine::Base
 
         /**
          * @brief 判断在容差内是否为单位旋转
-         * @param tol 容差，作用在四元数点积上
+         * @param tolerance 容差，作用在四元数点积上
          * @return true 是单位旋转
          */
-        bool isIdentity(double tol) const;
+        bool isIdentity(double tolerance) const;
 
         /**
          * @brief 判断四元数是否全零
@@ -290,11 +299,11 @@ namespace ExpressionEngine::Base
         /**
          * @brief 判断在容差内是否为同一个旋转
          * @param other 待比较的旋转
-         * @param tol 容差，作用在两个四元数单位化后的点积上
+         * @param tolerance 容差，作用在两个四元数单位化后的点积上
          * @return true 表示两个旋转在容差内一致
          * @note 容差判据假定双方四元数均为单位长
          */
-        bool isSame(const Rotation &other, double tol) const;
+        bool isSame(const Rotation &other, double tolerance) const;
 
         /**
          * @brief 就地取逆（四元数共轭）
@@ -356,8 +365,16 @@ namespace ExpressionEngine::Base
             return m_quaternion[index];
         }
 
+        /**
+         * @brief 拷贝赋值
+         * @return 自身引用
+         */
         Rotation &operator=(const Rotation &) = default;
 
+        /**
+         * @brief 移动赋值
+         * @return 自身引用
+         */
         Rotation &operator=(Rotation &&) = default;
 
         /**
@@ -376,31 +393,31 @@ namespace ExpressionEngine::Base
 
         /**
          * @brief 用本旋转变换向量
-         * @param src 输入向量
-         * @param dst 输出向量，可与 src 为同一对象
+         * @param source 输入向量
+         * @param destination 输出向量，可与 source 为同一对象
          */
-        void multVec(const Vector3d &src, Vector3d &dst) const;
+        void multVec(const Vector3d &source, Vector3d &destination) const;
 
         /**
          * @brief 用本旋转变换向量
-         * @param src 输入向量
+         * @param source 输入向量
          * @return 变换后的向量
          */
-        Vector3d multVec(const Vector3d &src) const;
+        Vector3d multVec(const Vector3d &source) const;
 
         /**
          * @brief 用本旋转变换单精度向量
-         * @param src 输入向量
-         * @param dst 输出向量，可与 src 为同一对象
+         * @param source 输入向量
+         * @param destination 输出向量，可与 source 为同一对象
          */
-        void multVec(const Vector3f &src, Vector3f &dst) const;
+        void multVec(const Vector3f &source, Vector3f &destination) const;
 
         /**
          * @brief 用本旋转变换单精度向量
-         * @param src 输入向量
+         * @param source 输入向量
          * @return 变换后的向量
          */
-        Vector3f multVec(const Vector3f &src) const;
+        Vector3f multVec(const Vector3f &source) const;
 
         /**
          * @brief 按比例缩放旋转角，转轴保持
@@ -428,14 +445,14 @@ namespace ExpressionEngine::Base
          * @details priorityOrder 中排在前面的方向优先被精确采用：第一个方向作为主轴；第二个方向
          *          只用于确定垂直于主轴的提示方向；第三个方向完全由前两者叉乘得出。若某个方向
          *          为零向量，则按优先级顺延到下一个方向，全部为零时抛 ValueError。
-         * @param xdir 局部 X 轴期望方向
-         * @param ydir 局部 Y 轴期望方向
-         * @param zdir 局部 Z 轴期望方向
+         * @param xDirection 局部 X 轴期望方向
+         * @param yDirection 局部 Y 轴期望方向
+         * @param zDirection 局部 Z 轴期望方向
          * @param priorityOrder 三个大写轴字母构成的优先级串，默认 "ZXY"
          * @return 把局部坐标轴映射到给定方向的旋转
          * @throws ValueError priorityOrder 不是三个互不相同的大写 X/Y/Z 字母，或三个方向全为零向量
          */
-        static Rotation makeRotationByAxes(Vector3d xdir, Vector3d ydir, Vector3d zdir, const char *priorityOrder = "ZXY");
+        static Rotation makeRotationByAxes(Vector3d xDirection, Vector3d yDirection, Vector3d zDirection, const char *priorityOrder = "ZXY");
 
     private:
         /**

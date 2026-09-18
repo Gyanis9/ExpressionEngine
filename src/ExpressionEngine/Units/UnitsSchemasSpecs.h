@@ -2,7 +2,7 @@
  * @file UnitsSchemasSpecs.h
  * @brief 单位方案的数据结构定义
  * @author Gyanis
- * @date 2026-09-18
+ * @date 2026-09-19
  * @version 1.0.0
  * @copyright Copyright (c) 2026 Gyanis. LGPL-2.1-or-later，派生自 FreeCAD
  */
@@ -30,7 +30,11 @@ namespace ExpressionEngine::Units
         std::function<std::string(double)> callback;     ///< 特殊函数为 0 时使用的自定义转换
     };
 
-    /// 一个单位方案（如 "Internal"、"ImperialDecimal"）的完整定义
+    /**
+     * @brief 一个单位方案的完整定义
+     * @details 以数据形式描述方案（如 "Internal"、"ImperialDecimal"）：字段与 FreeCAD 的方案
+     *          描述一一对应，行为由 UnitsSchema 按本结构解释，数据本身不带逻辑。
+     */
     struct UnitsSchemaSpec
     {
         std::size_t num;                      ///< 方案编号
@@ -45,11 +49,15 @@ namespace ExpressionEngine::Units
         std::map<std::string, std::vector<UnitTranslationSpec>> translationSpecs;
     };
 
-    /// 全部方案的打包数据，宿主可整体替换以自定义单位显示规则
+    /**
+     * @brief 全部方案的打包数据
+     * @details 宿主可整体替换本结构以自定义单位显示规则；其中的默认小数位数与默认分数分母
+     *          是方案自身的兜底值，宿主显式设置过显示精度时以宿主设置为准。
+     */
     struct UnitsSchemasDataPack
     {
-        std::vector<UnitsSchemaSpec> specs;          ///< 方案列表
-        std::size_t                  defDecimals;    ///< 默认小数位数
-        std::size_t                  defDenominator; ///< 默认分数分母
+        std::vector<UnitsSchemaSpec> specs;              ///< 方案列表
+        std::size_t                  defaultDecimals;    ///< 默认小数位数
+        std::size_t                  defaultDenominator; ///< 默认分数分母
     };
 } // namespace ExpressionEngine::Units

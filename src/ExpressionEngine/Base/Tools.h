@@ -2,7 +2,7 @@
  * @file Tools.h
  * @brief 文本与编码辅助函数
  * @author Gyanis
- * @date 2026-09-18
+ * @date 2026-09-19
  * @version 1.0.0
  * @copyright Copyright (c) 2026 Gyanis. LGPL-2.1-or-later，派生自 FreeCAD
  */

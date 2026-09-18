@@ -2,7 +2,7 @@
  * @file PropertyModel.h
  * @brief 表达式引擎与宿主对象模型之间的抽象接口
  * @author Gyanis
- * @date 2026-09-18
+ * @date 2026-09-19
  * @version 1.0.0
  * @copyright Copyright (c) 2026 Gyanis. LGPL-2.1-or-later，派生自 FreeCAD
  */

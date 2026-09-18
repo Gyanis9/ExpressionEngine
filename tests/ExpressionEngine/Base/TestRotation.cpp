@@ -253,7 +253,7 @@ TEST(RotationTest, MakeRotationByAxesMapsLocalAxesAndRejectsBadInput)
     // 正交单位方向按默认优先级 "ZXY" 构造出单位旋转
     EXPECT_TRUE(Rotation::makeRotationByAxes(Vector3d(1.0, 0.0, 0.0), Vector3d(0.0, 1.0, 0.0), Vector3d(0.0, 0.0, 1.0)).isIdentity(1e-12));
 
-    // 只给出 zdir（优先级最高的 Z）时，局部 Z 轴应对准它
+    // 只给出 zDirection（优先级最高的 Z）时，局部 Z 轴应对准它
     const Rotation aligned = Rotation::makeRotationByAxes(Vector3d(), Vector3d(), Vector3d(1.0, 0.0, 0.0));
     EXPECT_TRUE(aligned.multVec(Vector3d(0.0, 0.0, 1.0)).IsEqual(Vector3d(1.0, 0.0, 0.0), 1e-12));
 

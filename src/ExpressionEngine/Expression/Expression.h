@@ -2,7 +2,7 @@
  * @file Expression.h
  * @brief 表达式抽象语法树与求值
  * @author Gyanis
- * @date 2026-09-18
+ * @date 2026-09-19
  * @version 1.0.0
  * @copyright Copyright (c) 2026 Gyanis. LGPL-2.1-or-later，派生自 FreeCAD
  */
@@ -35,7 +35,10 @@ namespace ExpressionEngine::Expression
     class OperatorExpression;
     class RangeExpression;
 
-    /// 表达式节点的所有权句柄；子节点由父节点独占持有
+    /**
+     * @brief 表达式节点的所有权句柄
+     * @details 子节点由父节点独占持有；节点不共享，因此不需要引用计数。
+     */
     using ExpressionPtr = std::unique_ptr<Expression>;
 
     /**
@@ -119,9 +122,16 @@ namespace ExpressionEngine::Expression
             void appendText(std::string &text, bool persistent) const;
         };
 
+        /**
+         * @brief 引用路径的分量列表
+         * @details 按路径顺序排列，如 Box.Placement.Base 对应 [Name(Box), Name(Placement), Name(Base)]。
+         */
         using ComponentList = std::vector<Component>;
 
-        /// 默认优先级；优先级数值更小的节点在合成文本时需要括号
+        /**
+         * @brief 默认优先级
+         * @details 优先级数值更小的节点在合成文本时需要括号；不在运算中的节点取本值。
+         */
         static constexpr int s_defaultPriority = 20;
 
         /**
@@ -224,16 +234,35 @@ namespace ExpressionEngine::Expression
         [[nodiscard]] virtual bool isConstantNumeric() const noexcept;
 
     protected:
-        /// 节点自身的求值；分量能否作用在求值结果上由 supportsComponentAccess() 约定
+        /**
+         * @brief 节点自身的求值
+         * @details 由基类 evaluate() 调用，返回的取值随后才接受分量访问与其它节点语义；
+         *          子类只实现本方法，不必重复处理分量。
+         * @return 本节点的取值
+         * @throws Base::Exception 求值失败（类型不符、量纲不匹配、引用解析不到等）
+         */
         [[nodiscard]] virtual Value evaluateNode() const = 0;
 
-        /// 追加本节点的文本
+        /**
+         * @brief 追加本节点的文本
+         * @param text 输出：在末尾追加本节点文本
+         * @param persistent true 时生成可回填、可持久化的文本
+         * @param indent 缩进层级，预留给多行排版
+         */
         virtual void appendText(std::string &text, bool persistent, int indent) const = 0;
 
-        /// 生成同类型的空壳副本，分量与注释由 copy() 补齐
+        /**
+         * @brief 生成同类型的空壳副本
+         * @details 分量与注释由基类 copy() 统一补齐，子类只需复制自身节点数据。
+         * @return 同类型节点的新副本
+         */
         [[nodiscard]] virtual ExpressionPtr copyNode() const = 0;
 
-        /// 本节点后面能否直接跟分量
+        /**
+         * @brief 本节点后面能否直接跟分量
+         * @details 默认 false；只有引用节点与文本节点允许，其值可按下标取子值。
+         * @return 允许跟随分量时为 true
+         */
         [[nodiscard]] virtual bool isIndexable() const;
 
         /**
@@ -314,17 +343,45 @@ namespace ExpressionEngine::Expression
         /// 取比例系数，等价于 getValue()
         [[nodiscard]] double getScaler() const;
 
-        /// 化简：单位节点本身就是常量，返回数值节点
+        /**
+         * @brief 化简本节点
+         * @details 重写 Expression::simplify()：单位节点本身已是常量，无需折叠子节点，
+         *          直接返回等值的数值节点。
+         * @return 数量与本节点相同的 NumberExpression
+         */
         [[nodiscard]] ExpressionPtr simplify() const override;
 
-        /// 节点种类名
+        /**
+         * @brief 节点种类名
+         * @details 重写 Expression::nodeName()：固定返回 "Unit"，供相等判定与诊断定位。
+         * @return "Unit"
+         */
         [[nodiscard]] std::string_view nodeName() const override;
 
     protected:
+        /**
+         * @brief 节点自身的求值
+         * @details 重写 Expression::evaluateNode()：本节点不带运算，直接把持有的数量作为取值
+         *          返回，分量与注释由基类 evaluate() 处理。
+         * @return 本节点持有的数量
+         */
         [[nodiscard]] Value evaluateNode() const override;
 
+        /**
+         * @brief 追加本节点的文本
+         * @details 重写 Expression::appendText()：优先写单位原文（如 "2 mm"），没有原文时按
+         *          数值排版；persistent 只影响数字的写法，不影响单位部分。
+         * @param text 输出：在末尾追加本节点文本
+         * @param persistent true 时生成可回填、可持久化的文本
+         * @param indent 缩进层级，预留给多行排版
+         */
         void appendText(std::string &text, bool persistent, int indent) const override;
 
+        /**
+         * @brief 生成同类型的空壳副本
+         * @details 重写 Expression::copyNode()：复制数量与单位原文，分量与注释由基类 copy() 补齐。
+         * @return 同类型节点的新副本
+         */
         [[nodiscard]] ExpressionPtr copyNode() const override;
 
     private:
@@ -343,7 +400,12 @@ namespace ExpressionEngine::Expression
          */
         explicit NumberExpression(IObjectResolver *resolver = nullptr, const Units::Quantity &quantity = Units::Quantity());
 
-        /// 化简：数值节点已经是常量，返回自身副本
+        /**
+         * @brief 化简本节点
+         * @details 重写 UnitExpression::simplify()：数值节点已是常量，复制自身而不新建节点，
+         *          因此分量与注释都能保留。
+         * @return 本节点的副本
+         */
         [[nodiscard]] ExpressionPtr simplify() const override;
 
         /// 取负
@@ -355,15 +417,37 @@ namespace ExpressionEngine::Expression
          */
         [[nodiscard]] std::optional<long> integerValue() const;
 
-        /// 节点种类名
+        /**
+         * @brief 节点种类名
+         * @details 重写 UnitExpression::nodeName()：固定返回 "Number"，与 "Unit" 区分开，
+         *          使 AST 相等判定能识别节点具体种类。
+         * @return "Number"
+         */
         [[nodiscard]] std::string_view nodeName() const override;
 
-        /// 数值节点本身就是常量数值
+        /**
+         * @brief 本节点是否已是常量数值
+         * @details 重写 Expression::isConstantNumeric()：数值节点恒为常量数值，无需再判断子节点。
+         * @return 恒为 true
+         */
         [[nodiscard]] bool isConstantNumeric() const noexcept override;
 
     protected:
+        /**
+         * @brief 追加本节点的文本
+         * @details 重写 UnitExpression::appendText()：数值节点不带运算，直接写数字与单位；
+         *          中间结果（simplify 产生）与用户书写的文本走同一套写法。
+         * @param text 输出：在末尾追加本节点文本
+         * @param persistent true 时生成可回填、可持久化的文本
+         * @param indent 缩进层级，预留给多行排版
+         */
         void appendText(std::string &text, bool persistent, int indent) const override;
 
+        /**
+         * @brief 生成同类型的空壳副本
+         * @details 重写 UnitExpression::copyNode()：按数值节点类型复制数量与单位原文。
+         * @return 同类型节点的新副本
+         */
         [[nodiscard]] ExpressionPtr copyNode() const override;
     };
 
@@ -385,14 +469,38 @@ namespace ExpressionEngine::Expression
         /// 常量是否按数值参与运算；True 与 False 是布尔值，不算数值
         [[nodiscard]] bool isNumber() const;
 
-        /// 节点种类名
+        /**
+         * @brief 节点种类名
+         * @details 重写 NumberExpression::nodeName()：固定返回 "Constant"，使带名字的常量
+         *          不与普通数值节点在相等判定中混同。
+         * @return "Constant"
+         */
         [[nodiscard]] std::string_view nodeName() const override;
 
     protected:
+        /**
+         * @brief 节点自身的求值
+         * @details 重写 NumberExpression 继承来的 UnitExpression::evaluateNode()：True 与 False
+         *          求值成布尔值，其余常量按无量纲数量求值。
+         * @return 布尔值或数量
+         */
         [[nodiscard]] Value evaluateNode() const override;
 
+        /**
+         * @brief 追加本节点的文本
+         * @details 重写 NumberExpression::appendText()：非数值常量直接写常量名（如 True），
+         *          数值常量沿用数字排版，保证文本能解析回同一节点。
+         * @param text 输出：在末尾追加本节点文本
+         * @param persistent true 时生成可回填、可持久化的文本
+         * @param indent 缩进层级，预留给多行排版
+         */
         void appendText(std::string &text, bool persistent, int indent) const override;
 
+        /**
+         * @brief 生成同类型的空壳副本
+         * @details 重写 NumberExpression::copyNode()：额外复制常量名，否则 True 会退化成数值节点。
+         * @return 同类型节点的新副本
+         */
         [[nodiscard]] ExpressionPtr copyNode() const override;
 
     private:
@@ -450,10 +558,20 @@ namespace ExpressionEngine::Expression
         /// 设置右操作数
         void setRight(ExpressionPtr expression);
 
-        /// 化简：两侧都是常量时折叠求值，否则重建节点
+        /**
+         * @brief 化简本节点
+         * @details 重写 Expression::simplify()：两侧都化简成常量数值时直接折叠求值，否则按
+         *          简化后的操作数重建同类型节点，保证化简不改变运算结构。
+         * @return 常量节点或重建的运算符节点
+         */
         [[nodiscard]] ExpressionPtr simplify() const override;
 
-        /// 取优先级，与 FreeCAD 一致：比较 1、加减 3、乘除取余 4、幂 5、一元与单位 6
+        /**
+         * @brief 取运算优先级
+         * @details 重写 Expression::priority()：与 FreeCAD 一致，比较 1、加减 3、乘除取余 4、
+         *          幂 5、一元与单位 6，文本化时据此补括号。
+         * @return 本运算符的优先级
+         */
         [[nodiscard]] int priority() const override;
 
         /// 运算是否可交换
@@ -471,7 +589,12 @@ namespace ExpressionEngine::Expression
         /// 取文本对应的运算符；无法识别时返回 None
         [[nodiscard]] static Operator operatorFromText(std::string_view text);
 
-        /// 节点种类名
+        /**
+         * @brief 节点种类名
+         * @details 重写 UnitExpression::nodeName()：固定返回 "Operator"，比较运算与算术运算
+         *          共用本节点，靠 getOperator() 区分具体运算。
+         * @return "Operator"
+         */
         [[nodiscard]] std::string_view nodeName() const override;
 
         /**
@@ -483,10 +606,30 @@ namespace ExpressionEngine::Expression
         [[nodiscard]] const OperatorExpression *asOperatorExpression() const noexcept override;
 
     protected:
+        /**
+         * @brief 节点自身的求值
+         * @details 重写 Expression::evaluateNode()：按运算符分派到对应的运算；一元运算符只用
+         *          左操作数，右操作数缺失时按一元语义处理。
+         * @return 运算结果
+         * @throws Base::Exception 操作数类型或量纲不参与该运算
+         */
         [[nodiscard]] Value evaluateNode() const override;
 
+        /**
+         * @brief 追加本节点的文本
+         * @details 重写 Expression::appendText()：一元运算符在操作数前写符号，二元运算符在
+         *          两侧操作数之间写符号，必要时按优先级补括号。
+         * @param text 输出：在末尾追加本节点文本
+         * @param persistent true 时生成可回填、可持久化的文本
+         * @param indent 缩进层级，预留给多行排版
+         */
         void appendText(std::string &text, bool persistent, int indent) const override;
 
+        /**
+         * @brief 生成同类型的空壳副本
+         * @details 重写 Expression::copyNode()：复制运算符，操作数由基类 copy() 递归深拷贝。
+         * @return 同类型节点的新副本
+         */
         [[nodiscard]] ExpressionPtr copyNode() const override;
 
         /**
@@ -530,22 +673,53 @@ namespace ExpressionEngine::Expression
         [[nodiscard]] const Expression *getFalseExpression() const noexcept;
 
         /**
-         * @brief 化简
-         * @details 条件化简后仍是常量时直接返回被选中分支的化简结果，否则重建节点。
+         * @brief 化简本节点
+         * @details 重写 Expression::simplify()：条件化简后仍是常量时直接返回被选中分支的化简
+         *          结果（未选中的分支不求值、不化简），否则重建同类型节点。
+         * @return 被选中分支的化简结果，或重建的条件节点
          */
         [[nodiscard]] ExpressionPtr simplify() const override;
 
-        /// 取优先级，与 FreeCAD 一致为 2
+        /**
+         * @brief 取运算优先级
+         * @details 重写 Expression::priority()：与 FreeCAD 一致为 2，仅高于赋值类运算，
+         *          使三元表达式在文本化时整体带括号。
+         * @return 固定值 2
+         */
         [[nodiscard]] int priority() const override;
 
-        /// 节点种类名
+        /**
+         * @brief 节点种类名
+         * @details 重写 Expression::nodeName()：固定返回 "Conditional"。
+         * @return "Conditional"
+         */
         [[nodiscard]] std::string_view nodeName() const override;
 
     protected:
+        /**
+         * @brief 节点自身的求值
+         * @details 重写 Expression::evaluateNode()：先对条件做真值判定，只对选中的分支求值，
+         *          另一分支完全不被触及（短路语义）。
+         * @return 被选中分支的取值
+         * @throws Base::TypeError 条件无法参与真值判定
+         */
         [[nodiscard]] Value evaluateNode() const override;
 
+        /**
+         * @brief 追加本节点的文本
+         * @details 重写 Expression::appendText()：按「条件 ? 真分支 : 假分支」书写，条件恒定时
+         *          仍按完整三元式输出，保证文本能解析回同一结构。
+         * @param text 输出：在末尾追加本节点文本
+         * @param persistent true 时生成可回填、可持久化的文本
+         * @param indent 缩进层级，预留给多行排版
+         */
         void appendText(std::string &text, bool persistent, int indent) const override;
 
+        /**
+         * @brief 生成同类型的空壳副本
+         * @details 重写 Expression::copyNode()：三个子表达式由基类 copy() 递归深拷贝。
+         * @return 同类型节点的新副本
+         */
         [[nodiscard]] ExpressionPtr copyNode() const override;
 
         /**
@@ -573,7 +747,7 @@ namespace ExpressionEngine::Expression
          */
         enum class Function
         {
-            None,
+            None, ///< 未设置
 
             // 标量函数
             Absolute,          ///< abs：绝对值
@@ -650,8 +824,7 @@ namespace ExpressionEngine::Expression
             /// 逻辑
             LogicalNot, ///< not：逻辑非
 
-            /// 聚合函数的哨兵，本身不是函数；与其后的聚合函数相邻，便于范围判断
-            Aggregates,
+            Aggregates, ///< 聚合函数的起始哨兵，本身不是函数；与其后的聚合函数相邻，便于范围判断
 
             Average,           ///< average：平均
             Count,             ///< count：计数
@@ -687,8 +860,10 @@ namespace ExpressionEngine::Expression
         [[nodiscard]] const std::vector<ExpressionPtr> &getArguments() const noexcept;
 
         /**
-         * @brief 化简
-         * @details 全部实参都能化简成数值节点时直接求值，否则重建节点。
+         * @brief 化简本节点
+         * @details 重写 UnitExpression::simplify()：全部实参都能化简成数值节点时直接求值，
+         *          否则用简化后的实参重建节点；聚合函数带区间实参，因此保留原结构。
+         * @return 常量节点或重建的函数节点
          */
         [[nodiscard]] ExpressionPtr simplify() const override;
 
@@ -708,14 +883,39 @@ namespace ExpressionEngine::Expression
         /// 取名字对应的函数；无法识别时返回 Function::None
         [[nodiscard]] static Function functionFromName(std::string_view name);
 
-        /// 节点种类名
+        /**
+         * @brief 节点种类名
+         * @details 重写 UnitExpression::nodeName()：固定返回 "Function"。
+         * @return "Function"
+         */
         [[nodiscard]] std::string_view nodeName() const override;
 
     protected:
+        /**
+         * @brief 节点自身的求值
+         * @details 重写 UnitExpression::evaluateNode()：普通函数按实参逐一求值后分派，
+         *          聚合函数把区间实参展开成序列再做归约。
+         * @return 函数结果
+         * @throws Base::Exception 实参个数或类型与该函数要求不符
+         */
         [[nodiscard]] Value evaluateNode() const override;
 
+        /**
+         * @brief 追加本节点的文本
+         * @details 重写 UnitExpression::appendText()：写成「规范名(实参, …)」；聚合函数的
+         *          区间实参按原写法还原，使文本能解析回同一棵树。
+         * @param text 输出：在末尾追加本节点文本
+         * @param persistent true 时生成可回填、可持久化的文本
+         * @param indent 缩进层级，预留给多行排版
+         */
         void appendText(std::string &text, bool persistent, int indent) const override;
 
+        /**
+         * @brief 生成同类型的空壳副本
+         * @details 重写 UnitExpression::copyNode()：复制函数种类与名字，实参由基类 copy()
+         *          递归深拷贝。
+         * @return 同类型节点的新副本
+         */
         [[nodiscard]] ExpressionPtr copyNode() const override;
 
         /**
@@ -752,7 +952,11 @@ namespace ExpressionEngine::Expression
     class VariableExpression : public UnitExpression
     {
     public:
-        /// 引用路径的临时表示；与命名空间作用域的 VariableReference 是同一类型
+        /**
+         * @brief 引用路径
+         * @details 与命名空间作用域的 VariableReference 是同一类型（别名而非新类型），
+         *          因此两者可互相赋值、比较。
+         */
         using Reference = VariableReference;
 
         /**
@@ -792,20 +996,55 @@ namespace ExpressionEngine::Expression
          */
         void assignValue(const Value &newValue);
 
-        /// 化简：引用节点本身是叶子，返回自身副本
+        /**
+         * @brief 化简本节点
+         * @details 重写 UnitExpression::simplify()：引用节点是叶子，求值需要宿主对象，无法在
+         *          化简期折叠，因此复制自身。
+         * @return 本节点的副本
+         */
         [[nodiscard]] ExpressionPtr simplify() const override;
 
-        /// 节点种类名
+        /**
+         * @brief 节点种类名
+         * @details 重写 UnitExpression::nodeName()：固定返回 "Variable"。
+         * @return "Variable"
+         */
         [[nodiscard]] std::string_view nodeName() const override;
 
     protected:
+        /**
+         * @brief 节点自身的求值
+         * @details 重写 UnitExpression::evaluateNode()：按引用路径解析宿主属性并读取取值；
+         *          属性尚未赋值时报错而不是当作 0，避免静默使用未就绪的值。
+         * @return 属性的当前取值
+         * @throws Base::NameError 解析器缺失或对象解析不到
+         * @throws Base::AttributeError 属性不存在
+         */
         [[nodiscard]] Value evaluateNode() const override;
 
+        /**
+         * @brief 追加本节点的文本
+         * @details 重写 UnitExpression::appendText()：写「文档名.对象名.属性名」形式；
+         *          分量由基类统一追加。
+         * @param text 输出：在末尾追加本节点文本
+         * @param persistent true 时生成可回填、可持久化的文本
+         * @param indent 缩进层级，预留给多行排版
+         */
         void appendText(std::string &text, bool persistent, int indent) const override;
 
+        /**
+         * @brief 生成同类型的空壳副本
+         * @details 重写 UnitExpression::copyNode()：复制引用路径三元组。
+         * @return 同类型节点的新副本
+         */
         [[nodiscard]] ExpressionPtr copyNode() const override;
 
-        /// 引用后面可以直接跟分量与下标，如 Box.Length[0]
+        /**
+         * @brief 本节点后面能否直接跟分量
+         * @details 重写 Expression::isIndexable()：引用后面可以直接跟分量与下标，如
+         *          Box.Length[0]，因此返回 true（基类默认为 false）。
+         * @return 恒为 true
+         */
         [[nodiscard]] bool isIndexable() const override;
 
         /**
@@ -843,19 +1082,53 @@ namespace ExpressionEngine::Expression
         /// 取文本内容
         [[nodiscard]] std::string getText() const;
 
-        /// 化简：文本已是常量，返回自身副本
+        /**
+         * @brief 化简本节点
+         * @details 重写 Expression::simplify()：文本已是常量，复制自身而不新建节点，
+         *          保证注释与分量不丢失。
+         * @return 本节点的副本
+         */
         [[nodiscard]] ExpressionPtr simplify() const override;
 
-        /// 节点种类名
+        /**
+         * @brief 节点种类名
+         * @details 重写 Expression::nodeName()：固定返回 "String"。
+         * @return "String"
+         */
         [[nodiscard]] std::string_view nodeName() const override;
 
     protected:
+        /**
+         * @brief 节点自身的求值
+         * @details 重写 Expression::evaluateNode()：直接返回持有的文本，不做任何解析或
+         *          隐式转换。
+         * @return 文本内容
+         */
         [[nodiscard]] Value evaluateNode() const override;
 
+        /**
+         * @brief 追加本节点的文本
+         * @details 重写 Expression::appendText()：用单引号定界并转义内部引号，使文本可被
+         *          词法分析器原样读回。
+         * @param text 输出：在末尾追加本节点文本
+         * @param persistent true 时生成可回填、可持久化的文本
+         * @param indent 缩进层级，预留给多行排版
+         */
         void appendText(std::string &text, bool persistent, int indent) const override;
 
+        /**
+         * @brief 生成同类型的空壳副本
+         * @details 重写 Expression::copyNode()：复制文本内容。
+         * @return 同类型节点的新副本
+         */
         [[nodiscard]] ExpressionPtr copyNode() const override;
 
+        /**
+         * @brief 本节点后面能否直接跟分量
+         * @details 重写 Expression::isIndexable()：文本可按 UTF-8 字符下标取子值，如 'abc'[1]，
+         *          因此返回 true（基类默认为 false）。
+         * @return 恒为 true
+         */
         [[nodiscard]] bool isIndexable() const override;
 
     private:
@@ -876,17 +1149,43 @@ namespace ExpressionEngine::Expression
         /// 取取值
         [[nodiscard]] const Value &getValue() const noexcept;
 
-        /// 化简：取值已是常量，返回自身副本
+        /**
+         * @brief 化简本节点
+         * @details 重写 Expression::simplify()：取值已是常量，复制自身而不新建节点。
+         * @return 本节点的副本
+         */
         [[nodiscard]] ExpressionPtr simplify() const override;
 
-        /// 节点种类名
+        /**
+         * @brief 节点种类名
+         * @details 重写 Expression::nodeName()：固定返回 "Value"。
+         * @return "Value"
+         */
         [[nodiscard]] std::string_view nodeName() const override;
 
     protected:
+        /**
+         * @brief 节点自身的求值
+         * @details 重写 Expression::evaluateNode()：直接返回持有的取值，几何值不经分量解释。
+         * @return 本节点持有的取值
+         */
         [[nodiscard]] Value evaluateNode() const override;
 
+        /**
+         * @brief 追加本节点的文本
+         * @details 重写 Expression::appendText()：几何值写成可重新解析的函数调用形式
+         *          （如 vector(...)、placement(...)），数值与文本走各自的写法。
+         * @param text 输出：在末尾追加本节点文本
+         * @param persistent true 时生成可回填、可持久化的文本
+         * @param indent 缩进层级，预留给多行排版
+         */
         void appendText(std::string &text, bool persistent, int indent) const override;
 
+        /**
+         * @brief 生成同类型的空壳副本
+         * @details 重写 Expression::copyNode()：复制取值本身。
+         * @return 同类型节点的新副本
+         */
         [[nodiscard]] ExpressionPtr copyNode() const override;
 
     private:
@@ -925,20 +1224,54 @@ namespace ExpressionEngine::Expression
          */
         [[nodiscard]] Range getRange() const;
 
-        /// 化简：区间节点保持原样，返回自身副本
+        /**
+         * @brief 化简本节点
+         * @details 重写 Expression::simplify()：区间不是标量常量，折叠会丢掉聚合函数所需的
+         *          地址信息，因此原样复制。
+         * @return 本节点的副本
+         */
         [[nodiscard]] ExpressionPtr simplify() const override;
 
-        /// 节点种类名
+        /**
+         * @brief 节点种类名
+         * @details 重写 Expression::nodeName()：固定返回 "Range"，供相等判定识别区间。
+         * @return "Range"
+         */
         [[nodiscard]] std::string_view nodeName() const override;
 
-        /// 返回自身，供聚合函数识别
+        /**
+         * @brief 取本节点的区间表达式视图
+         * @details 重写 Expression::asRangeExpression()：本类节点直接返回自身，省去基类的
+         *          一次类型判断，聚合函数据此识别区间实参。
+         * @return 本节点自身
+         */
         [[nodiscard]] const RangeExpression *asRangeExpression() const noexcept override;
 
     protected:
+        /**
+         * @brief 节点自身的求值
+         * @details 重写 Expression::evaluateNode()：区间没有标量取值，恒定报错并提示改用
+         *          聚合函数，而不是返回首单元格或空值。
+         * @return 不返回
+         * @throws EvaluationError 区间被当成标量取值
+         */
         [[nodiscard]] Value evaluateNode() const override;
 
+        /**
+         * @brief 追加本节点的文本
+         * @details 重写 Expression::appendText()：写成「起始:结束」形式，使文本能解析回同一
+         *          区间。
+         * @param text 输出：在末尾追加本节点文本
+         * @param persistent true 时生成可回填、可持久化的文本
+         * @param indent 缩进层级，预留给多行排版
+         */
         void appendText(std::string &text, bool persistent, int indent) const override;
 
+        /**
+         * @brief 生成同类型的空壳副本
+         * @details 重写 Expression::copyNode()：复制首尾地址文本。
+         * @return 同类型节点的新副本
+         */
         [[nodiscard]] ExpressionPtr copyNode() const override;
 
     private:

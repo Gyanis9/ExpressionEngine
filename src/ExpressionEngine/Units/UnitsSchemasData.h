@@ -2,7 +2,7 @@
  * @file UnitsSchemasData.h
  * @brief 内置单位方案的原始数据表与特殊换算函数
  * @author Gyanis
- * @date 2026-09-18
+ * @date 2026-09-19
  * @version 1.0.0
  * @copyright Copyright (c) 2026 Gyanis. LGPL-2.1-or-later，派生自 FreeCAD
  */
@@ -30,8 +30,11 @@
 
 namespace ExpressionEngine::Units::UnitsSchemasData
 {
-    constexpr std::size_t defDecimals{2};
-    constexpr std::size_t defDenominator{8};
+    /// 内置方案数据包的默认小数位数
+    constexpr std::size_t defaultDecimals{2};
+
+    /// 内置方案数据包的默认分数分母
+    constexpr std::size_t defaultDenominator{8};
 
     using namespace UnitsConvData;
 
@@ -682,6 +685,7 @@ inline const UnitsSchemaSpec s9
 
     // clang-format on
     // NOLINTEND
+    /// 内置方案列表：按编号排列，供 UnitsSchemas 按序号或名字查找
     inline const std::vector schemaSpecs{s3, s4, s5, s6, s7, s8, s9, s0, s1, s2};
 
     /**
@@ -829,5 +833,5 @@ inline const std::map<std::string, std::function<std::string(double, std::size_t
     }
 
     /// 内置方案数据包：全部方案、默认小数位数与默认分数分母
-    inline const UnitsSchemasDataPack unitSchemasDataPack{schemaSpecs, defDecimals, defDenominator};
+    inline const UnitsSchemasDataPack unitSchemasDataPack{schemaSpecs, defaultDecimals, defaultDenominator};
 } // namespace ExpressionEngine::Units::UnitsSchemasData

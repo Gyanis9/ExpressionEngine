@@ -2,7 +2,7 @@
  * @file Matrix.h
  * @brief 4x4 齐次变换矩阵 Matrix4D 与缩放类型枚举
  * @author Gyanis
- * @date 2026-09-18
+ * @date 2026-09-19
  * @version 1.0.0
  * @copyright Copyright (c) 2026 Gyanis. LGPL-2.1-or-later，派生自 FreeCAD
  */
@@ -37,10 +37,13 @@ namespace ExpressionEngine::Base
      */
     class Matrix4D
     {
+        /** @brief 双精度数值特征类型 */
         using traits_type = float_traits<double>;
 
     public:
-        /// 默认构造：单位阵
+        /**
+         * @brief 默认构造为单位阵
+         */
         Matrix4D();
 
         /**
@@ -117,6 +120,9 @@ namespace ExpressionEngine::Base
          */
         Matrix4D(const Vector3d &base, const Vector3d &direction, double angle);
 
+        /**
+         * @brief 析构函数
+         */
         ~Matrix4D() = default;
 
         /**
@@ -370,7 +376,9 @@ namespace ExpressionEngine::Base
          */
         unsigned long getMemSpace() const;
 
-        /// 重置为单位阵
+        /**
+         * @brief 重置为单位阵
+         */
         void setToUnity();
 
         /**
@@ -386,7 +394,9 @@ namespace ExpressionEngine::Base
          */
         bool isUnity(double tolerance) const;
 
-        /// 重置为零矩阵
+        /**
+         * @brief 重置为零矩阵
+         */
         void nullify();
 
         /**
@@ -587,7 +597,10 @@ namespace ExpressionEngine::Base
          */
         void inverse();
 
-        /// 正交矩阵求逆：转置后同步修正平移分量
+        /**
+         * @brief 正交矩阵求逆：转置后同步修正平移分量
+         * @details 只对 3x3 子矩阵为正交矩阵的情况成立（矩阵仅含旋转与平移），比 inverseGauss() 快且无奇异风险。
+         */
         void inverseOrthogonal();
 
         /**
@@ -596,10 +609,15 @@ namespace ExpressionEngine::Base
          */
         void inverseGauss();
 
-        /// 就地转置
+        /**
+         * @brief 就地转置
+         */
         void transpose();
 
-        /// 打印 4x4 元素到标准输出，仅用于调试
+        /**
+         * @brief 打印 4x4 元素到标准输出
+         * @details 仅用于调试：直接写 stdout，不经由日志框架，也不随区域设置改变小数格式。
+         */
         void Print() const;
 
         /**

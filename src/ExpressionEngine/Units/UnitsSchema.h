@@ -2,7 +2,7 @@
  * @file UnitsSchema.h
  * @brief 单个单位方案：把量换算成该方案偏好的单位并排版
  * @author Gyanis
- * @date 2026-09-18
+ * @date 2026-09-19
  * @version 1.0.0
  * @copyright Copyright (c) 2026 Gyanis. LGPL-2.1-or-later，派生自 FreeCAD
  */

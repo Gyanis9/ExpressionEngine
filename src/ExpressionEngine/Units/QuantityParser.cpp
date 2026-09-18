@@ -37,40 +37,41 @@ namespace ExpressionEngine::Units
             End         ///< 输入结束
         };
 
-        /// 支持的标量函数
+        /// 支持的标量函数；取值名即数学函数的通用写法
         enum class FunctionId
         {
-            Acos,
-            Asin,
-            Atan,
-            Cos,
-            Exp,
-            Abs,
-            Log,
-            Log10,
-            Sin,
-            Sinh,
-            Tan,
-            Tanh,
-            Sqrt
+            Acos,  ///< acos：反余弦
+            Asin,  ///< asin：反正弦
+            Atan,  ///< atan：反正切
+            Cos,   ///< cos：余弦
+            Exp,   ///< exp：自然指数
+            Abs,   ///< abs：绝对值
+            Log,   ///< log：自然对数
+            Log10, ///< log10：常用对数
+            Sin,   ///< sin：正弦
+            Sinh,  ///< sinh：双曲正弦
+            Tan,   ///< tan：正切
+            Tanh,  ///< tanh：双曲正切
+            Sqrt   ///< sqrt：平方根
         };
 
         /// 一个记号；数值与单位记号共用 Quantity 作为语义值（单位记号的值为「1 个单位」）
         struct Token
         {
-            TokenKind   kind{TokenKind::End};
-            Quantity    value;      ///< 数值或单位
-            FunctionId  function{}; ///< 函数记号对应的函数
-            std::size_t offset{0};  ///< 记号在输入中的字节偏移，用于报错定位
+            TokenKind   kind{TokenKind::End}; ///< 记号类别
+            Quantity    value;                ///< 数值或单位
+            FunctionId  function{};           ///< 函数记号对应的函数
+            std::size_t offset{0};            ///< 记号在输入中的字节偏移，用于报错定位
         };
 
         /// 单位符号到预定义量的对照
         struct UnitTokenSpec
         {
-            std::string_view symbol;
-            const Quantity  *quantity;
+            std::string_view symbol;   ///< 单位符号原文，如 "mm"、"µm"
+            const Quantity  *quantity; ///< 该符号对应的预定义量（静态存储期，不持所有权）
         };
 
+        /// 单位符号对照表；等长符号之间的先后决定匹配优先级，由 longestMatch 取最长匹配
         // clang-format off
 constexpr std::array unitTokenSpecs {
     UnitTokenSpec { "nm"  , &Quantity::NanoMetre    }, UnitTokenSpec { "um"   , &Quantity::MicroMetre   },
@@ -185,6 +186,7 @@ constexpr std::array unitTokenSpecs {
             FunctionId       function;
         };
 
+        /// 标量函数的名字对照表：走最长匹配，使 log10 胜过 log
         constexpr std::array functionTokenSpecs{
                 FunctionTokenSpec{"acos", FunctionId::Acos}, FunctionTokenSpec{"asin", FunctionId::Asin},   FunctionTokenSpec{"atan", FunctionId::Atan},
                 FunctionTokenSpec{"cos", FunctionId::Cos},   FunctionTokenSpec{"exp", FunctionId::Exp},     FunctionTokenSpec{"abs", FunctionId::Abs},
@@ -572,10 +574,10 @@ constexpr std::array unitTokenSpecs {
          * @details 递归下降实现，优先级自低到高为：加减、乘除、一元正负、乘方、括号与函数，
          *          单位表达式单独一棵子树，单位与数值的结合按「相邻即相乘」处理。
          */
-        class QuantityParserImpl
+        class QuantityParserImplementation
         {
         public:
-            explicit QuantityParserImpl(const std::string_view text) : m_lexer(text)
+            explicit QuantityParserImplementation(const std::string_view text) : m_lexer(text)
             {
                 advance();
                 advance();
@@ -617,13 +619,13 @@ constexpr std::array unitTokenSpecs {
             Token         m_lookahead; ///< 下一记号，用于区分 "1/mm" 与 "1/2"
         };
 
-        void QuantityParserImpl::advance()
+        void QuantityParserImplementation::advance()
         {
             m_current   = m_lookahead;
             m_lookahead = m_lexer.next();
         }
 
-        bool QuantityParserImpl::startsNumber() const
+        bool QuantityParserImplementation::startsNumber() const
         {
             switch (m_lookahead.kind)
             {
@@ -638,7 +640,7 @@ constexpr std::array unitTokenSpecs {
             }
         }
 
-        void QuantityParserImpl::expect(const TokenKind kind, const std::string_view description)
+        void QuantityParserImplementation::expect(const TokenKind kind, const std::string_view description)
         {
             if (m_current.kind != kind)
             {
@@ -647,7 +649,7 @@ constexpr std::array unitTokenSpecs {
             advance();
         }
 
-        void QuantityParserImpl::expectEnd()
+        void QuantityParserImplementation::expectEnd()
         {
             if (m_current.kind != TokenKind::End)
             {
@@ -655,7 +657,7 @@ constexpr std::array unitTokenSpecs {
             }
         }
 
-        Quantity QuantityParserImpl::parseInput()
+        Quantity QuantityParserImplementation::parseInput()
         {
             // 空输入的语义沿用原文法：返回最小正数，表示「没有有效内容」
             if (m_current.kind == TokenKind::End)
@@ -681,7 +683,7 @@ constexpr std::array unitTokenSpecs {
             return result;
         }
 
-        Quantity QuantityParserImpl::parseItem(const bool requireUnit)
+        Quantity QuantityParserImplementation::parseItem(const bool requireUnit)
         {
             // 整段就是单位：此时等价于「1 个该单位」
             if (m_current.kind == TokenKind::Unit)
@@ -707,7 +709,7 @@ constexpr std::array unitTokenSpecs {
             return value;
         }
 
-        Quantity QuantityParserImpl::parseAdditive()
+        Quantity QuantityParserImplementation::parseAdditive()
         {
             Quantity value = parseMultiplicative();
 
@@ -722,7 +724,7 @@ constexpr std::array unitTokenSpecs {
             return value;
         }
 
-        Quantity QuantityParserImpl::parseMultiplicative()
+        Quantity QuantityParserImplementation::parseMultiplicative()
         {
             Quantity value = parseUnary();
 
@@ -743,7 +745,7 @@ constexpr std::array unitTokenSpecs {
             return value;
         }
 
-        Quantity QuantityParserImpl::parseUnary()
+        Quantity QuantityParserImplementation::parseUnary()
         {
             if (m_current.kind == TokenKind::Plus)
             {
@@ -760,7 +762,7 @@ constexpr std::array unitTokenSpecs {
             return parsePower();
         }
 
-        Quantity QuantityParserImpl::parsePower()
+        Quantity QuantityParserImplementation::parsePower()
         {
             Quantity value = parseNumberAtom();
 
@@ -775,7 +777,7 @@ constexpr std::array unitTokenSpecs {
             return value;
         }
 
-        Quantity QuantityParserImpl::parseNumberAtom()
+        Quantity QuantityParserImplementation::parseNumberAtom()
         {
             switch (m_current.kind)
             {
@@ -807,12 +809,12 @@ constexpr std::array unitTokenSpecs {
             }
         }
 
-        Quantity QuantityParserImpl::parseUnitExpression()
+        Quantity QuantityParserImplementation::parseUnitExpression()
         {
             return parseUnitProduct();
         }
 
-        Quantity QuantityParserImpl::parseUnitProduct()
+        Quantity QuantityParserImplementation::parseUnitProduct()
         {
             Quantity value = parseUnitPower();
 
@@ -827,7 +829,7 @@ constexpr std::array unitTokenSpecs {
             return value;
         }
 
-        Quantity QuantityParserImpl::parseUnitPower()
+        Quantity QuantityParserImplementation::parseUnitPower()
         {
             Quantity value = parseUnitAtom();
 
@@ -846,7 +848,7 @@ constexpr std::array unitTokenSpecs {
             return value;
         }
 
-        Quantity QuantityParserImpl::parseUnitAtom()
+        Quantity QuantityParserImplementation::parseUnitAtom()
         {
             switch (m_current.kind)
             {
@@ -871,7 +873,7 @@ constexpr std::array unitTokenSpecs {
 
     Quantity QuantityParser::parse(const std::string_view text)
     {
-        QuantityParserImpl parser{text};
+        QuantityParserImplementation parser{text};
         return parser.parseInput();
     }
 

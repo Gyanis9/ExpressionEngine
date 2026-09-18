@@ -473,12 +473,12 @@ namespace ExpressionEngine::Base
     }
 
     template<class float_type>
-    void Vector3<float_type>::TransformToCoordinateSystem(const Vector3 &base, const Vector3 &dirX, const Vector3 &dirY)
+    void Vector3<float_type>::TransformToCoordinateSystem(const Vector3 &base, const Vector3 &xDirection, const Vector3 &yDirection)
     {
         // 先归一化两个给定方向，再用叉积补出第三轴，构造正交基
-        Vector3<float_type> axisX = dirX;
-        Vector3<float_type> axisY = dirY;
-        Vector3<float_type> axisZ = dirX % dirY;
+        Vector3<float_type> axisX = xDirection;
+        Vector3<float_type> axisY = yDirection;
+        Vector3<float_type> axisZ = xDirection % yDirection;
         axisX.Normalize();
         axisY.Normalize();
         axisZ.Normalize();

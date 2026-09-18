@@ -2,7 +2,7 @@
  * @file NumericFormatting.h
  * @brief 区域数字格式快照与数字格式化
  * @author Gyanis
- * @date 2026-09-18
+ * @date 2026-09-19
  * @version 1.0.0
  * @copyright Copyright (c) 2026 Gyanis. LGPL-2.1-or-later，派生自 FreeCAD
  */
@@ -15,7 +15,10 @@
 
 namespace ExpressionEngine::Base
 {
-    /// 数字的呈现方式，与数量格式设置里的同名枚举一一对应
+    /**
+     * @brief 数字的呈现方式
+     * @details 取值与数量格式设置里的同名枚举一一对应，用于选择定点、科学计数或默认记数法。
+     */
     enum class NumberNotation
     {
         Default,   ///< 由有效位数决定，等价于 printf 的 %g
@@ -42,14 +45,18 @@ namespace ExpressionEngine::Base
         bool operator==(const NumericLocaleContext &) const = default;
     };
 
-    /// 区域设置错误的分类
+    /**
+     * @brief 区域设置错误的分类
+     */
     enum class NumericLocaleErrorCode
     {
         InvalidIdentifier, ///< 标识符不合法（空串或含非字母数字字符）
         UnsupportedLocale, ///< 标识符合法但没有内置分隔符数据，需调用方显式构造上下文
     };
 
-    /// 区域设置错误详情
+    /**
+     * @brief 区域设置错误详情
+     */
     struct NumericLocaleError
     {
         NumericLocaleErrorCode code;    ///< 错误分类
@@ -71,7 +78,10 @@ namespace ExpressionEngine::Base
      */
     [[nodiscard]] std::expected<NumericLocaleContext, NumericLocaleError> createNumericLocaleContext(std::string_view localeId);
 
-    /// 取当前已发布的上下文；未发布过时为 C 区域上下文
+    /**
+     * @brief 取当前已发布的上下文
+     * @return 最近一次 publishNumericLocaleContext() 发布的快照；从未发布过时为 C 区域上下文
+     */
     [[nodiscard]] NumericLocaleContext currentNumericLocaleContext();
 
     /**

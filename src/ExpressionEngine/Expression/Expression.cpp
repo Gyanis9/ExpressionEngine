@@ -517,6 +517,10 @@ namespace ExpressionEngine::Expression
 
             virtual ~Collector() = default;
 
+            /**
+             * @brief 接收一个待聚合的量
+             * @param value 本次收集到的量；首个值的单位会成为结果的单位
+             */
             virtual void collect(const Units::Quantity &value)
             {
                 if (m_first)
@@ -525,6 +529,10 @@ namespace ExpressionEngine::Expression
                 }
             }
 
+            /**
+             * @brief 取聚合结果
+             * @return 按各收集器的口径算出的结果
+             */
             [[nodiscard]] virtual Units::Quantity getQuantity() const
             {
                 return m_result;
@@ -539,6 +547,12 @@ namespace ExpressionEngine::Expression
         class SumCollector : public Collector
         {
         public:
+            /**
+             * @brief 累加一个量
+             * @details 重写 Collector::collect()：在基类初始化单位之后做加法，结果与基类同为
+             *          首个值带单位的量。
+             * @param value 本次收集到的量
+             */
             void collect(const Units::Quantity &value) override
             {
                 Collector::collect(value);
@@ -551,6 +565,12 @@ namespace ExpressionEngine::Expression
         class AverageCollector : public Collector
         {
         public:
+            /**
+             * @brief 累加一个量并计数
+             * @details 重写 Collector::collect()：基类只负责初始化单位，本类额外累计条目数，
+             *          供 getQuantity() 作除数。
+             * @param value 本次收集到的量
+             */
             void collect(const Units::Quantity &value) override
             {
                 Collector::collect(value);
@@ -559,6 +579,13 @@ namespace ExpressionEngine::Expression
                 m_first = false;
             }
 
+            /**
+             * @brief 取平均值
+             * @details 重写 Collector::getQuantity()：用累计和除以条目数；没有条目时求平均没有
+             *          定义，报错而不是返回 inf。
+             * @return 平均值，单位与首个值相同
+             * @throws Base::ValueError 一个值都没有收到
+             */
             [[nodiscard]] Units::Quantity getQuantity() const override
             {
                 if (m_count == 0)
@@ -577,6 +604,12 @@ namespace ExpressionEngine::Expression
         class StandardDeviationCollector : public Collector
         {
         public:
+            /**
+             * @brief 按 Welford 递推累加一个量
+             * @details 重写 Collector::collect()：基类只负责初始化单位，本类额外维护均值与偏差
+             *          平方累加，避免两遍扫描。
+             * @param value 本次收集到的量
+             */
             void collect(const Units::Quantity &value) override
             {
                 Collector::collect(value);
@@ -595,6 +628,13 @@ namespace ExpressionEngine::Expression
                 m_first               = false;
             }
 
+            /**
+             * @brief 取样本标准差
+             * @details 重写 Collector::getQuantity()：样本标准差要求至少两个样本，单个样本上
+             *          没有定义，与 FreeCAD 一致地报错。
+             * @return 样本标准差，单位与数据相同
+             * @throws EvaluationError 收集到的条目少于两个
+             */
             [[nodiscard]] Units::Quantity getQuantity() const override
             {
                 if (m_count < 2)
@@ -615,12 +655,23 @@ namespace ExpressionEngine::Expression
         class CountCollector : public Collector
         {
         public:
+            /**
+             * @brief 只计数，不看数值
+             * @details 重写 Collector::collect()：count() 与单位无关，因此忽略实参内容，
+             *          只累计条目数。
+             * @param value 本次收集到的量，本类不使用其取值
+             */
             void collect(const Units::Quantity &) override
             {
                 ++m_count;
                 m_first = false;
             }
 
+            /**
+             * @brief 取条目数
+             * @details 重写 Collector::getQuantity()：结果是无量纲的整数，不继承首个值的单位。
+             * @return 条目数
+             */
             [[nodiscard]] Units::Quantity getQuantity() const override
             {
                 return Units::Quantity(static_cast<double>(m_count));
@@ -634,6 +685,12 @@ namespace ExpressionEngine::Expression
         class MinimumCollector : public Collector
         {
         public:
+            /**
+             * @brief 保留最小值
+             * @details 重写 Collector::collect()：基类初始化单位之后逐个比较；首个值没有比较对象，
+             *          直接成为当前最小。
+             * @param value 本次收集到的量
+             */
             void collect(const Units::Quantity &value) override
             {
                 Collector::collect(value);
@@ -649,6 +706,12 @@ namespace ExpressionEngine::Expression
         class MaximumCollector : public Collector
         {
         public:
+            /**
+             * @brief 保留最大值
+             * @details 重写 Collector::collect()：基类初始化单位之后逐个比较；首个值没有比较对象，
+             *          直接成为当前最大。
+             * @param value 本次收集到的量
+             */
             void collect(const Units::Quantity &value) override
             {
                 Collector::collect(value);
@@ -664,6 +727,12 @@ namespace ExpressionEngine::Expression
         class AndCollector : public Collector
         {
         public:
+            /**
+             * @brief 按逻辑与累积真值
+             * @details 重写 Collector::collect()：与单位无关，首个值决定初值，之后只要出现假值就
+             *          固定为 0（短路语义，后续值不再改变结果）。
+             * @param value 本次收集到的量
+             */
             void collect(const Units::Quantity &value) override
             {
                 if (m_first)
@@ -683,6 +752,12 @@ namespace ExpressionEngine::Expression
         class OrCollector : public Collector
         {
         public:
+            /**
+             * @brief 按逻辑或累积真值
+             * @details 重写 Collector::collect()：与单位无关，首个值决定初值，之后只要出现真值就
+             *          固定为 1（短路语义，后续值不再改变结果）。
+             * @param value 本次收集到的量
+             */
             void collect(const Units::Quantity &value) override
             {
                 if (m_first)

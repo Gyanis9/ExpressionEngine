@@ -2,7 +2,7 @@
  * @file Vector3D.h
  * @brief 三维向量模板 Vector3 及配套的浮点特征与自由函数
  * @author Gyanis
- * @date 2026-09-18
+ * @date 2026-09-19
  * @version 1.0.0
  * @copyright Copyright (c) 2026 Gyanis. LGPL-2.1-or-later，派生自 FreeCAD
  */
@@ -18,57 +18,81 @@ namespace ExpressionEngine::Base
     /**
      * @brief 浮点类型数值特征的通用模板
      * @details 为 Vector3 提供 pi/epsilon/maximum 三个编译期常量；未特化的类型无法实例化 Vector3。
-     * @tparam numT 浮点类型
+     * @tparam floatingType 浮点类型
      */
-    template<class numT>
+    template<class floatingType>
     struct float_traits
     {
     };
 
-    /// float 的数值特征
+    /**
+     * @brief float 的数值特征
+     */
     template<>
     struct float_traits<float>
     {
+        /** @brief 分量类型 */
         using float_type = float;
 
-        /// 取圆周率
+        /**
+         * @brief 取圆周率
+         * @return 分量类型的 π 值
+         */
         [[nodiscard]] static consteval float_type pi()
         {
             return std::numbers::pi_v<float_type>;
         }
 
-        /// 取机器精度
+        /**
+         * @brief 取机器精度
+         * @return 分量类型的 epsilon，即相邻可表示浮点数之间的最小相对差异
+         */
         [[nodiscard]] static consteval float_type epsilon()
         {
             return std::numeric_limits<float_type>::epsilon();
         }
 
-        /// 取可表示的最大有限值
+        /**
+         * @brief 取可表示的最大有限值
+         * @return 分量类型的最大有限值
+         */
         [[nodiscard]] static consteval float_type maximum()
         {
             return std::numeric_limits<float_type>::max();
         }
     };
 
-    /// double 的数值特征
+    /**
+     * @brief double 的数值特征
+     */
     template<>
     struct float_traits<double>
     {
+        /** @brief 分量类型 */
         using float_type = double;
 
-        /// 取圆周率
+        /**
+         * @brief 取圆周率
+         * @return 分量类型的 π 值
+         */
         [[nodiscard]] static consteval float_type pi()
         {
             return std::numbers::pi_v<float_type>;
         }
 
-        /// 取机器精度
+        /**
+         * @brief 取机器精度
+         * @return 分量类型的 epsilon，即相邻可表示浮点数之间的最小相对差异
+         */
         [[nodiscard]] static consteval float_type epsilon()
         {
             return std::numeric_limits<float_type>::epsilon();
         }
 
-        /// 取可表示的最大有限值
+        /**
+         * @brief 取可表示的最大有限值
+         * @return 分量类型的最大有限值
+         */
         [[nodiscard]] static consteval float_type maximum()
         {
             return std::numeric_limits<float_type>::max();
@@ -92,7 +116,10 @@ namespace ExpressionEngine::Base
         using num_type    = float_type;             ///< 分量类型
         using traits_type = float_traits<num_type>; ///< 数值特征类型
 
-        /// 取分量类型的机器精度
+        /**
+         * @brief 取分量类型的机器精度
+         * @return 分量类型 epsilon 的最小可分辨差异
+         */
         [[nodiscard]] static constexpr num_type epsilon()
         {
             return traits_type::epsilon();
@@ -110,10 +137,21 @@ namespace ExpressionEngine::Base
          */
         explicit Vector3(float_type xValue = 0.0, float_type yValue = 0.0, float_type zValue = 0.0);
 
+        /**
+         * @brief 拷贝构造
+         * @param other 被拷贝的向量
+         */
         Vector3(const Vector3<float_type> &other) = default;
 
+        /**
+         * @brief 移动构造
+         * @param other 被移动的向量，移动后处于有效但未指定状态
+         */
         Vector3(Vector3<float_type> &&other) noexcept = default;
 
+        /**
+         * @brief 析构函数
+         */
         ~Vector3() = default;
 
         /**
@@ -153,7 +191,10 @@ namespace ExpressionEngine::Base
          */
         [[nodiscard]] Vector3 operator-(const Vector3<float_type> &other) const;
 
-        /// 取反向量
+        /**
+         * @brief 取反向量
+         * @return 三分量都取反的新向量
+         */
         [[nodiscard]] Vector3 operator-() const;
 
         /**
@@ -198,8 +239,18 @@ namespace ExpressionEngine::Base
          */
         Vector3 &operator/=(float_type divisor);
 
+        /**
+         * @brief 拷贝赋值
+         * @param other 被赋值的向量
+         * @return 自身引用
+         */
         Vector3 &operator=(const Vector3<float_type> &other) = default;
 
+        /**
+         * @brief 移动赋值
+         * @param other 被移动的向量，移动后处于有效但未指定状态
+         * @return 自身引用
+         */
         Vector3 &operator=(Vector3<float_type> &&other) noexcept = default;
 
         /**
@@ -380,11 +431,11 @@ namespace ExpressionEngine::Base
         /**
          * @brief 把本点变换到给定坐标系
          * @param base 目标坐标系原点
-         * @param dirX 目标坐标系 X 方向
-         * @param dirY 目标坐标系 Y 方向，必须与 dirX 垂直
-         * @throws ValueError dirX 与 dirY 平行导致叉积为零向量时抛出
+         * @param xDirection 目标坐标系 X 方向
+         * @param yDirection 目标坐标系 Y 方向，必须与 xDirection 垂直
+         * @throws ValueError xDirection 与 yDirection 平行导致叉积为零向量时抛出
          */
-        void TransformToCoordinateSystem(const Vector3 &base, const Vector3 &dirX, const Vector3 &dirY);
+        void TransformToCoordinateSystem(const Vector3 &base, const Vector3 &xDirection, const Vector3 &yDirection);
 
         /**
          * @brief 按距离容差判断两点是否重合
@@ -531,6 +582,13 @@ namespace ExpressionEngine::Base
         return Vector3<TargetType>(static_cast<TargetType>(vector.x), static_cast<TargetType>(vector.y), static_cast<TargetType>(vector.z));
     }
 
-    using Vector3f = Vector3<float>;  ///< 单精度三维向量
-    using Vector3d = Vector3<double>; ///< 双精度三维向量
+    /**
+     * @brief 单精度三维向量
+     */
+    using Vector3f = Vector3<float>;
+
+    /**
+     * @brief 双精度三维向量
+     */
+    using Vector3d = Vector3<double>;
 } // namespace ExpressionEngine::Base

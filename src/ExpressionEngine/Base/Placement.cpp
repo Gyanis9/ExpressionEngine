@@ -27,12 +27,12 @@ namespace ExpressionEngine::Base
         m_position = position + center - rotatedCenter;
     }
 
-    Placement Placement::fromDualQuaternion(DualQuat qq)
+    Placement Placement::fromDualQuaternion(DualQuat dualQuaternion)
     {
         // 实部就是旋转四元数，分量顺序为 x, y, z, w
-        const Rotation rotation(qq.x.re, qq.y.re, qq.z.re, qq.w.re);
+        const Rotation rotation(dualQuaternion.x.re, dualQuaternion.y.re, dualQuaternion.z.re, dualQuaternion.w.re);
         // 平移按 t = 2·d·r* 还原：d 为对偶部、r* 为旋转共轭
-        const DualQuat moveQuaternion = 2 * qq.dual() * qq.real().conj();
+        const DualQuat moveQuaternion = 2 * dualQuaternion.dual() * dualQuaternion.real().conj();
         return Placement(Vector3d(moveQuaternion.x.re, moveQuaternion.y.re, moveQuaternion.z.re), rotation);
     }
 
@@ -73,9 +73,9 @@ namespace ExpressionEngine::Base
         return (m_position == nullVector) && m_rotation.isIdentity();
     }
 
-    bool Placement::isIdentity(double tol) const
+    bool Placement::isIdentity(double tolerance) const
     {
-        return isSame(Placement(), tol);
+        return isSame(Placement(), tolerance);
     }
 
     bool Placement::isSame(const Placement &other) const
@@ -84,9 +84,9 @@ namespace ExpressionEngine::Base
         return m_rotation.isSame(other.m_rotation) && m_position.IsEqual(other.m_position, 0);
     }
 
-    bool Placement::isSame(const Placement &other, double tol) const
+    bool Placement::isSame(const Placement &other, double tolerance) const
     {
-        return m_rotation.isSame(other.m_rotation, tol) && m_position.IsEqual(other.m_position, tol);
+        return m_rotation.isSame(other.m_rotation, tolerance) && m_position.IsEqual(other.m_position, tolerance);
     }
 
     void Placement::invert()
@@ -104,9 +104,9 @@ namespace ExpressionEngine::Base
         return result;
     }
 
-    void Placement::move(const Vector3d &movVector)
+    void Placement::move(const Vector3d &moveVector)
     {
-        m_position += movVector;
+        m_position += moveVector;
     }
 
     bool Placement::operator==(const Placement &other) const
@@ -155,17 +155,17 @@ namespace ExpressionEngine::Base
         return *this;
     }
 
-    void Placement::multVec(const Vector3d &src, Vector3d &dst) const
+    void Placement::multVec(const Vector3d &source, Vector3d &destination) const
     {
-        m_rotation.multVec(src, dst);
-        dst += m_position;
+        m_rotation.multVec(source, destination);
+        destination += m_position;
     }
 
-    void Placement::multVec(const Vector3f &src, Vector3f &dst) const
+    void Placement::multVec(const Vector3f &source, Vector3f &destination) const
     {
-        m_rotation.multVec(src, dst);
+        m_rotation.multVec(source, destination);
         // 单精度路径同样把位置降为单精度，避免混算引入额外的精度分支
-        dst += toVector<float>(m_position);
+        destination += toVector<float>(m_position);
     }
 
     Placement Placement::slerp(const Placement &p0, const Placement &p1, double t)

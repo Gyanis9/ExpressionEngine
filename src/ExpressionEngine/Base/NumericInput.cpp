@@ -113,12 +113,14 @@ namespace ExpressionEngine::Base
             return result;
         }
 
-        /// 规范写法转双精度的三种结局
+        /**
+         * @brief 规范写法转双精度的三种结局
+         */
         enum class CanonicalNumberStatus
         {
-            Complete,
-            Invalid,
-            OutOfRange
+            Complete,  ///< 文本完整解析为有限双精度值
+            Invalid,   ///< 文本无法按规范写法解析
+            OutOfRange ///< 超出双精度可表示范围（含下溢到 0）
         };
 
         /// 解析区域无关的规范写法；扫描阶段已校验过语法，此处只可能因范围失败

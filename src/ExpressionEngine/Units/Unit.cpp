@@ -17,6 +17,7 @@ namespace ExpressionEngine::Units
             UnitExponents    exponents;
         };
 
+        /// 类型名与量纲指数对照表的全部条目，顺序与 UnitSpec 的声明一致
         constexpr auto unitSpecs = std::to_array<UnitSpec>({
                 // clang-format off
     //                                             Length

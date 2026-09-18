@@ -2,7 +2,7 @@
  * @file Unit.h
  * @brief 量纲单位及其指数运算
  * @author Gyanis
- * @date 2026-09-18
+ * @date 2026-09-19
  * @version 1.0.0
  * @copyright Copyright (c) 2026 Gyanis. LGPL-2.1-or-later，派生自 FreeCAD
  */
@@ -20,13 +20,26 @@
 
 namespace ExpressionEngine::Units
 {
-    /// 七个基本量纲加角度的符号，顺序即指数数组的分量顺序
+    /**
+     * @brief 七个基本量纲加角度的符号表
+     * @details 顺序即指数数组的分量顺序：长度 mm、质量 kg、时间 s、电流 A、温度 K、
+     *          物质的量 mol、发光强度 cd、角度 deg。
+     */
     constexpr auto unitSymbols = std::to_array<std::string_view>({"mm", "kg", "s", "A", "K", "mol", "cd", "deg"});
 
-    constexpr auto unitNumExponents{unitSymbols.size()};
-    using UnitExponents = std::array<std::int8_t, unitNumExponents>;
+    /// 基本量纲的个数，即指数数组的长度
+    constexpr auto unitNumberExponents{unitSymbols.size()};
 
-    /// 单个量纲指数的绝对值上限，超出即认为运算已越界
+    /**
+     * @brief 各基本量纲的指数数组
+     * @details 分量顺序与 unitSymbols 一致；用 int8 存放是因为指数上限只有个位数。
+     */
+    using UnitExponents = std::array<std::int8_t, unitNumberExponents>;
+
+    /**
+     * @brief 单个量纲指数的绝对值上限
+     * @details 超出即认为运算已越界：继续乘下去指数会溢出 int8，结果不可信。
+     */
     constexpr auto unitExponentLimit{8};
 
     /**

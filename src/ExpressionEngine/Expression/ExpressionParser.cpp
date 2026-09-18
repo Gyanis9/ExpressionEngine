@@ -96,10 +96,10 @@ namespace ExpressionEngine::Expression
          * @details 优先级自低到高：三元、比较、加减、乘除取余、单位后置、乘方、一元正负、原子。
          *          单位后置只在这一层及以上附着，因此 "1/2 mm" 得到 0.5 mm、"2^2 mm" 得到 4 mm。
          */
-        class ExpressionParserImpl
+        class ExpressionParserImplementation
         {
         public:
-            ExpressionParserImpl(IObjectResolver *resolver, const std::string_view text) : m_resolver(resolver), m_lexer(text)
+            ExpressionParserImplementation(IObjectResolver *resolver, const std::string_view text) : m_resolver(resolver), m_lexer(text)
             {
                 advance();
                 advance();
@@ -135,18 +135,18 @@ namespace ExpressionEngine::Expression
             ExpressionToken  m_next;     ///< 下一记号，用于识别英制两段写法与文档引用
         };
 
-        void ExpressionParserImpl::advance()
+        void ExpressionParserImplementation::advance()
         {
             m_current = m_next;
             m_next    = m_lexer.next();
         }
 
-        bool ExpressionParserImpl::startsUnit() const
+        bool ExpressionParserImplementation::startsUnit() const
         {
             return m_current.kind == ExpressionTokenKind::Unit || m_current.kind == ExpressionTokenKind::UsUnit;
         }
 
-        void ExpressionParserImpl::expect(const ExpressionTokenKind kind, const std::string_view description)
+        void ExpressionParserImplementation::expect(const ExpressionTokenKind kind, const std::string_view description)
         {
             if (m_current.kind != kind)
             {
@@ -155,7 +155,7 @@ namespace ExpressionEngine::Expression
             advance();
         }
 
-        std::string ExpressionParserImpl::takeIdentifierLike(const std::string_view description)
+        std::string ExpressionParserImplementation::takeIdentifierLike(const std::string_view description)
         {
             if (m_current.kind != ExpressionTokenKind::Identifier && m_current.kind != ExpressionTokenKind::CellAddress && m_current.kind != ExpressionTokenKind::String)
             {
@@ -167,22 +167,22 @@ namespace ExpressionEngine::Expression
             return text;
         }
 
-        ExpressionPtr ExpressionParserImpl::makeNumber(const double value)
+        ExpressionPtr ExpressionParserImplementation::makeNumber(const double value)
         {
             return std::make_unique<NumberExpression>(m_resolver, Units::Quantity(value));
         }
 
-        ExpressionPtr ExpressionParserImpl::makeBinary(const OperatorExpression::Operator operation, ExpressionPtr left, ExpressionPtr right)
+        ExpressionPtr ExpressionParserImplementation::makeBinary(const OperatorExpression::Operator operation, ExpressionPtr left, ExpressionPtr right)
         {
             return std::make_unique<OperatorExpression>(m_resolver, std::move(left), operation, std::move(right));
         }
 
-        ExpressionPtr ExpressionParserImpl::makeUnary(const OperatorExpression::Operator operation, ExpressionPtr operand)
+        ExpressionPtr ExpressionParserImplementation::makeUnary(const OperatorExpression::Operator operation, ExpressionPtr operand)
         {
             return std::make_unique<OperatorExpression>(m_resolver, std::move(operand), operation, nullptr);
         }
 
-        ExpressionPtr ExpressionParserImpl::parseDocument()
+        ExpressionPtr ExpressionParserImplementation::parseDocument()
         {
             if (m_current.kind == ExpressionTokenKind::End)
             {
@@ -200,7 +200,7 @@ namespace ExpressionEngine::Expression
             return result;
         }
 
-        ExpressionPtr ExpressionParserImpl::parseExpression(const int minimumBinding)
+        ExpressionPtr ExpressionParserImplementation::parseExpression(const int minimumBinding)
         {
             ExpressionPtr left = parsePrefix();
             // 英制两段写法要求第一段带英制单位（如 5' 6"），因此单独跟踪上一次是否附着了英制单位
@@ -256,7 +256,7 @@ namespace ExpressionEngine::Expression
             return left;
         }
 
-        ExpressionPtr ExpressionParserImpl::parsePrefix()
+        ExpressionPtr ExpressionParserImplementation::parsePrefix()
         {
             // 一元正负的绑定功率高于乘方，因此 -2^2 解析为 (-2)^2
             if (m_current.kind == ExpressionTokenKind::Minus)
@@ -273,7 +273,7 @@ namespace ExpressionEngine::Expression
             return parseAtom();
         }
 
-        ExpressionPtr ExpressionParserImpl::parseAtom()
+        ExpressionPtr ExpressionParserImplementation::parseAtom()
         {
             switch (m_current.kind)
             {
@@ -346,7 +346,7 @@ namespace ExpressionEngine::Expression
             }
         }
 
-        ExpressionPtr ExpressionParserImpl::parseReference()
+        ExpressionPtr ExpressionParserImplementation::parseReference()
         {
             VariableExpression::Reference reference;
 
@@ -422,7 +422,7 @@ namespace ExpressionEngine::Expression
             return node;
         }
 
-        Expression::Component ExpressionParserImpl::parseIndexer()
+        Expression::Component ExpressionParserImplementation::parseIndexer()
         {
             expect(ExpressionTokenKind::LeftBracket, "左方括号 '['");
 
@@ -469,7 +469,7 @@ namespace ExpressionEngine::Expression
             return Expression::Component::arrayIndex(std::move(begin));
         }
 
-        ExpressionPtr ExpressionParserImpl::parseFunctionCall(std::string name)
+        ExpressionPtr ExpressionParserImplementation::parseFunctionCall(std::string name)
         {
             advance(); // 函数记号自带左括号
 
@@ -495,7 +495,7 @@ namespace ExpressionEngine::Expression
             return std::make_unique<FunctionExpression>(m_resolver, function, std::string{name}, std::move(arguments));
         }
 
-        ExpressionPtr ExpressionParserImpl::parseArgument()
+        ExpressionPtr ExpressionParserImplementation::parseArgument()
         {
             // 聚合函数实参可以是区间写法 A1:B2
             if ((m_current.kind == ExpressionTokenKind::Identifier || m_current.kind == ExpressionTokenKind::CellAddress) && m_next.kind == ExpressionTokenKind::Colon)
@@ -510,7 +510,7 @@ namespace ExpressionEngine::Expression
             return parseExpression(0);
         }
 
-        ExpressionPtr ExpressionParserImpl::parseUnitExpression()
+        ExpressionPtr ExpressionParserImplementation::parseUnitExpression()
         {
             ExpressionPtr value = parseUnitPower();
 
@@ -524,7 +524,7 @@ namespace ExpressionEngine::Expression
             return value;
         }
 
-        ExpressionPtr ExpressionParserImpl::parseUnitPower()
+        ExpressionPtr ExpressionParserImplementation::parseUnitPower()
         {
             ExpressionPtr base = parseUnitAtom();
 
@@ -553,7 +553,7 @@ namespace ExpressionEngine::Expression
             return base;
         }
 
-        ExpressionPtr ExpressionParserImpl::parseUnitAtom()
+        ExpressionPtr ExpressionParserImplementation::parseUnitAtom()
         {
             if (m_current.kind == ExpressionTokenKind::Unit || m_current.kind == ExpressionTokenKind::UsUnit)
             {
@@ -585,7 +585,7 @@ namespace ExpressionEngine::Expression
 
     ExpressionPtr ExpressionParser::parse(IObjectResolver *resolver, const std::string_view text)
     {
-        ExpressionParserImpl parser{resolver, text};
+        ExpressionParserImplementation parser{resolver, text};
         return parser.parseDocument();
     }
 

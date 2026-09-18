@@ -447,9 +447,9 @@ namespace ExpressionEngine::Base
         if (formatting.decimalSeparator.empty())
         {
             // 没有小数点就无法把整数部分与小数部分分开，属调用方用法错误而不是可恢复故障
-            throw std::invalid_argument("区域快照 \"" + formatting.localeId +
-                                        "\" 的小数点为空，无法格式化数值：请改用 cLocaleContext() 或 "
-                                        "createNumericLocaleContext() 得到的快照，并为自定义快照填好 decimalSeparator。");
+            throw std::invalid_argument(std::format("区域快照 \"{}\" 的小数点为空，无法格式化数值：请改用 cLocaleContext() 或 "
+                                                    "createNumericLocaleContext() 得到的快照，并为自定义快照填好 decimalSeparator。",
+                                                    formatting.localeId));
         }
 
         std::string ascii;

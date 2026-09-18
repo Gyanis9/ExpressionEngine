@@ -2,7 +2,7 @@
  * @file Quantity.h
  * @brief 带单位的数值
  * @author Gyanis
- * @date 2026-09-18
+ * @date 2026-09-19
  * @version 1.0.0
  * @copyright Copyright (c) 2026 Gyanis. LGPL-2.1-or-later，派生自 FreeCAD
  */
@@ -306,156 +306,156 @@ namespace ExpressionEngine::Units
 
         /** 预定义单位下的常用量。 */
         //@{
-        static const Quantity NanoMetre;
-        static const Quantity MicroMetre;
-        static const Quantity CentiMetre;
-        static const Quantity DeciMetre;
-        static const Quantity Metre;
-        static const Quantity MilliMetre;
-        static const Quantity KiloMetre;
+        static const Quantity NanoMetre;  ///< 纳米
+        static const Quantity MicroMetre; ///< 微米
+        static const Quantity CentiMetre; ///< 厘米
+        static const Quantity DeciMetre;  ///< 分米
+        static const Quantity Metre;      ///< 米
+        static const Quantity MilliMetre; ///< 毫米（基准长度单位）
+        static const Quantity KiloMetre;  ///< 千米
 
-        static const Quantity Liter;
-        static const Quantity MilliLiter;
+        static const Quantity Liter;      ///< 升
+        static const Quantity MilliLiter; ///< 毫升
 
-        static const Quantity Hertz;
-        static const Quantity KiloHertz;
-        static const Quantity MegaHertz;
-        static const Quantity GigaHertz;
-        static const Quantity TeraHertz;
+        static const Quantity Hertz;     ///< 赫兹
+        static const Quantity KiloHertz; ///< 千赫兹
+        static const Quantity MegaHertz; ///< 兆赫兹
+        static const Quantity GigaHertz; ///< 吉赫兹
+        static const Quantity TeraHertz; ///< 太赫兹
 
-        static const Quantity MicroGram;
-        static const Quantity MilliGram;
-        static const Quantity Gram;
-        static const Quantity KiloGram;
-        static const Quantity Ton;
+        static const Quantity MicroGram; ///< 微克
+        static const Quantity MilliGram; ///< 毫克
+        static const Quantity Gram;      ///< 克
+        static const Quantity KiloGram;  ///< 千克（基准质量单位）
+        static const Quantity Ton;       ///< 吨
 
-        static const Quantity Second;
-        static const Quantity Minute;
-        static const Quantity Hour;
+        static const Quantity Second; ///< 秒（基准时间单位）
+        static const Quantity Minute; ///< 分钟
+        static const Quantity Hour;   ///< 小时
 
-        static const Quantity Ampere;
-        static const Quantity NanoAmpere;
-        static const Quantity MicroAmpere;
-        static const Quantity MilliAmpere;
-        static const Quantity KiloAmpere;
-        static const Quantity MegaAmpere;
+        static const Quantity Ampere;      ///< 安培（基准电流单位）
+        static const Quantity NanoAmpere;  ///< 纳安
+        static const Quantity MicroAmpere; ///< 微安
+        static const Quantity MilliAmpere; ///< 毫安
+        static const Quantity KiloAmpere;  ///< 千安
+        static const Quantity MegaAmpere;  ///< 兆安
 
-        static const Quantity Kelvin;
-        static const Quantity MilliKelvin;
-        static const Quantity MicroKelvin;
+        static const Quantity Kelvin;      ///< 开尔文（基准热力学温度单位）
+        static const Quantity MilliKelvin; ///< 毫开尔文
+        static const Quantity MicroKelvin; ///< 微开尔文
 
-        static const Quantity NanoMole;
-        static const Quantity MicroMole;
-        static const Quantity MilliMole;
-        static const Quantity Mole;
+        static const Quantity NanoMole;  ///< 纳摩尔
+        static const Quantity MicroMole; ///< 微摩尔
+        static const Quantity MilliMole; ///< 毫摩尔
+        static const Quantity Mole;      ///< 摩尔（基准物质的量单位）
 
-        static const Quantity Candela;
+        static const Quantity Candela; ///< 坎德拉（基准发光强度单位）
 
-        static const Quantity Inch;
-        static const Quantity Foot;
-        static const Quantity Thou;
-        static const Quantity Yard;
-        static const Quantity Mile;
+        static const Quantity Inch; ///< 英寸
+        static const Quantity Foot; ///< 英尺
+        static const Quantity Thou; ///< 密耳，千分之一英寸
+        static const Quantity Yard; ///< 码
+        static const Quantity Mile; ///< 英里
 
-        static const Quantity MilePerHour;
+        static const Quantity MilePerHour; ///< 英里每小时
 
-        static const Quantity Pound;
-        static const Quantity Ounce;
-        static const Quantity Stone;
-        static const Quantity Hundredweights;
+        static const Quantity Pound;          ///< 磅
+        static const Quantity Ounce;          ///< 盎司
+        static const Quantity Stone;          ///< 英石
+        static const Quantity Hundredweights; ///< 英担
 
-        static const Quantity SquareFoot;
-        static const Quantity CubicFoot;
+        static const Quantity SquareFoot; ///< 平方英尺
+        static const Quantity CubicFoot;  ///< 立方英尺
 
-        static const Quantity PoundForce;
+        static const Quantity PoundForce; ///< 磅力
 
-        static const Quantity Newton;
-        static const Quantity MilliNewton;
-        static const Quantity KiloNewton;
-        static const Quantity MegaNewton;
+        static const Quantity Newton;      ///< 牛顿
+        static const Quantity MilliNewton; ///< 毫牛
+        static const Quantity KiloNewton;  ///< 千牛
+        static const Quantity MegaNewton;  ///< 兆牛
 
-        static const Quantity NewtonPerMeter;
-        static const Quantity MilliNewtonPerMeter;
-        static const Quantity KiloNewtonPerMeter;
-        static const Quantity MegaNewtonPerMeter;
+        static const Quantity NewtonPerMeter;      ///< 牛每米
+        static const Quantity MilliNewtonPerMeter; ///< 毫牛每米
+        static const Quantity KiloNewtonPerMeter;  ///< 千牛每米
+        static const Quantity MegaNewtonPerMeter;  ///< 兆牛每米
 
-        static const Quantity Pascal;
-        static const Quantity KiloPascal;
-        static const Quantity MegaPascal;
-        static const Quantity GigaPascal;
+        static const Quantity Pascal;     ///< 帕斯卡
+        static const Quantity KiloPascal; ///< 千帕
+        static const Quantity MegaPascal; ///< 兆帕
+        static const Quantity GigaPascal; ///< 吉帕
 
-        static const Quantity Bar;
-        static const Quantity MilliBar;
+        static const Quantity Bar;      ///< 巴
+        static const Quantity MilliBar; ///< 毫巴
 
-        static const Quantity Torr;
-        static const Quantity mTorr;
-        static const Quantity yTorr;
+        static const Quantity Torr;  ///< 托，1/760 标准大气压
+        static const Quantity mTorr; ///< 毫托
+        static const Quantity yTorr; ///< 微托（沿用量级的 y 前缀写法）
 
-        static const Quantity PSI;
-        static const Quantity KSI;
-        static const Quantity MPSI;
+        static const Quantity PSI;  ///< 磅力每平方英寸
+        static const Quantity KSI;  ///< 千磅力每平方英寸
+        static const Quantity MPSI; ///< 兆磅力每平方英寸
 
-        static const Quantity Watt;
-        static const Quantity NanoWatt;
-        static const Quantity MicroWatt;
-        static const Quantity MilliWatt;
-        static const Quantity KiloWatt;
-        static const Quantity VoltAmpere;
+        static const Quantity Watt;       ///< 瓦
+        static const Quantity NanoWatt;   ///< 纳瓦
+        static const Quantity MicroWatt;  ///< 微瓦
+        static const Quantity MilliWatt;  ///< 毫瓦
+        static const Quantity KiloWatt;   ///< 千瓦
+        static const Quantity VoltAmpere; ///< 伏安
 
-        static const Quantity Volt;
-        static const Quantity MilliVolt;
-        static const Quantity KiloVolt;
+        static const Quantity Volt;      ///< 伏
+        static const Quantity MilliVolt; ///< 毫伏
+        static const Quantity KiloVolt;  ///< 千伏
 
-        static const Quantity MegaSiemens;
-        static const Quantity KiloSiemens;
-        static const Quantity Siemens;
-        static const Quantity MilliSiemens;
-        static const Quantity MicroSiemens;
+        static const Quantity MegaSiemens;  ///< 兆西门子
+        static const Quantity KiloSiemens;  ///< 千西门子
+        static const Quantity Siemens;      ///< 西门子
+        static const Quantity MilliSiemens; ///< 毫西门子
+        static const Quantity MicroSiemens; ///< 微西门子
 
-        static const Quantity Ohm;
-        static const Quantity KiloOhm;
-        static const Quantity MegaOhm;
+        static const Quantity Ohm;     ///< 欧姆
+        static const Quantity KiloOhm; ///< 千欧
+        static const Quantity MegaOhm; ///< 兆欧
 
-        static const Quantity Coulomb;
+        static const Quantity Coulomb; ///< 库仑
 
-        static const Quantity Tesla;
-        static const Quantity MilliTesla;
-        static const Quantity Gauss;
+        static const Quantity Tesla;      ///< 特斯拉
+        static const Quantity MilliTesla; ///< 毫特斯拉
+        static const Quantity Gauss;      ///< 高斯
 
-        static const Quantity Weber;
+        static const Quantity Weber; ///< 韦伯
 
-        static const Quantity Farad;
-        static const Quantity MilliFarad;
-        static const Quantity MicroFarad;
-        static const Quantity NanoFarad;
-        static const Quantity PicoFarad;
+        static const Quantity Farad;      ///< 法拉
+        static const Quantity MilliFarad; ///< 毫法
+        static const Quantity MicroFarad; ///< 微法
+        static const Quantity NanoFarad;  ///< 纳法
+        static const Quantity PicoFarad;  ///< 皮法
 
-        static const Quantity Henry;
-        static const Quantity MilliHenry;
-        static const Quantity MicroHenry;
-        static const Quantity NanoHenry;
+        static const Quantity Henry;      ///< 亨利
+        static const Quantity MilliHenry; ///< 毫亨
+        static const Quantity MicroHenry; ///< 微亨
+        static const Quantity NanoHenry;  ///< 纳亨
 
-        static const Quantity Joule;
-        static const Quantity MilliJoule;
-        static const Quantity KiloJoule;
-        static const Quantity NewtonMeter;
-        static const Quantity VoltAmpereSecond;
-        static const Quantity WattSecond;
-        static const Quantity KiloWattHour;
-        static const Quantity ElectronVolt;
-        static const Quantity KiloElectronVolt;
-        static const Quantity MegaElectronVolt;
-        static const Quantity Calorie;
-        static const Quantity KiloCalorie;
+        static const Quantity Joule;            ///< 焦耳
+        static const Quantity MilliJoule;       ///< 毫焦
+        static const Quantity KiloJoule;        ///< 千焦
+        static const Quantity NewtonMeter;      ///< 牛米
+        static const Quantity VoltAmpereSecond; ///< 伏安秒
+        static const Quantity WattSecond;       ///< 瓦秒
+        static const Quantity KiloWattHour;     ///< 千瓦时
+        static const Quantity ElectronVolt;     ///< 电子伏
+        static const Quantity KiloElectronVolt; ///< 千电子伏
+        static const Quantity MegaElectronVolt; ///< 兆电子伏
+        static const Quantity Calorie;          ///< 卡
+        static const Quantity KiloCalorie;      ///< 千卡
 
-        static const Quantity KMH;
-        static const Quantity MPH;
+        static const Quantity KMH; ///< 千米每小时
+        static const Quantity MPH; ///< 英里每小时
 
-        static const Quantity Degree;
-        static const Quantity Radian;
-        static const Quantity Gon;
-        static const Quantity AngMinute;
-        static const Quantity AngSecond;
+        static const Quantity Degree;    ///< 度
+        static const Quantity Radian;    ///< 弧度
+        static const Quantity Gon;       ///< 百分度，整圆为 400 度
+        static const Quantity AngMinute; ///< 角分
+        static const Quantity AngSecond; ///< 角秒
         //@}
 
     private:

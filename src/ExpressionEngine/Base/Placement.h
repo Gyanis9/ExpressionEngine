@@ -2,7 +2,7 @@
  * @file Placement.h
  * @brief 刚体位姿（位置 + 旋转），可与矩阵、对偶四元数互转
  * @author Gyanis
- * @date 2026-09-18
+ * @date 2026-09-19
  * @version 1.0.0
  * @copyright Copyright (c) 2026 Gyanis. LGPL-2.1-or-later，派生自 FreeCAD
  */
@@ -31,9 +31,17 @@ namespace ExpressionEngine::Base
          */
         Placement();
 
-        Placement(const Placement &) = default;
+        /**
+         * @brief 拷贝构造
+         * @param other 被拷贝的位姿
+         */
+        Placement(const Placement &other) = default;
 
-        Placement(Placement &&) = default;
+        /**
+         * @brief 移动构造
+         * @param other 被移动的位姿，移动后处于有效但未指定状态
+         */
+        Placement(Placement &&other) = default;
 
         /**
          * @brief 从 4x4 矩阵构造：旋转取矩阵的旋转部分，位置取第四列
@@ -58,11 +66,14 @@ namespace ExpressionEngine::Base
 
         /**
          * @brief 由对偶四元数构造
-         * @param qq 对偶四元数，实部为旋转、对偶部按 0.5·t·r 编码平移
+         * @param dualQuaternion 对偶四元数，实部为旋转、对偶部按 0.5·t·r 编码平移
          * @return 对应位姿
          */
-        static Placement fromDualQuaternion(DualQuat qq);
+        static Placement fromDualQuaternion(DualQuat dualQuaternion);
 
+        /**
+         * @brief 析构函数
+         */
         ~Placement() = default;
 
         /**
@@ -127,10 +138,10 @@ namespace ExpressionEngine::Base
 
         /**
          * @brief 判断在容差内是否为恒等位姿
-         * @param tol 容差，位置按欧氏距离、旋转按四元数点积判定
+         * @param tolerance 容差，位置按欧氏距离、旋转按四元数点积判定
          * @return true 在容差内是恒等位姿
          */
-        bool isIdentity(double tol) const;
+        bool isIdentity(double tolerance) const;
 
         /**
          * @brief 就地取逆
@@ -145,9 +156,9 @@ namespace ExpressionEngine::Base
 
         /**
          * @brief 就地累加平移量，旋转不变
-         * @param movVector 在全局系中追加的平移量
+         * @param moveVector 在全局系中追加的平移量
          */
-        void move(const Vector3d &movVector);
+        void move(const Vector3d &moveVector);
 
         /**
          * @brief 判断是否恰为同一位姿
@@ -159,10 +170,10 @@ namespace ExpressionEngine::Base
         /**
          * @brief 判断在容差内是否为同一位姿
          * @param other 待比较的位姿
-         * @param tol 容差，位置按欧氏距离、旋转按四元数点积判定
+         * @param tolerance 容差，位置按欧氏距离、旋转按四元数点积判定
          * @return true 位置与旋转都在容差内一致
          */
-        bool isSame(const Placement &other, double tol) const;
+        bool isSame(const Placement &other, double tolerance) const;
 
         /**
          * @brief 就地右乘另一个位姿
@@ -192,8 +203,16 @@ namespace ExpressionEngine::Base
          */
         bool operator!=(const Placement &other) const;
 
+        /**
+         * @brief 拷贝赋值
+         * @return 自身引用
+         */
         Placement &operator=(const Placement &) = default;
 
+        /**
+         * @brief 移动赋值
+         * @return 自身引用
+         */
         Placement &operator=(Placement &&) = default;
 
         /**
@@ -222,17 +241,17 @@ namespace ExpressionEngine::Base
 
         /**
          * @brief 用本位姿变换向量
-         * @param src 输入向量
-         * @param dst 输出向量，可与 src 为同一对象
+         * @param source 输入向量
+         * @param destination 输出向量，可与 source 为同一对象
          */
-        void multVec(const Vector3d &src, Vector3d &dst) const;
+        void multVec(const Vector3d &source, Vector3d &destination) const;
 
         /**
          * @brief 用本位姿变换单精度向量
-         * @param src 输入向量
-         * @param dst 输出向量，可与 src 为同一对象
+         * @param source 输入向量
+         * @param destination 输出向量，可与 source 为同一对象
          */
-        void multVec(const Vector3f &src, Vector3f &dst) const;
+        void multVec(const Vector3f &source, Vector3f &destination) const;
 
         /**
          * @brief 线性插值位姿：旋转走球面插值，位置走线性插值

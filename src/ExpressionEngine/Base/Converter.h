@@ -2,7 +2,7 @@
  * @file Converter.h
  * @brief 向量与旋转类型之间的转换辅助（vec_traits 与 convertTo）
  * @author Gyanis
- * @date 2026-09-18
+ * @date 2026-09-19
  * @version 1.0.0
  * @copyright Copyright (c) 2026 Gyanis. LGPL-2.1-or-later，派生自 FreeCAD
  */
@@ -27,7 +27,9 @@ namespace ExpressionEngine::Base
     {
     };
 
-    /// Vector3f 的取值特征
+    /**
+     * @brief Vector3f 的取值特征
+     */
     template<>
     struct vec_traits<Vector3f>
     {
@@ -38,7 +40,7 @@ namespace ExpressionEngine::Base
          * @brief 绑定被转换的向量
          * @param vector 源向量，本对象只持引用，源必须存活到 get() 之后
          */
-        explicit vec_traits(const vec_type &vector) : m_vec(vector)
+        explicit vec_traits(const vec_type &vector) : m_vector(vector)
         {
         }
 
@@ -48,14 +50,16 @@ namespace ExpressionEngine::Base
          */
         [[nodiscard]] std::tuple<float_type, float_type, float_type> get() const
         {
-            return std::make_tuple(m_vec.x, m_vec.y, m_vec.z);
+            return std::make_tuple(m_vector.x, m_vector.y, m_vector.z);
         }
 
     private:
-        const vec_type &m_vec; ///< 源向量的引用，不持所有权
+        const vec_type &m_vector; ///< 源向量的引用，不持所有权
     };
 
-    /// Vector3d 的取值特征
+    /**
+     * @brief Vector3d 的取值特征
+     */
     template<>
     struct vec_traits<Vector3d>
     {
@@ -66,7 +70,7 @@ namespace ExpressionEngine::Base
          * @brief 绑定被转换的向量
          * @param vector 源向量，本对象只持引用，源必须存活到 get() 之后
          */
-        explicit vec_traits(const vec_type &vector) : m_vec(vector)
+        explicit vec_traits(const vec_type &vector) : m_vector(vector)
         {
         }
 
@@ -76,14 +80,16 @@ namespace ExpressionEngine::Base
          */
         [[nodiscard]] std::tuple<float_type, float_type, float_type> get() const
         {
-            return std::make_tuple(m_vec.x, m_vec.y, m_vec.z);
+            return std::make_tuple(m_vector.x, m_vector.y, m_vector.z);
         }
 
     private:
-        const vec_type &m_vec; ///< 源向量的引用，不持所有权
+        const vec_type &m_vector; ///< 源向量的引用，不持所有权
     };
 
-    /// Rotation 的取值特征
+    /**
+     * @brief Rotation 的取值特征
+     */
     template<>
     struct vec_traits<Rotation>
     {

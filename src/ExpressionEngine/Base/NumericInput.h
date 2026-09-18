@@ -2,7 +2,7 @@
  * @file NumericInput.h
  * @brief 区域化数字输入扫描
  * @author Gyanis
- * @date 2026-09-18
+ * @date 2026-09-19
  * @version 1.0.0
  * @copyright Copyright (c) 2026 Gyanis. LGPL-2.1-or-later，派生自 FreeCAD
  */
@@ -18,7 +18,9 @@ namespace ExpressionEngine::Base
 {
     struct NumericLocaleContext;
 
-    /// 数字被扫描时所在的语法位置
+    /**
+     * @brief 数字被扫描时所在的语法位置
+     */
     enum class NumericSyntaxContext
     {
         Standalone,      ///< 独立的一个数量或数字
@@ -26,7 +28,9 @@ namespace ExpressionEngine::Base
         FunctionArgument ///< 函数实参位置，此时区域的分隔符可能与语法标点冲突
     };
 
-    /// 某个语法位置下实际生效的分隔符与分组规则
+    /**
+     * @brief 某个语法位置下实际生效的分隔符与分组规则
+     */
     struct NumericGrammarPolicy
     {
         std::string_view decimalSeparator;    ///< 生效的小数点
@@ -35,7 +39,9 @@ namespace ExpressionEngine::Base
         bool             allowGrouping{true}; ///< 是否允许分组分隔符
     };
 
-    /// 扫描失败的原因分类
+    /**
+     * @brief 扫描失败的原因分类
+     */
     enum class NumericDiagnosticKind
     {
         ExpectedDigit,       ///< 期望数字却遇到其他字符
@@ -49,7 +55,9 @@ namespace ExpressionEngine::Base
         OutOfRange           ///< 数值超出双精度可表示范围
     };
 
-    /// 一次扫描失败的类型化原因与定位
+    /**
+     * @brief 一次扫描失败的类型化原因与定位
+     */
     struct NumericDiagnostic
     {
         NumericDiagnosticKind kind{NumericDiagnosticKind::InvalidLiteral}; ///< 失败原因
@@ -57,9 +65,14 @@ namespace ExpressionEngine::Base
         std::size_t           lengthBytes{};                               ///< 出错片段的字节长度
     };
 
-    /// 单个区域化数字记号的扫描结果
+    /**
+     * @brief 单个区域化数字记号的扫描结果
+     */
     struct LocalizedNumberResult
     {
+        /**
+         * @brief 扫描状态
+         */
         enum class Status
         {
             Complete,   ///< 扫完一个完整记号

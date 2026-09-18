@@ -8,7 +8,8 @@
 
 namespace ExpressionEngine::Units
 {
-    UnitsSchemas::UnitsSchemas(const UnitsSchemasDataPack &pack) : m_pack{pack}, m_currentSchema{std::make_unique<UnitsSchema>(spec())}, m_fractionDenominator{pack.defDenominator}
+    UnitsSchemas::UnitsSchemas(const UnitsSchemasDataPack &pack) :
+        m_pack{pack}, m_currentSchema{std::make_unique<UnitsSchema>(spec())}, m_fractionDenominator{pack.defaultDenominator}
     {
     }
 
@@ -43,7 +44,7 @@ namespace ExpressionEngine::Units
 
     std::size_t UnitsSchemas::getDecimals() const
     {
-        return m_pack.defDecimals;
+        return m_pack.defaultDecimals;
     }
 
     std::size_t UnitsSchemas::defaultFractionDenominator() const

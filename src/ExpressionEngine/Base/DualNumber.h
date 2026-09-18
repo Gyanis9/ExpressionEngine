@@ -2,7 +2,7 @@
  * @file DualNumber.h
  * @brief 对偶数 a + b·ε（ε² = 0），对偶四元数的分量类型
  * @author Gyanis
- * @date 2026-09-18
+ * @date 2026-09-19
  * @version 1.0.0
  * @copyright Copyright (c) 2026 Gyanis. LGPL-2.1-or-later，派生自 FreeCAD
  */
@@ -24,6 +24,9 @@ namespace ExpressionEngine::Base
         double re = 0.0; ///< 实部（函数值）
         double du = 0.0; ///< 对偶部（ε 分量，承载导数值）
 
+        /**
+         * @brief 默认构造为零对偶数
+         */
         DualNumber() = default;
 
         /**
@@ -31,7 +34,8 @@ namespace ExpressionEngine::Base
          * @param reValue 实部
          * @param dualValue 对偶部，默认 0 表示纯实数
          */
-        DualNumber(const double reValue, const double dualValue = 0.0) : re(reValue), du(dualValue)
+        DualNumber(const double reValue, const double dualValue = 0.0) :
+            re(reValue), du(dualValue)
         {
         }
 

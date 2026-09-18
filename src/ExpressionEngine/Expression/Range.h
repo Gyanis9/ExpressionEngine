@@ -2,7 +2,7 @@
  * @file Range.h
  * @brief 电子表格式单元格地址与区间迭代
  * @author Gyanis
- * @date 2026-09-18
+ * @date 2026-09-19
  * @version 1.0.0
  * @copyright Copyright (c) 2026 Gyanis. LGPL-2.1-or-later，派生自 FreeCAD
  */
@@ -90,12 +90,32 @@ namespace ExpressionEngine::Expression
          */
         [[nodiscard]] std::string toString(Cell style = Cell::ShowFull) const;
 
+        /**
+         * @brief 按行列先后比较两个地址
+         * @param other 另一地址
+         * @return 本地址排在前面时为 true；无效地址按内部编码参与比较
+         */
         bool operator<(const CellAddress &other) const noexcept;
 
+        /**
+         * @brief 按行列先后比较两个地址
+         * @param other 另一地址
+         * @return 本地址排在后面时为 true
+         */
         bool operator>(const CellAddress &other) const noexcept;
 
+        /**
+         * @brief 判断两个地址是否指向同一单元格
+         * @param other 另一地址
+         * @return 行列与绝对引用标记都相同时为 true
+         */
         bool operator==(const CellAddress &other) const noexcept;
 
+        /**
+         * @brief 判断两个地址是否不同
+         * @param other 另一地址
+         * @return 行列或绝对引用标记不同时为 true
+         */
         bool operator!=(const CellAddress &other) const noexcept;
 
     private:
@@ -225,6 +245,11 @@ namespace ExpressionEngine::Expression
         /// 区间包含的单元格个数
         [[nodiscard]] int size() const noexcept;
 
+        /**
+         * @brief 按起始行、起始列、结束行的先后比较两个区间
+         * @param other 另一区间
+         * @return 本区间排在前面时为 true
+         */
         bool operator<(const Range &other) const;
 
     private:
