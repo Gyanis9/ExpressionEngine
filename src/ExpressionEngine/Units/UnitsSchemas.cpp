@@ -9,37 +9,38 @@
 namespace ExpressionEngine::Units
 {
     UnitsSchemas::UnitsSchemas(const UnitsSchemasDataPack &pack) :
-        m_pack{pack}, m_currentSchema{std::make_unique<UnitsSchema>(spec())}, m_fractionDenominator{pack.defaultDenominator}
+        m_pack{pack}, m_currentSchema{std::make_unique<UnitsSchema>(specification())}, m_fractionDenominator{pack.defaultDenominator}
     {
     }
 
     std::size_t UnitsSchemas::count() const
     {
-        return m_pack.specs.size();
+        return m_pack.specifications.size();
     }
 
-    std::vector<std::string> UnitsSchemas::collect(const std::function<std::string(UnitsSchemaSpec)> &projector)
+    std::vector<std::string> UnitsSchemas::collect(const std::function<std::string(UnitsSchemaSpecification)> &projector)
     {
         // 对外列表按方案编号排序，保证调用方看到的顺序与编号一致
-        auto sortedSpecs = m_pack.specs;
-        std::sort(sortedSpecs.begin(), sortedSpecs.end(), [](const UnitsSchemaSpec &left, const UnitsSchemaSpec &right) { return left.number < right.number; });
+        auto sortedSpecifications = m_pack.specifications;
+        std::sort(sortedSpecifications.begin(), sortedSpecifications.end(),
+                  [](const UnitsSchemaSpecification &left, const UnitsSchemaSpecification &right) { return left.number < right.number; });
 
         std::vector<std::string> values;
-        values.reserve(sortedSpecs.size());
-        std::transform(sortedSpecs.begin(), sortedSpecs.end(), std::back_inserter(values), projector);
+        values.reserve(sortedSpecifications.size());
+        std::transform(sortedSpecifications.begin(), sortedSpecifications.end(), std::back_inserter(values), projector);
 
         return values;
     }
 
     std::vector<std::string> UnitsSchemas::names()
     {
-        return collect([](const UnitsSchemaSpec &spec) { return spec.name; });
+        return collect([](const UnitsSchemaSpecification &specification) { return specification.name; });
     }
 
     std::vector<std::string> UnitsSchemas::descriptions()
     {
         // 本库不带翻译体系，描述按数据表原文返回；需要本地化的宿主可自行包装
-        return collect([](const UnitsSchemaSpec &spec) { return spec.description == nullptr ? std::string{} : std::string{spec.description}; });
+        return collect([](const UnitsSchemaSpecification &specification) { return specification.description == nullptr ? std::string{} : std::string{specification.description}; });
     }
 
     std::size_t UnitsSchemas::getDecimals() const
@@ -59,17 +60,17 @@ namespace ExpressionEngine::Units
 
     void UnitsSchemas::select()
     {
-        makeCurrent(spec());
+        makeCurrent(specification());
     }
 
     void UnitsSchemas::select(const std::string_view name)
     {
-        makeCurrent(spec(name));
+        makeCurrent(specification(name));
     }
 
     void UnitsSchemas::select(const std::size_t schemaNumber)
     {
-        makeCurrent(spec(schemaNumber));
+        makeCurrent(specification(schemaNumber));
     }
 
     UnitsSchema *UnitsSchemas::currentSchema() const
@@ -77,16 +78,16 @@ namespace ExpressionEngine::Units
         return m_currentSchema.get();
     }
 
-    void UnitsSchemas::makeCurrent(const UnitsSchemaSpec &spec)
+    void UnitsSchemas::makeCurrent(const UnitsSchemaSpecification &specification)
     {
-        m_currentSchema = std::make_unique<UnitsSchema>(spec);
+        m_currentSchema = std::make_unique<UnitsSchema>(specification);
     }
 
-    UnitsSchemaSpec UnitsSchemas::findSpec(const std::function<bool(UnitsSchemaSpec)> &predicate)
+    UnitsSchemaSpecification UnitsSchemas::findSpecification(const std::function<bool(UnitsSchemaSpecification)> &predicate)
     {
-        const auto found = std::find_if(m_pack.specs.begin(), m_pack.specs.end(), predicate);
+        const auto found = std::find_if(m_pack.specifications.begin(), m_pack.specifications.end(), predicate);
 
-        if (found == m_pack.specs.end())
+        if (found == m_pack.specifications.end())
         {
             throw Base::NameError("找不到匹配的单位方案，请用 names() 取可用方案名后重试");
         }
@@ -94,18 +95,18 @@ namespace ExpressionEngine::Units
         return *found;
     }
 
-    UnitsSchemaSpec UnitsSchemas::spec()
+    UnitsSchemaSpecification UnitsSchemas::specification()
     {
-        return findSpec([](const UnitsSchemaSpec &spec) { return spec.isDefault; });
+        return findSpecification([](const UnitsSchemaSpecification &specification) { return specification.isDefault; });
     }
 
-    UnitsSchemaSpec UnitsSchemas::spec(const std::string_view name)
+    UnitsSchemaSpecification UnitsSchemas::specification(const std::string_view name)
     {
-        return findSpec([name](const UnitsSchemaSpec &spec) { return spec.name == name; });
+        return findSpecification([name](const UnitsSchemaSpecification &specification) { return specification.name == name; });
     }
 
-    UnitsSchemaSpec UnitsSchemas::spec(const std::size_t schemaNumber)
+    UnitsSchemaSpecification UnitsSchemas::specification(const std::size_t schemaNumber)
     {
-        return findSpec([schemaNumber](const UnitsSchemaSpec &spec) { return spec.number == schemaNumber; });
+        return findSpecification([schemaNumber](const UnitsSchemaSpecification &specification) { return specification.number == schemaNumber; });
     }
 } // namespace ExpressionEngine::Units

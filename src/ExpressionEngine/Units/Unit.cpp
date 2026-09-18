@@ -11,14 +11,14 @@ namespace ExpressionEngine::Units
     namespace
     {
         /// 类型名与量纲指数的对照表，既供反查类型名，也供按名构造静态单位
-        struct UnitSpec
+        struct UnitSpecification
         {
             std::string_view name;
             UnitExponents    exponents;
         };
 
-        /// 类型名与量纲指数对照表的全部条目，顺序与 UnitSpec 的声明一致
-        constexpr auto unitSpecs = std::to_array<UnitSpec>({
+        /// 类型名与量纲指数对照表的全部条目，顺序与 UnitSpecification 的声明一致
+        constexpr auto unitSpecifications = std::to_array<UnitSpecification>({
                 // clang-format off
     //                                             Length
     //                                             .   Mass
@@ -93,9 +93,9 @@ namespace ExpressionEngine::Units
         /// 按类型名构造静态单位；名字必须存在于对照表中
         constexpr Unit makeUnit(const std::string_view name)
         {
-            if (const auto spec = std::ranges::find(unitSpecs, name, &UnitSpec::name); spec != unitSpecs.end())
+            if (const auto specification = std::ranges::find(unitSpecifications, name, &UnitSpecification::name); specification != unitSpecifications.end())
             {
-                return Unit{spec->exponents, spec->name};
+                return Unit{specification->exponents, specification->name};
             }
             throw Base::NameError("单位类型名不在对照表中，可用 getTypeString() 取当前单位支持的名称");
         }
@@ -278,8 +278,8 @@ namespace ExpressionEngine::Units
             return std::string{m_name};
         }
 
-        const auto spec = std::ranges::find(unitSpecs, m_exponents, &UnitSpec::exponents);
-        return std::string(spec == unitSpecs.end() ? std::string_view{} : spec->name);
+        const auto specification = std::ranges::find(unitSpecifications, m_exponents, &UnitSpecification::exponents);
+        return std::string(specification == unitSpecifications.end() ? std::string_view{} : specification->name);
     }
 
     std::pair<std::vector<std::size_t>, std::vector<std::size_t>> Unit::nonZeroValueIndexes() const

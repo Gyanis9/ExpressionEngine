@@ -337,7 +337,8 @@ namespace ExpressionEngine::Expression
             if (!quantity.isDimensionlessOrUnit(Units::Unit::Length))
             {
                 throw Base::UnitsMismatchError(std::format("{}() 的第 {} 个参数需要长度量或纯数，实际是 {}；"
-                                                           "请改用 mm、in 这类长度单位", label, index + 1, quantity.getUserString()));
+                                                           "请改用 mm、in 这类长度单位",
+                                                           label, index + 1, quantity.getUserString()));
             }
             return quantity.getValue();
         }
@@ -377,7 +378,8 @@ namespace ExpressionEngine::Expression
                 return Base::Rotation(transformationMatrix * rotationMatrix);
             }
             throw Base::TypeError(std::format("{}() 的第一个参数需要矩阵、位姿或旋转，实际是{}；"
-                                              "请用 matrix()、placement()、rotation() 构造这类取值", label, valueTypeName(target)));
+                                              "请用 matrix()、placement()、rotation() 构造这类取值",
+                                              label, valueTypeName(target)));
         }
 
         /// 取数量，要求无量纲或角度量纲，返回弧度值
@@ -555,7 +557,7 @@ namespace ExpressionEngine::Expression
             {
                 Collector::collect(value);
                 m_result += value;
-                m_first  = false;
+                m_first = false;
             }
         };
 
@@ -876,8 +878,7 @@ namespace ExpressionEngine::Expression
     // 分量
     //
 
-    Expression::Component::Component(std::string componentName) :
-        kind(ComponentKind::Name), name(std::move(componentName))
+    Expression::Component::Component(std::string componentName) : kind(ComponentKind::Name), name(std::move(componentName))
     {
     }
 
@@ -989,8 +990,7 @@ namespace ExpressionEngine::Expression
     // 表达式基类
     //
 
-    Expression::Expression(IObjectResolver *resolver) :
-        m_resolver(resolver)
+    Expression::Expression(IObjectResolver *resolver) : m_resolver(resolver)
     {
     }
 
@@ -1048,11 +1048,11 @@ namespace ExpressionEngine::Expression
         return unique;
     }
 
-    void Expression::collectReferencesFrom(const Expression *expression, std::vector<VariableReference> &out)
+    void Expression::collectReferencesFrom(const Expression *expression, std::vector<VariableReference> &collectedReferences)
     {
         if (expression != nullptr)
         {
-            expression->_collectReferences(out);
+            expression->_collectReferences(collectedReferences);
         }
     }
 
@@ -1275,8 +1275,7 @@ namespace ExpressionEngine::Expression
     // 数值节点
     //
 
-    NumberExpression::NumberExpression(IObjectResolver *resolver, const Units::Quantity &quantity) :
-        UnitExpression(resolver, quantity)
+    NumberExpression::NumberExpression(IObjectResolver *resolver, const Units::Quantity &quantity) : UnitExpression(resolver, quantity)
     {
     }
 
@@ -1690,7 +1689,7 @@ namespace ExpressionEngine::Expression
         {
             // 一元运算直接贴在操作数前，操作数优先级更低时补括号
             needsParentheses = m_left->priority() < priority();
-            text             += m_operator == Operator::Negate ? '-' : '+';
+            text += m_operator == Operator::Negate ? '-' : '+';
             if (needsParentheses)
             {
                 text += '(';
@@ -1996,7 +1995,7 @@ namespace ExpressionEngine::Expression
                     if (std::fabs(matrix->determinant()) <= std::numeric_limits<double>::epsilon())
                     {
                         throw Base::ValueError("minvert() 的矩阵不可逆（行列式接近 0）；请检查矩阵是否退化，"
-                                "或改用可逆的构造方式");
+                                               "或改用可逆的构造方式");
                     }
                     Base::Matrix4D inverted = *matrix;
                     inverted.inverseGauss();
@@ -2068,7 +2067,7 @@ namespace ExpressionEngine::Expression
                 const Base::Rotation rotation(Base::Vector3d(function == Function::MatrixRotateX ? 1.0 : 0.0, function == Function::MatrixRotateY ? 1.0 : 0.0,
                                                              function == Function::MatrixRotateZ ? 1.0 : 0.0),
                                               angle);
-                Base::Matrix4D rotationMatrix;
+                Base::Matrix4D       rotationMatrix;
                 rotation.getValue(rotationMatrix);
                 return transformFirstArgument(arguments, rotationMatrix, label);
             }
@@ -2140,7 +2139,7 @@ namespace ExpressionEngine::Expression
 
                 const Base::Vector3d position      = vectorArgument(arguments, 0, label);
                 const Value          rotationValue = arguments[1]->evaluate();
-                const auto *         rotation      = std::get_if<Base::Rotation>(&rotationValue);
+                const auto          *rotation      = std::get_if<Base::Rotation>(&rotationValue);
                 if (rotation == nullptr)
                 {
                     throw Base::TypeError(std::format("placement() 的第二个参数需要旋转，实际是{}；"
@@ -2187,7 +2186,7 @@ namespace ExpressionEngine::Expression
             case Function::ParseQuantity:
             {
                 const Value       value        = arguments[0]->evaluate();
-                const auto *      text         = std::get_if<std::string>(&value);
+                const auto       *text         = std::get_if<std::string>(&value);
                 const std::string quantityText = text != nullptr ? *text : valueText(value);
                 try
                 {
@@ -2493,7 +2492,7 @@ namespace ExpressionEngine::Expression
                     break;
                 }
                 throw Base::UnitsMismatchError("translationm() 的三个平移分量必须是长度量或纯数；"
-                        "请改用 mm、in 这类长度单位");
+                                               "请改用 mm、in 这类长度单位");
             case Function::LogicalNot:
                 // 与 FreeCAD 一致：只看数值不看量纲
                 unit = Units::Unit();
@@ -2888,8 +2887,7 @@ namespace ExpressionEngine::Expression
     // 变量引用节点
     //
 
-    VariableExpression::VariableExpression(IObjectResolver *resolver, Reference reference) :
-        UnitExpression(resolver), m_reference(std::move(reference))
+    VariableExpression::VariableExpression(IObjectResolver *resolver, Reference reference) : UnitExpression(resolver), m_reference(std::move(reference))
     {
     }
 
@@ -2926,7 +2924,7 @@ namespace ExpressionEngine::Expression
 
     IProperty *VariableExpression::resolveProperty() const
     {
-        IObjectResolver * objectResolver = resolver();
+        IObjectResolver  *objectResolver = resolver();
         const std::string path           = pathText();
         if (objectResolver == nullptr)
         {
@@ -2990,7 +2988,7 @@ namespace ExpressionEngine::Expression
 
     Value VariableExpression::evaluateNode() const
     {
-        IProperty *                property = resolveProperty();
+        IProperty                 *property = resolveProperty();
         const std::optional<Value> value    = property->value();
         if (!value.has_value())
         {
@@ -3031,8 +3029,7 @@ namespace ExpressionEngine::Expression
     // 文本节点
     //
 
-    StringExpression::StringExpression(IObjectResolver *resolver, std::string text) :
-        Expression(resolver), m_text(std::move(text))
+    StringExpression::StringExpression(IObjectResolver *resolver, std::string text) : Expression(resolver), m_text(std::move(text))
     {
     }
 
@@ -3075,8 +3072,7 @@ namespace ExpressionEngine::Expression
     // 取值节点
     //
 
-    ValueExpression::ValueExpression(IObjectResolver *resolver, Value value) :
-        Expression(resolver), m_value(std::move(value))
+    ValueExpression::ValueExpression(IObjectResolver *resolver, Value value) : Expression(resolver), m_value(std::move(value))
     {
     }
 
@@ -3114,8 +3110,7 @@ namespace ExpressionEngine::Expression
     // 单元格区间节点
     //
 
-    RangeExpression::RangeExpression(IObjectResolver *resolver, std::string begin, std::string end) :
-        Expression(resolver), m_begin(std::move(begin)), m_end(std::move(end))
+    RangeExpression::RangeExpression(IObjectResolver *resolver, std::string begin, std::string end) : Expression(resolver), m_begin(std::move(begin)), m_end(std::move(end))
     {
     }
 
@@ -3184,30 +3179,30 @@ namespace ExpressionEngine::Expression
     // 依赖收集：各节点把子树里的变量引用追加到同一列表，去重由 collectReferences() 统一完成
     //
 
-    void OperatorExpression::_collectReferences(std::vector<VariableReference> &out) const
+    void OperatorExpression::_collectReferences(std::vector<VariableReference> &collectedReferences) const
     {
-        collectReferencesFrom(m_left.get(), out);
-        collectReferencesFrom(m_right.get(), out);
+        collectReferencesFrom(m_left.get(), collectedReferences);
+        collectReferencesFrom(m_right.get(), collectedReferences);
     }
 
-    void ConditionalExpression::_collectReferences(std::vector<VariableReference> &out) const
+    void ConditionalExpression::_collectReferences(std::vector<VariableReference> &collectedReferences) const
     {
-        collectReferencesFrom(m_condition.get(), out);
-        collectReferencesFrom(m_trueExpression.get(), out);
-        collectReferencesFrom(m_falseExpression.get(), out);
+        collectReferencesFrom(m_condition.get(), collectedReferences);
+        collectReferencesFrom(m_trueExpression.get(), collectedReferences);
+        collectReferencesFrom(m_falseExpression.get(), collectedReferences);
     }
 
-    void FunctionExpression::_collectReferences(std::vector<VariableReference> &out) const
+    void FunctionExpression::_collectReferences(std::vector<VariableReference> &collectedReferences) const
     {
         for (const auto &argument: m_arguments)
         {
-            collectReferencesFrom(argument.get(), out);
+            collectReferencesFrom(argument.get(), collectedReferences);
         }
     }
 
-    void VariableExpression::_collectReferences(std::vector<VariableReference> &out) const
+    void VariableExpression::_collectReferences(std::vector<VariableReference> &collectedReferences) const
     {
-        out.push_back(m_reference);
+        collectedReferences.push_back(m_reference);
     }
 
     bool VariableExpression::supportsComponentAccess() const noexcept

@@ -382,22 +382,23 @@ constexpr std::string_view unitSymbols[]{
         /// 匹配 Expression.l 的常量规则：pi、e、None、True、true、False、false
         ConstantMatch matchConstant(std::string_view text, const std::size_t offset)
         {
-            struct ConstantSpec
+            struct ConstantSpecification
             {
                 std::string_view literal;
                 std::string_view canonicalName;
                 double           value;
             };
-            static constexpr ConstantSpec constantSpecs[]{
+            static constexpr ConstantSpecification constantSpecifications[]{
                     {"pi", "pi", std::numbers::pi}, {"e", "e", std::numbers::e}, {"None", "None", 0}, {"True", "True", 1}, {"true", "True", 1},
                     {"False", "False", 0},          {"false", "False", 0},
             };
             ConstantMatch best;
-            for (const ConstantSpec &spec: constantSpecs)
+            for (const ConstantSpecification &specification: constantSpecifications)
             {
-                if (spec.literal.size() > best.length && text.size() - offset >= spec.literal.size() && text.compare(offset, spec.literal.size(), spec.literal) == 0)
+                if (specification.literal.size() > best.length && text.size() - offset >= specification.literal.size() &&
+                    text.compare(offset, specification.literal.size(), specification.literal) == 0)
                 {
-                    best = {spec.literal.size(), spec.canonicalName, spec.value};
+                    best = {specification.literal.size(), specification.canonicalName, specification.value};
                 }
             }
             return best;

@@ -57,7 +57,7 @@ namespace ExpressionEngine::Units
 
     std::unique_ptr<UnitsSchema> UnitsApi::createSchema(const std::size_t schemaNumber)
     {
-        return std::make_unique<UnitsSchema>(s_schemas->spec(schemaNumber));
+        return std::make_unique<UnitsSchema>(s_schemas->specification(schemaNumber));
     }
 
     void UnitsApi::setSchema(const std::string &name)
@@ -96,6 +96,6 @@ namespace ExpressionEngine::Units
 
     std::size_t UnitsApi::getDefaultSchemaNumber()
     {
-        return s_schemas->spec().number;
+        return s_schemas->specification().number;
     }
 } // namespace ExpressionEngine::Units

@@ -17,7 +17,7 @@
 #include <vector>
 
 #include <ExpressionEngine/Units/UnitsSchema.h>
-#include <ExpressionEngine/Units/UnitsSchemasSpecs.h>
+#include <ExpressionEngine/Units/UnitsSchemasSpecifications.h>
 
 namespace ExpressionEngine::Units
 {
@@ -53,7 +53,7 @@ namespace ExpressionEngine::Units
         void select(std::size_t schemaNumber);
 
         /// 取默认方案（标记 isDefault 的方案，没有标记时取第一个）
-        [[nodiscard]] UnitsSchemaSpec spec();
+        [[nodiscard]] UnitsSchemaSpecification specification();
 
         /**
          * @brief 按名取方案
@@ -61,7 +61,7 @@ namespace ExpressionEngine::Units
          * @return 方案定义
          * @throws NameError 找不到该名称的方案
          */
-        [[nodiscard]] UnitsSchemaSpec spec(std::string_view name);
+        [[nodiscard]] UnitsSchemaSpecification specification(std::string_view name);
 
         /**
          * @brief 按序号取方案
@@ -69,7 +69,7 @@ namespace ExpressionEngine::Units
          * @return 方案定义
          * @throws IndexError 找不到该编号的方案
          */
-        [[nodiscard]] UnitsSchemaSpec spec(std::size_t schemaNumber);
+        [[nodiscard]] UnitsSchemaSpecification specification(std::size_t schemaNumber);
 
         /// 取方案总数
         [[nodiscard]] std::size_t count() const;
@@ -94,13 +94,13 @@ namespace ExpressionEngine::Units
 
     private:
         /// 把各方案按取值函数投影成字符串列表，供名字与描述两处复用
-        [[nodiscard]] std::vector<std::string> collect(const std::function<std::string(UnitsSchemaSpec)> &projector);
+        [[nodiscard]] std::vector<std::string> collect(const std::function<std::string(UnitsSchemaSpecification)> &projector);
 
         /// 按判定函数查找第一个匹配的方案
-        [[nodiscard]] UnitsSchemaSpec findSpec(const std::function<bool(UnitsSchemaSpec)> &predicate);
+        [[nodiscard]] UnitsSchemaSpecification findSpecification(const std::function<bool(UnitsSchemaSpecification)> &predicate);
 
         /// 把方案设为当前方案
-        void makeCurrent(const UnitsSchemaSpec &spec);
+        void makeCurrent(const UnitsSchemaSpecification &specification);
 
         UnitsSchemasDataPack         m_pack;                   ///< 方案数据包
         std::unique_ptr<UnitsSchema> m_currentSchema;          ///< 当前方案对象

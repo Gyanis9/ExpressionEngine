@@ -18,7 +18,7 @@ namespace
     using ExpressionEngine::Base::publishNumericLocaleContext;
 
     /// 测试用的最小格式描述：与格式化入口的显式参数一一对应
-    struct FormatSpec
+    struct FormatSpecification
     {
         int            precision{2};                      ///< 小数位数或有效位数
         NumberNotation notation{NumberNotation::Default}; ///< 记数法
@@ -26,15 +26,15 @@ namespace
     };
 
     /// 构造测试用格式：记数法与精度都显式给出，避免依赖宿主的默认精度配置
-    FormatSpec makeFormat(const NumberNotation notation, const int precision)
+    FormatSpecification makeFormat(const NumberNotation notation, const int precision)
     {
-        return FormatSpec{.precision = precision, .notation = notation};
+        return FormatSpecification{.precision = precision, .notation = notation};
     }
 
     /// 把测试用的格式描述转成库的格式化入口参数
-    std::string formatWith(const double value, const FormatSpec &spec, const NumericLocaleContext &locale)
+    std::string formatWith(const double value, const FormatSpecification &specification, const NumericLocaleContext &locale)
     {
-        return ExpressionEngine::Base::formatNumericValue(value, spec.precision, spec.notation, spec.omitGroupSeparator, locale);
+        return ExpressionEngine::Base::formatNumericValue(value, specification.precision, specification.notation, specification.omitGroupSeparator, locale);
     }
 
     /// 手工构造宿主自定义快照，用来验证「不必受内置区域表限制」的用法
@@ -177,7 +177,7 @@ TEST(NumericFormattingTest, LocalesOutsideBuiltinTableAreUnsupportedNotSilentlyC
 /// @brief 钉住 C 与 de_DE 的格式化差异：小数点与分组同时按区域快照生效
 TEST(NumericFormattingTest, FormattingDiffersBetweenCLocaleAndGermanLocale)
 {
-    const FormatSpec format = makeFormat(NumberNotation::Fixed, 2);
+    const FormatSpecification format = makeFormat(NumberNotation::Fixed, 2);
     EXPECT_EQ(formatWith(1234567.5, format, cLocaleContext()), "1234567.50");
     EXPECT_EQ(formatWith(1234567.5, format, expectContext("de_DE")), "1.234.567,50");
 }
@@ -185,7 +185,7 @@ TEST(NumericFormattingTest, FormattingDiffersBetweenCLocaleAndGermanLocale)
 /// @brief 钉住分组位数规则：主要位数定末组、次要位数定其余各组、次要为 0 时沿用主要位数
 TEST(NumericFormattingTest, GroupingSizesFollowPrimaryAndSecondaryRules)
 {
-    const FormatSpec format = makeFormat(NumberNotation::Fixed, 0);
+    const FormatSpecification format = makeFormat(NumberNotation::Fixed, 0);
 
     // 主要 3 / 次要 2：印度式分组，最左组允许不足两位
     const NumericLocaleContext indianStyle = makeCustomContext("custom_in", ".", ",", 3, 2);
@@ -212,8 +212,8 @@ TEST(NumericFormattingTest, GroupingSizesFollowPrimaryAndSecondaryRules)
 /// @brief 钉住 OmitGroupSeparator 选项：要求省略分组时不得再插入分隔符
 TEST(NumericFormattingTest, OmitGroupSeparatorOptionDisablesGrouping)
 {
-    FormatSpec format         = makeFormat(NumberNotation::Fixed, 2);
-    format.omitGroupSeparator = true;
+    FormatSpecification format = makeFormat(NumberNotation::Fixed, 2);
+    format.omitGroupSeparator  = true;
     EXPECT_EQ(formatWith(1234567.5, format, expectContext("de_DE")), "1234567,50");
     EXPECT_EQ(formatWith(1234567.5, format, cLocaleContext()), "1234567.50");
 }
@@ -221,7 +221,7 @@ TEST(NumericFormattingTest, OmitGroupSeparatorOptionDisablesGrouping)
 /// @brief 钉住符号处理：负数用区域负号，正数不加正号（ICU/CLDR 默认没有正号前缀）
 TEST(NumericFormattingTest, NegativeSignFollowsLocaleAndPositiveNumbersHaveNoSign)
 {
-    const FormatSpec format = makeFormat(NumberNotation::Fixed, 1);
+    const FormatSpecification format = makeFormat(NumberNotation::Fixed, 1);
     EXPECT_EQ(formatWith(-1234.5, format, expectContext("de_DE")), "-1.234,5");
     EXPECT_EQ(formatWith(1234.5, format, expectContext("de_DE")), "1.234,5");
 

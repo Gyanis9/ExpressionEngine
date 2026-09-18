@@ -240,15 +240,15 @@ namespace ExpressionEngine::Expression
                     continue;
                 }
 
-                const auto info = binaryOperatorFor(m_current.kind);
-                if (!info.has_value() || info->leftBinding < minimumBinding)
+                const auto operatorInfo = binaryOperatorFor(m_current.kind);
+                if (!operatorInfo.has_value() || operatorInfo->leftBinding < minimumBinding)
                 {
                     break;
                 }
 
-                const auto operation = info->operation;
+                const auto operation = operatorInfo->operation;
                 advance();
-                ExpressionPtr right       = parseExpression(info->rightBinding);
+                ExpressionPtr right       = parseExpression(operatorInfo->rightBinding);
                 left                      = makeBinary(operation, std::move(left), std::move(right));
                 lastAttachmentWasImperial = false;
             }

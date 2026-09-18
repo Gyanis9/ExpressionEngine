@@ -13,13 +13,13 @@
 
 #include <ExpressionEngine/Base/NumericFormatting.h>
 #include <ExpressionEngine/Units/Quantity.h>
-#include <ExpressionEngine/Units/UnitsSchemasSpecs.h>
+#include <ExpressionEngine/Units/UnitsSchemasSpecifications.h>
 
 namespace ExpressionEngine::Units
 {
     /**
      * @brief 一个单位方案的运行时对象
-     * @details 方案数据由 UnitsSchemaSpec 提供，本类只负责按方案把量换算到目标单位并排版；
+     * @details 方案数据由 UnitsSchemaSpecification 提供，本类只负责按方案把量换算到目标单位并排版；
      *          宿主可自行构造方案数据，因此不需要联网或内置区域数据库。
      */
     class UnitsSchema
@@ -27,9 +27,9 @@ namespace ExpressionEngine::Units
     public:
         /**
          * @brief 以方案数据构造
-         * @param spec 方案定义，构造后由本对象持有
+         * @param specification 方案定义，构造后由本对象持有
          */
-        explicit UnitsSchema(UnitsSchemaSpec spec);
+        explicit UnitsSchema(UnitsSchemaSpecification specification);
 
         UnitsSchema() = delete;
 
@@ -89,6 +89,6 @@ namespace ExpressionEngine::Units
          */
         [[nodiscard]] static std::string toLocale(const Quantity &quant, const Base::NumericLocaleContext &formatting, double factor, const std::string &unitString);
 
-        UnitsSchemaSpec m_spec; ///< 方案定义
+        UnitsSchemaSpecification m_specification; ///< 方案定义
     };
 } // namespace ExpressionEngine::Units

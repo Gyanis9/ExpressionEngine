@@ -335,18 +335,18 @@ namespace ExpressionEngine::Expression
          * @brief 收集本节点子树里的变量引用
          * @details 基类不知道子节点结构，默认什么都不收集；复合节点覆写后递归子表达式，
          *          引用节点覆写后把自身追加进列表。去重由 collectReferences() 统一完成。
-         * @param out 输出：按首次出现顺序追加引用
+         * @param collectedReferences 输出：按首次出现顺序追加引用
          */
-        virtual void _collectReferences(std::vector<VariableReference> &out) const;
+        virtual void _collectReferences(std::vector<VariableReference> &collectedReferences) const;
 
         /**
          * @brief 供复合节点的递归钩子把子表达式的引用追加到同一列表
          * @details 输出列表由调用方复用，去重只在 collectReferences() 做一次；空指针表示
          *          该分支不存在，直接跳过。
          * @param expression 子表达式；可为空
-         * @param out 输出：追加收集到的引用
+         * @param collectedReferences 输出：追加收集到的引用
          */
-        static void collectReferencesFrom(const Expression *expression, std::vector<VariableReference> &out);
+        static void collectReferencesFrom(const Expression *expression, std::vector<VariableReference> &collectedReferences);
 
     private:
         IObjectResolver *m_resolver;   ///< 对象解析器，不持所有权，可为空
@@ -764,9 +764,9 @@ namespace ExpressionEngine::Expression
          * @details 覆写基类的空实现：运算符自己不产生依赖，但两侧子树可能引用宿主属性；
          *          先左后右追加以保持「首次出现」顺序。分量索引表达式由解析器保证为常量，
          *          不参与收集。
-         * @param out 输出：追加两侧子树的引用
+         * @param collectedReferences 输出：追加两侧子树的引用
          */
-        void _collectReferences(std::vector<VariableReference> &out) const override;
+        void _collectReferences(std::vector<VariableReference> &collectedReferences) const override;
 
     private:
         Operator      m_operator; ///< 运算符
@@ -864,9 +864,9 @@ namespace ExpressionEngine::Expression
          * @brief 递归收集条件与两个分支里的变量引用
          * @details 覆写基类的空实现：条件恒定时分支可能不参与求值，但引用仍要全部收上，
          *          否则宿主会漏建依赖；按条件、真分支、假分支的顺序追加。
-         * @param out 输出：追加三个子表达式的引用
+         * @param collectedReferences 输出：追加三个子表达式的引用
          */
-        void _collectReferences(std::vector<VariableReference> &out) const override;
+        void _collectReferences(std::vector<VariableReference> &collectedReferences) const override;
 
     private:
         ExpressionPtr m_condition;       ///< 条件表达式
@@ -1076,9 +1076,9 @@ namespace ExpressionEngine::Expression
          * @brief 递归收集全部实参里的变量引用
          * @details 覆写基类的空实现：普通实参与聚合函数的区间实参都可能引用宿主属性，
          *          按实参顺序追加，保证依赖列表与表达式里的出现顺序一致。
-         * @param out 输出：追加各实参的引用
+         * @param collectedReferences 输出：追加各实参的引用
          */
-        void _collectReferences(std::vector<VariableReference> &out) const override;
+        void _collectReferences(std::vector<VariableReference> &collectedReferences) const override;
 
     private:
         /**
@@ -1224,11 +1224,11 @@ namespace ExpressionEngine::Expression
 
         /**
          * @brief 把自身引用追加进列表
-         * @details 覆写基类的空实现：引用节点是依赖的来源，直接把 m_reference 追加进 out；
+         * @details 覆写基类的空实现：引用节点是依赖的来源，直接把 m_reference 追加进 collectedReferences；
          *          分量里只有解析器保证为常量的下标表达式，没有可依赖的变量。
-         * @param out 输出：追加自身引用
+         * @param collectedReferences 输出：追加自身引用
          */
-        void _collectReferences(std::vector<VariableReference> &out) const override;
+        void _collectReferences(std::vector<VariableReference> &collectedReferences) const override;
 
     private:
         Reference m_reference; ///< 引用路径

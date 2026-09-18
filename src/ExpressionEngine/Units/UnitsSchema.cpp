@@ -10,7 +10,7 @@
 
 namespace ExpressionEngine::Units
 {
-    UnitsSchema::UnitsSchema(UnitsSchemaSpec spec) : m_spec{std::move(spec)}
+    UnitsSchema::UnitsSchema(UnitsSchemaSpecification specification) : m_specification{std::move(specification)}
     {
     }
 
@@ -32,13 +32,13 @@ namespace ExpressionEngine::Units
         factor     = 1.0;
         unitString = quant.getUnit().getString();
 
-        if (m_spec.translationSpecs.empty())
+        if (m_specification.translationSpecifications.empty())
         {
             return toLocale(quant, formatting, factor, unitString);
         }
 
         const auto unitTypeName = quant.getUnit().getTypeString();
-        if (!m_spec.translationSpecs.contains(unitTypeName))
+        if (!m_specification.translationSpecifications.contains(unitTypeName))
         {
             return toLocale(quant, formatting, factor, unitString);
         }
@@ -47,7 +47,7 @@ namespace ExpressionEngine::Units
         const auto magnitude = std::abs(value);
 
         // 取第一个「阈值大于待换算值」的条目；阈值 0 是兜底条目，必须排在最后
-        const auto isApplicable = [magnitude](const UnitTranslationSpec &row)
+        const auto isApplicable = [magnitude](const UnitTranslationSpecification &row)
         {
             // 阈值边界上的值（如 1e-9 S/m 正好等于阈值 1e-9）应落到下一个单位，
             // 因此把阈值略微收缩后再比较
@@ -55,13 +55,13 @@ namespace ExpressionEngine::Units
             return row.threshold * (1.0 - relativeEpsilon) > magnitude || row.threshold == 0;
         };
 
-        const auto &candidates        = m_spec.translationSpecs.at(unitTypeName);
+        const auto &candidates        = m_specification.translationSpecifications.at(unitTypeName);
         const auto  unitSpecification = std::find_if(candidates.begin(), candidates.end(), isApplicable);
         if (unitSpecification == candidates.end())
         {
             throw Base::ExpressionError(std::format("单位方案 {} 的 {} 换算表里没有匹配条目，也没有阈值 0 "
                                                     "的兜底条目，请补一条兜底条目后重试",
-                                                    m_spec.name, unitTypeName));
+                                                    m_specification.name, unitTypeName));
         }
 
         // 换算因子为 0 表示 unitString 写的是特殊函数名，交给特殊函数接管
@@ -96,31 +96,31 @@ namespace ExpressionEngine::Units
 
     bool UnitsSchema::isMultiUnitLength() const
     {
-        return m_spec.isMultiUnitLength;
+        return m_specification.isMultiUnitLength;
     }
 
     bool UnitsSchema::isMultiUnitAngle() const
     {
-        return m_spec.isMultiUnitAngle;
+        return m_specification.isMultiUnitAngle;
     }
 
     std::string UnitsSchema::getBasicLengthUnit() const
     {
-        return m_spec.basicLengthUnitString;
+        return m_specification.basicLengthUnitString;
     }
 
     std::string UnitsSchema::getName() const
     {
-        return m_spec.name;
+        return m_specification.name;
     }
 
     std::string UnitsSchema::getDescription() const
     {
-        return m_spec.description == nullptr ? std::string{} : std::string{m_spec.description};
+        return m_specification.description == nullptr ? std::string{} : std::string{m_specification.description};
     }
 
     int UnitsSchema::getNumber() const
     {
-        return static_cast<int>(m_spec.number);
+        return static_cast<int>(m_specification.number);
     }
 } // namespace ExpressionEngine::Units

@@ -232,33 +232,34 @@ Matrix4D::Matrix4D(double a11, double a12, double a13, double a14,
     double Matrix4D::determinant() const
     {
         // 2x2 子式展开：把 4x4 行列式写成 6 对 2x2 子式的组合，避免递归
-        const double a0 = m_matrix[0][0] * m_matrix[1][1] - m_matrix[0][1] * m_matrix[1][0];
-        const double a1 = m_matrix[0][0] * m_matrix[1][2] - m_matrix[0][2] * m_matrix[1][0];
-        const double a2 = m_matrix[0][0] * m_matrix[1][3] - m_matrix[0][3] * m_matrix[1][0];
-        const double a3 = m_matrix[0][1] * m_matrix[1][2] - m_matrix[0][2] * m_matrix[1][1];
-        const double a4 = m_matrix[0][1] * m_matrix[1][3] - m_matrix[0][3] * m_matrix[1][1];
-        const double a5 = m_matrix[0][2] * m_matrix[1][3] - m_matrix[0][3] * m_matrix[1][2];
-        const double b0 = m_matrix[2][0] * m_matrix[3][1] - m_matrix[2][1] * m_matrix[3][0];
-        const double b1 = m_matrix[2][0] * m_matrix[3][2] - m_matrix[2][2] * m_matrix[3][0];
-        const double b2 = m_matrix[2][0] * m_matrix[3][3] - m_matrix[2][3] * m_matrix[3][0];
-        const double b3 = m_matrix[2][1] * m_matrix[3][2] - m_matrix[2][2] * m_matrix[3][1];
-        const double b4 = m_matrix[2][1] * m_matrix[3][3] - m_matrix[2][3] * m_matrix[3][1];
-        const double b5 = m_matrix[2][2] * m_matrix[3][3] - m_matrix[2][3] * m_matrix[3][2];
+        const double upperBlockMinor0 = m_matrix[0][0] * m_matrix[1][1] - m_matrix[0][1] * m_matrix[1][0];
+        const double upperBlockMinor1 = m_matrix[0][0] * m_matrix[1][2] - m_matrix[0][2] * m_matrix[1][0];
+        const double upperBlockMinor2 = m_matrix[0][0] * m_matrix[1][3] - m_matrix[0][3] * m_matrix[1][0];
+        const double upperBlockMinor3 = m_matrix[0][1] * m_matrix[1][2] - m_matrix[0][2] * m_matrix[1][1];
+        const double upperBlockMinor4 = m_matrix[0][1] * m_matrix[1][3] - m_matrix[0][3] * m_matrix[1][1];
+        const double upperBlockMinor5 = m_matrix[0][2] * m_matrix[1][3] - m_matrix[0][3] * m_matrix[1][2];
+        const double lowerBlockMinor0 = m_matrix[2][0] * m_matrix[3][1] - m_matrix[2][1] * m_matrix[3][0];
+        const double lowerBlockMinor1 = m_matrix[2][0] * m_matrix[3][2] - m_matrix[2][2] * m_matrix[3][0];
+        const double lowerBlockMinor2 = m_matrix[2][0] * m_matrix[3][3] - m_matrix[2][3] * m_matrix[3][0];
+        const double lowerBlockMinor3 = m_matrix[2][1] * m_matrix[3][2] - m_matrix[2][2] * m_matrix[3][1];
+        const double lowerBlockMinor4 = m_matrix[2][1] * m_matrix[3][3] - m_matrix[2][3] * m_matrix[3][1];
+        const double lowerBlockMinor5 = m_matrix[2][2] * m_matrix[3][3] - m_matrix[2][3] * m_matrix[3][2];
 
-        return a0 * b5 - a1 * b4 + a2 * b3 + a3 * b2 - a4 * b1 + a5 * b0;
+        return upperBlockMinor0 * lowerBlockMinor5 - upperBlockMinor1 * lowerBlockMinor4 + upperBlockMinor2 * lowerBlockMinor3 + upperBlockMinor3 * lowerBlockMinor2 -
+               upperBlockMinor4 * lowerBlockMinor1 + upperBlockMinor5 * lowerBlockMinor0;
     }
 
     double Matrix4D::determinant3() const
     {
         // 3x3 子矩阵行列式：三正三负的六项展开
-        const double va = m_matrix[0][0] * m_matrix[1][1] * m_matrix[2][2];
-        const double vb = m_matrix[0][1] * m_matrix[1][2] * m_matrix[2][0];
-        const double vc = m_matrix[1][0] * m_matrix[2][1] * m_matrix[0][2];
-        const double vd = m_matrix[0][2] * m_matrix[1][1] * m_matrix[2][0];
-        const double ve = m_matrix[1][0] * m_matrix[0][1] * m_matrix[2][2];
-        const double vf = m_matrix[0][0] * m_matrix[2][1] * m_matrix[1][2];
+        const double positiveTerm1 = m_matrix[0][0] * m_matrix[1][1] * m_matrix[2][2];
+        const double positiveTerm2 = m_matrix[0][1] * m_matrix[1][2] * m_matrix[2][0];
+        const double positiveTerm3 = m_matrix[1][0] * m_matrix[2][1] * m_matrix[0][2];
+        const double negativeTerm1 = m_matrix[0][2] * m_matrix[1][1] * m_matrix[2][0];
+        const double negativeTerm2 = m_matrix[1][0] * m_matrix[0][1] * m_matrix[2][2];
+        const double negativeTerm3 = m_matrix[0][0] * m_matrix[2][1] * m_matrix[1][2];
 
-        return (va + vb + vc) - (vd + ve + vf);
+        return (positiveTerm1 + positiveTerm2 + positiveTerm3) - (negativeTerm1 + negativeTerm2 + negativeTerm3);
     }
 
     void Matrix4D::move(const Vector3f &vector)
