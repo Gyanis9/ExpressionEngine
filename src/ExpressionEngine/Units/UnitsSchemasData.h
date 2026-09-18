@@ -40,6 +40,7 @@ namespace ExpressionEngine::Units::UnitsSchemasData
 
 // NOLINTBEGIN
 // clang-format off
+/// 编号 6 方案 MmMin：毫米与毫米每分钟，CNC 小件与公制小尺寸用
 inline const UnitsSchemaSpec s0
 { 6, "MmMin", "mm" , false, false , QT_TRANSLATE_NOOP("UnitsApi", "Metric small parts & CNC (mm, mm/min)"), false,
     {
@@ -49,6 +50,7 @@ inline const UnitsSchemaSpec s0
     }
 };
 
+/// 编号 9 方案 MeterDecimal：米制小数（m、m²、m³）
 inline const UnitsSchemaSpec s1
 { 9, "MeterDecimal", "m", false, false, QT_TRANSLATE_NOOP("UnitsApi", "Meter decimal (m, m², m³)"), false,
     {
@@ -63,6 +65,7 @@ inline const UnitsSchemaSpec s1
     }
 };
 
+/// 编号 3 方案 ImperialDecimal：英制小数（in、lb）
 inline const UnitsSchemaSpec s2
 { 3, "ImperialDecimal", "in", false, false, QT_TRANSLATE_NOOP("UnitsApi", "Imperial decimal (in, lb)"), false,
     {
@@ -79,6 +82,7 @@ inline const UnitsSchemaSpec s2
     }
 };
 
+/// 编号 0 方案 Internal：默认方案，mm、kg、s、°
 inline const UnitsSchemaSpec s3
 { 0, "Internal", "mm", false, false, QT_TRANSLATE_NOOP("UnitsApi", "Standard (mm, kg, s, °)"), true,
     {
@@ -337,6 +341,7 @@ inline const UnitsSchemaSpec s3
     }
 };
 
+/// 编号 1 方案 MKS：m、kg、s、°
 inline const UnitsSchemaSpec s4
 { 1, "MKS", "m", false, false, QT_TRANSLATE_NOOP("UnitsApi", "MKS (m, kg, s, °)") , false,
     {
@@ -568,6 +573,7 @@ inline const UnitsSchemaSpec s4
     }
 };
 
+/// 编号 4 方案 Centimeter：建筑欧标（cm、m²、m³）
 inline const UnitsSchemaSpec s5
 { 4, "Centimeter", "cm", false, false, QT_TRANSLATE_NOOP("UnitsApi", "Building Euro (cm, m², m³)") , false,
     {
@@ -598,6 +604,7 @@ inline const UnitsSchemaSpec s5
     }
 };
 
+/// 编号 8 方案 FEM：mm、N、s
 inline const UnitsSchemaSpec s6
 { 8, "FEM", "mm", false , false , QT_TRANSLATE_NOOP("UnitsApi", "FEM (mm, N, s)"), false,
     {
@@ -610,6 +617,7 @@ inline const UnitsSchemaSpec s6
     }
 };
 
+/// 编号 2 方案 Imperial：美制惯用（in、lb）
 inline const UnitsSchemaSpec s7
 { 2, "Imperial", "in", false, false, QT_TRANSLATE_NOOP("UnitsApi", "US customary (in, lb)"), false,
     {
@@ -654,6 +662,7 @@ inline const UnitsSchemaSpec s7
     }
 };
 
+/// 编号 5 方案 ImperialBuilding：建筑美制（ft-in、sqft、cft）
 inline const UnitsSchemaSpec s8
 { 5, "ImperialBuilding", "ft", true, false , QT_TRANSLATE_NOOP("UnitsApi", "Building US (ft-in, sqft, cft)"), false,
     {
@@ -667,6 +676,7 @@ inline const UnitsSchemaSpec s8
     }
 };
 
+/// 编号 7 方案 ImperialCivil：土木英制（ft、lb、mph）
 inline const UnitsSchemaSpec s9
 { 7, "ImperialCivil", "ft", false, true, QT_TRANSLATE_NOOP("UnitsApi", "Imperial for Civil Eng (ft, lb, mph)"), false,
     {
