@@ -6,11 +6,12 @@ from conan.tools.files import copy
 
 
 class ExpressionEngineRecipe(ConanFile):
-    """最小可用配方：无依赖的静态库，构建与打包都交给自带的 CMake 安装规则。
+    """最小可用配方：静态库本体零外部依赖，构建与打包都交给自带的 CMake 安装规则。
 
-    本库零外部依赖（GoogleTest 已 vendor 在仓库里，且打包时关闭），因此不需要
-    requirements()；打包内容完全来自 `cmake --install` 的产物，与手工安装同源，
-    避免配方里再抄一份文件清单。
+    库本体不需要任何第三方依赖；测试用的 GoogleTest 由 conandata.yml 声明（改由
+    Conan 供给，便于消费者复用同一份配置），故 requirements() 只消费那份清单。
+    打包内容完全来自 `cmake --install` 的产物，与手工安装同源，避免配方里再抄一份
+    文件清单。
     """
 
     name = "expressionengine"
@@ -20,14 +21,21 @@ class ExpressionEngineRecipe(ConanFile):
     package_type = "static-library"
     settings = "os", "arch", "compiler", "build_type"
 
-    # 只带构建必需的部分：用例与第三方测试框架、基准都不进包，也不参与构建。
+    # 只带构建必需的部分：用例与基准都不进包，也不参与构建。
+    # conandata.yml 必须一起导出，self.conan_data 才有内容可供 requirements() 读取。
     exports_sources = (
         "CMakeLists.txt",
         "cmake/*",
         "src/*",
+        "conandata.yml",
         "LICENSE",
         "NOTICE",
     )
+
+    def requirements(self):
+        """按 conandata.yml 声明依赖；该文件由 Conan 插件维护，这里只负责消费。"""
+        for requirement in self.conan_data.get("requirements", []):
+            self.requires(requirement)
 
     def layout(self):
         cmake_layout(self)

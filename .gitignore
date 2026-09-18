@@ -17,3 +17,8 @@ cmake-build-*/
 *.exe
 *.dll
 *.lib
+
+# Conan / IDE 预设：由插件与 conan install 在本地生成，内容随机器与构建目录变化
+CMakeUserPresets.json
+conanbuild.bat
+conanrun.bat
