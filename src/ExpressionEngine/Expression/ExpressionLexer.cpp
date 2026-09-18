@@ -1,9 +1,12 @@
 #include <ExpressionEngine/Expression/ExpressionLexer.h>
 
 #include <algorithm>
+#include <array>
 #include <charconv>
 #include <cstddef>
+#include <cstdint>
 #include <format>
+#include <iterator>
 #include <numbers>
 #include <string>
 #include <string_view>
@@ -58,8 +61,36 @@ namespace ExpressionEngine::Expression
             return isIdentifierStart(character) || isDecimalDigit(character);
         }
 
+        /// 热路径上的字符类别位图：把三个谓词在编译期铺成 256 项查表，逐字节判定不再走函数调用链
+        struct CharacterClassBitmaps
+        {
+            std::array<std::uint8_t, 256> identifierStart{};      ///< 标识符首字符：字母、下划线、非 ASCII
+            std::array<std::uint8_t, 256> identifierContinue{};   ///< 标识符后续字符：首字符集合再加数字与 '@'
+            std::array<std::uint8_t, 256> functionNameContinue{}; ///< 函数名后续字符：首字符集合再加数字（不含 '@'）
+        };
+
+        /// 在编译期把字符类别谓词铺成位图，下标是字节值
+        constexpr CharacterClassBitmaps buildCharacterClassBitmaps()
+        {
+            CharacterClassBitmaps bitmaps;
+            for (std::size_t index = 0; index < bitmaps.identifierStart.size(); ++index)
+            {
+                const char character                = static_cast<char>(static_cast<unsigned char>(index));
+                bitmaps.identifierStart[index]      = isIdentifierStart(character) ? 1 : 0;
+                bitmaps.identifierContinue[index]   = isIdentifierContinue(character) ? 1 : 0;
+                bitmaps.functionNameContinue[index] = isFunctionNameContinue(character) ? 1 : 0;
+            }
+            return bitmaps;
+        }
+
+        /// 编译期建好的字符类别位图；静态存储期且无运行时初始化
+        constexpr CharacterClassBitmaps characterClasses = buildCharacterClassBitmaps();
+
         /// U+2212 减号的 UTF-8 编码；它属于运算符，不能被「非 ASCII 一律当字母」的约定吞进标识符
         constexpr std::string_view unicodeMinusSign{"−"};
+
+        /// 减号序列的首字节：先比这一个字节就能挡掉其余多字节检查
+        constexpr char unicodeMinusSignLeadByte = unicodeMinusSign.front();
 
         /// offset 处是否是 U+2212 减号序列
         constexpr bool startsWithUnicodeMinus(const std::string_view text, const std::size_t offset)
@@ -136,6 +167,72 @@ constexpr std::string_view unitSymbols[]{
         /// 英制建筑单位符号：`"` 英寸、`'` 英尺（Expression.l 里返回 USUNIT 的两条规则）
         constexpr std::string_view usUnitSymbols[]{"\"", "'"};
 
+        /// 一条单位符号候选：符号文本与它对应的记号类别
+        struct UnitSymbolEntry
+        {
+            std::string_view    symbol; ///< 符号文本
+            ExpressionTokenKind kind;   ///< Unit 或 UsUnit
+        };
+
+        /// 首字节相同的一组候选在分组数组里的区间；组内保持总表顺序，等长匹配时靠前者胜出
+        struct UnitSymbolBucket
+        {
+            std::uint16_t begin{0}; ///< 区间在分组数组里的起始下标
+            std::uint16_t count{0}; ///< 区间里的候选条数
+        };
+
+        /// 单位符号的首字节分派表：256 项索引加一张按首字节分好组的候选数组
+        struct UnitSymbolDispatch
+        {
+            std::array<UnitSymbolEntry, std::size(unitSymbols) + std::size(usUnitSymbols)> entries{}; ///< 按首字节分组的候选
+            std::array<UnitSymbolBucket, 256>                                              buckets{}; ///< 每个首字节对应的候选区间
+        };
+
+        /// 取符号文本的首字节值，用作分派表的索引
+        constexpr std::size_t unitSymbolFirstByte(const std::string_view symbol)
+        {
+            return static_cast<unsigned char>(symbol.front());
+        }
+
+        /// 编译期用计数排序把单位符号按首字节分组：索引表给出每个首字节的区间，组内保持总表顺序
+        constexpr UnitSymbolDispatch buildUnitSymbolDispatch()
+        {
+            UnitSymbolDispatch           dispatch;
+            std::array<std::size_t, 256> counts{};
+            for (const std::string_view symbol: unitSymbols)
+            {
+                ++counts[unitSymbolFirstByte(symbol)];
+            }
+            for (const std::string_view symbol: usUnitSymbols)
+            {
+                ++counts[unitSymbolFirstByte(symbol)];
+            }
+            std::size_t begin = 0;
+            for (std::size_t byte = 0; byte < counts.size(); ++byte)
+            {
+                dispatch.buckets[byte] = {static_cast<std::uint16_t>(begin), static_cast<std::uint16_t>(counts[byte])};
+                begin += counts[byte];
+            }
+            // 游标从各分组起点向后推进，于是同一分组的候选保持它们在总表里的先后
+            std::array<std::size_t, 256> cursors{};
+            for (std::size_t byte = 0; byte < cursors.size(); ++byte)
+            {
+                cursors[byte] = dispatch.buckets[byte].begin;
+            }
+            for (const std::string_view symbol: unitSymbols)
+            {
+                dispatch.entries[cursors[unitSymbolFirstByte(symbol)]++] = {symbol, ExpressionTokenKind::Unit};
+            }
+            for (const std::string_view symbol: usUnitSymbols)
+            {
+                dispatch.entries[cursors[unitSymbolFirstByte(symbol)]++] = {symbol, ExpressionTokenKind::UsUnit};
+            }
+            return dispatch;
+        }
+
+        /// 编译期建好的单位符号分派表；静态存储期且无运行时初始化，也没有堆分配
+        constexpr UnitSymbolDispatch unitSymbolDispatch = buildUnitSymbolDispatch();
+
         /// 单位符号匹配结果
         struct UnitMatch
         {
@@ -143,24 +240,20 @@ constexpr std::string_view unitSymbols[]{
             ExpressionTokenKind kind{ExpressionTokenKind::Unit}; ///< Unit 或 UsUnit
         };
 
-        /// 在 offset 处做单位符号的最长匹配；只在严格更长时替换，因此等长时保留表里靠前的符号
+        /// 在 offset 处做单位符号的最长匹配：先按首字节把候选缩到一组，再在组内挑最长；
+        /// 只在严格更长时替换，因此等长时保留表里靠前的符号
         UnitMatch matchUnitSymbol(std::string_view text, const std::size_t offset)
         {
-            UnitMatch  best;
-            const auto consider = [&best, text, offset](const std::string_view symbol, const ExpressionTokenKind kind)
+            const UnitSymbolBucket bucket    = unitSymbolDispatch.buckets[static_cast<unsigned char>(text[offset])];
+            const std::string_view remainder = text.substr(offset);
+            UnitMatch              best;
+            for (std::size_t index = 0; index < bucket.count; ++index)
             {
-                if (symbol.size() > best.length && text.size() - offset >= symbol.size() && text.compare(offset, symbol.size(), symbol) == 0)
+                const UnitSymbolEntry &entry = unitSymbolDispatch.entries[bucket.begin + index];
+                if (entry.symbol.size() > best.length && remainder.starts_with(entry.symbol))
                 {
-                    best = {symbol.size(), kind};
+                    best = {entry.symbol.size(), entry.kind};
                 }
-            };
-            for (const std::string_view symbol: unitSymbols)
-            {
-                consider(symbol, ExpressionTokenKind::Unit);
-            }
-            for (const std::string_view symbol: usUnitSymbols)
-            {
-                consider(symbol, ExpressionTokenKind::UsUnit);
             }
             return best;
         }
@@ -436,7 +529,7 @@ constexpr std::string_view unitSymbols[]{
                 return {};
             }
             std::size_t position = offset + 1;
-            while (position < text.size() && isFunctionNameContinue(text[position]))
+            while (position < text.size() && characterClasses.functionNameContinue[static_cast<unsigned char>(text[position])] != 0)
             {
                 ++position;
             }
@@ -456,15 +549,19 @@ constexpr std::string_view unitSymbols[]{
         /// 匹配标识符（Expression.l 的 IDENTIFIER 规则），返回字节数
         std::size_t matchIdentifier(std::string_view text, const std::size_t offset)
         {
-            if (startsWithUnicodeMinus(text, offset) || !isIdentifierStart(text[offset]))
+            if (characterClasses.identifierStart[static_cast<unsigned char>(text[offset])] == 0)
             {
                 return 0;
             }
+            if (text[offset] == unicodeMinusSignLeadByte && startsWithUnicodeMinus(text, offset))
+            {
+                return 0; // U+2212 减号属于运算符，不能被「非 ASCII 一律当字母」的约定吞进标识符
+            }
             std::size_t position = offset + 1;
-            while (position < text.size() && isIdentifierContinue(text[position]))
+            while (position < text.size() && characterClasses.identifierContinue[static_cast<unsigned char>(text[position])] != 0)
             {
                 // 减号的多字节序列要截断扫描，否则它比运算符匹配更长，会把 "1−2" 吞成一个标识符
-                if (startsWithUnicodeMinus(text, position))
+                if (text[position] == unicodeMinusSignLeadByte && startsWithUnicodeMinus(text, position))
                 {
                     break;
                 }
@@ -483,7 +580,7 @@ constexpr std::string_view unitSymbols[]{
         /// 匹配运算符与标点；先看多字节形式，保证 ==、!=、<=、>= 与 U+2212 减号不被拆开
         OperatorMatch matchOperator(std::string_view text, const std::size_t offset)
         {
-            if (startsWithUnicodeMinus(text, offset))
+            if (text[offset] == unicodeMinusSignLeadByte && startsWithUnicodeMinus(text, offset))
             {
                 return {unicodeMinusSign.size(), ExpressionTokenKind::Minus};
             }
