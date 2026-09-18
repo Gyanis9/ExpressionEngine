@@ -10,6 +10,14 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 option(EXPRESSIONENGINE_BUILD_TESTS "构建单元测试" ON)
 
+# 零告警是提交硬判据：库与测试共用同一组告警开关，第三方源码不套用
+add_library(ExpressionEngineWarnings INTERFACE)
+if(MSVC)
+    target_compile_options(ExpressionEngineWarnings INTERFACE /W4 /permissive- /utf-8 /Zc:__cplusplus)
+else()
+    target_compile_options(ExpressionEngineWarnings INTERFACE -Wall -Wextra -Wpedantic)
+endif()
+
 add_subdirectory(src)
 
 if(EXPRESSIONENGINE_BUILD_TESTS)
