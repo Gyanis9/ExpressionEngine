@@ -14,333 +14,386 @@
 #include <ExpressionEngine/Units/UnitsConvData.h>
 #include <ExpressionEngine/Units/UnitsSchema.h>
 
-namespace ExpressionEngine::Units {
-QuantityFormat::QuantityFormat()
-    // 默认不输出也不接受分组分隔符：数值以机器可读为先
-    : option(OmitGroupSeparator | RejectGroupSeparator), format(NumberFormat::Fixed),
-      m_precision(-1), m_denominator(-1) {
-}
-
-QuantityFormat::QuantityFormat(QuantityFormat::NumberFormat format, int decimals)
-    : option(OmitGroupSeparator | RejectGroupSeparator), format(format), m_precision(decimals),
-      m_denominator(-1) {
-}
-
-int QuantityFormat::getPrecision() const {
-    return m_precision < 0 ? UnitsApi::getDecimals() : m_precision;
-}
-
-int QuantityFormat::getDenominator() const {
-    return m_denominator < 0 ? UnitsApi::getDenominator() : m_denominator;
-}
-
-Quantity::Quantity() : m_value{0.0} {
-}
-
-Quantity::Quantity(double value, const Unit& unit) : m_value{value}, m_unit{unit} {
-}
-
-Quantity::Quantity(double value, const std::string& unit) {
-    if (unit.empty()) {
-        m_value = value;
-        m_unit = Unit();
-        return;
+namespace ExpressionEngine::Units
+{
+    QuantityFormat::QuantityFormat()
+        // 默认不输出也不接受分组分隔符：数值以机器可读为先
+        : option(OmitGroupSeparator | RejectGroupSeparator), format(NumberFormat::Fixed), m_precision(-1), m_denominator(-1)
+    {
     }
 
-    // 单位文本按表达式解析；解析失败时退化为无量纲，调用方需要感知失败请直接用 parse()
-    try {
-        const auto parsedUnit = parse(unit);
-        m_value = value * parsedUnit.getValue();
-        m_unit = parsedUnit.getUnit();
-    } catch (const Base::ParserError&) {
-        m_value = 0.0;
-        m_unit = Unit();
-    }
-}
-
-double Quantity::getValueAs(const Quantity& other) const {
-    return m_value / other.getValue();
-}
-
-bool Quantity::operator==(const Quantity& that) const {
-    return m_value == that.m_value && m_unit == that.m_unit;
-}
-
-bool Quantity::operator!=(const Quantity& that) const {
-    return !(*this == that);
-}
-
-bool Quantity::operator<(const Quantity& that) const {
-    // 量纲不同时大小无意义，宁可报错也不按数值硬比
-    if (m_unit != that.m_unit) {
-        throw Base::UnitsMismatchError("比较两个量的大小时单位必须一致，请先换算成同一单位");
+    QuantityFormat::QuantityFormat(QuantityFormat::NumberFormat format, int decimals) :
+        option(OmitGroupSeparator | RejectGroupSeparator), format(format), m_precision(decimals), m_denominator(-1)
+    {
     }
 
-    return m_value < that.m_value;
-}
-
-bool Quantity::operator>(const Quantity& that) const {
-    if (m_unit != that.m_unit) {
-        throw Base::UnitsMismatchError("比较两个量的大小时单位必须一致，请先换算成同一单位");
+    int QuantityFormat::getPrecision() const
+    {
+        return m_precision < 0 ? UnitsApi::getDecimals() : m_precision;
     }
 
-    return m_value > that.m_value;
-}
-
-bool Quantity::operator<=(const Quantity& that) const {
-    if (m_unit != that.m_unit) {
-        throw Base::UnitsMismatchError("比较两个量的大小时单位必须一致，请先换算成同一单位");
+    int QuantityFormat::getDenominator() const
+    {
+        return m_denominator < 0 ? UnitsApi::getDenominator() : m_denominator;
     }
 
-    return m_value <= that.m_value;
-}
-
-bool Quantity::operator>=(const Quantity& that) const {
-    if (m_unit != that.m_unit) {
-        throw Base::UnitsMismatchError("比较两个量的大小时单位必须一致，请先换算成同一单位");
+    Quantity::Quantity() : m_value{0.0}
+    {
     }
 
-    return m_value >= that.m_value;
-}
-
-Quantity Quantity::operator*(const Quantity& other) const {
-    return Quantity(m_value * other.m_value, m_unit * other.m_unit);
-}
-
-Quantity Quantity::operator*(double factor) const {
-    return Quantity(m_value * factor, m_unit);
-}
-
-Quantity Quantity::operator/(const Quantity& other) const {
-    return Quantity(m_value / other.m_value, m_unit / other.m_unit);
-}
-
-Quantity Quantity::operator/(double factor) const {
-    return Quantity(m_value / factor, m_unit);
-}
-
-Quantity Quantity::pow(const Quantity& exponent) const {
-    if (!exponent.isDimensionless()) {
-        throw Base::UnitsMismatchError("幂次必须是无量纲的纯数字，请去掉指数上的单位");
+    Quantity::Quantity(double value, const Unit &unit) : m_value{value}, m_unit{unit}
+    {
     }
 
-    // 幂次交给 Unit::pow() 按实数处理：不是整数时它会报错，不在这里静默取整
-    return Quantity(std::pow(m_value, exponent.m_value), m_unit.pow(exponent.m_value));
-}
-
-Quantity Quantity::pow(double exponent) const {
-    return Quantity(std::pow(m_value, exponent), m_unit.pow(exponent));
-}
-
-Quantity Quantity::operator+(const Quantity& other) const {
-    if (m_unit != other.m_unit) {
-        throw Base::UnitsMismatchError("相加的两个量单位必须一致，请先换算成同一单位");
-    }
-
-    return Quantity(m_value + other.m_value, m_unit);
-}
-
-Quantity& Quantity::operator+=(const Quantity& other) {
-    if (m_unit != other.m_unit) {
-        throw Base::UnitsMismatchError("相加的两个量单位必须一致，请先换算成同一单位");
-    }
-
-    m_value += other.m_value;
-    return *this;
-}
-
-Quantity Quantity::operator-(const Quantity& other) const {
-    if (m_unit != other.m_unit) {
-        throw Base::UnitsMismatchError("相减的两个量单位必须一致，请先换算成同一单位");
-    }
-
-    return Quantity(m_value - other.m_value, m_unit);
-}
-
-Quantity& Quantity::operator-=(const Quantity& other) {
-    if (m_unit != other.m_unit) {
-        throw Base::UnitsMismatchError("相减的两个量单位必须一致，请先换算成同一单位");
-    }
-
-    m_value -= other.m_value;
-    return *this;
-}
-
-Quantity Quantity::operator-() const {
-    return Quantity(-m_value, m_unit);
-}
-
-std::string Quantity::toString(const QuantityFormat& format) const {
-    return std::format("'{} {}'", toNumber(format), m_unit.getString());
-}
-
-std::string Quantity::toNumber(const QuantityFormat& format) const {
-    // 记数法直接映射到 std::format 的呈现方式，精度取自格式设置
-    switch (format.format) {
-    case QuantityFormat::NumberFormat::Fixed:
-        return std::format("{:.{}f}", m_value, format.getPrecision());
-    case QuantityFormat::NumberFormat::Scientific:
-        return std::format("{:.{}e}", m_value, format.getPrecision());
-    default:
-        return std::format("{:.{}g}", m_value, format.getPrecision());
-    }
-}
-
-std::string Quantity::getUserString() const {
-    double unusedFactor{};
-    std::string unusedUnitString;
-    return getUserString(unusedFactor, unusedUnitString);
-}
-
-std::string Quantity::getUserString(double& factor, std::string& unitString) const {
-    return UnitsApi::schemaTranslate(*this, factor, unitString);
-}
-
-std::string
-Quantity::getUserString(UnitsSchema* schema, double& factor, std::string& unitString) const {
-    return schema->translate(*this, factor, unitString);
-}
-
-std::string Quantity::getSafeUserString() const {
-    auto userString = getUserString();
-    if (m_value != 0.0) {
-        // 用户串必须能被自己解析回来，否则回退到基准单位写法，避免回填表达式时失真
-        bool needsFallback{false};
-        try {
-            needsFallback =
-                parseUserInput(userString, Base::currentNumericLocaleContext()).getValue() == 0;
-        } catch (const Base::ParserError&) {
-            needsFallback = true;
+    Quantity::Quantity(double value, const std::string &unit)
+    {
+        if (unit.empty())
+        {
+            m_value = value;
+            m_unit  = Unit();
+            return;
         }
 
-        if (needsFallback) {
-            const auto unitText = m_unit.getString();
-            userString = std::format("{}{}{}", m_value, unitText.empty() ? "" : " ", unitText);
+        // 单位文本按表达式解析；解析失败时退化为无量纲，调用方需要感知失败请直接用 parse()
+        try
+        {
+            const auto parsedUnit = parse(unit);
+            m_value               = value * parsedUnit.getValue();
+            m_unit                = parsedUnit.getUnit();
+        } catch (const Base::ParserError &)
+        {
+            m_value = 0.0;
+            m_unit  = Unit();
         }
     }
 
-    return Base::Tools::escapeQuotesFromString(userString);
-}
-
-bool Quantity::isDimensionless() const {
-    return m_unit == Unit::One;
-}
-
-bool Quantity::isDimensionlessOrUnit(const Unit& unit) const {
-    return isDimensionless() || m_unit == unit;
-}
-
-bool Quantity::isValid() const {
-    return !std::isnan(m_value);
-}
-
-void Quantity::setInvalid() {
-    m_value = std::numeric_limits<double>::quiet_NaN();
-}
-
-namespace {
-/// 判断从 position 起是否为给定片段
-[[nodiscard]] bool
-startsAt(const std::string_view input, const std::size_t position, const std::string_view value) {
-    return !value.empty() && position + value.size() <= input.size() &&
-           input.substr(position, value.size()) == value;
-}
-
-/// 判断从 position 起是否是一个区域化数字的开头（数字、带符号数字或以小数点开头）
-[[nodiscard]] bool startsNumericToken(const std::string_view input,
-                                      const std::size_t position,
-                                      const Base::NumericLocaleContext& locale) {
-    if (position >= input.size()) {
-        return false;
+    double Quantity::getValueAs(const Quantity &other) const
+    {
+        return m_value / other.getValue();
     }
 
-    int digit = 0;
-    std::size_t digitLength = 0;
-    if (Base::localizedDigitAt(input, position, locale, digit, digitLength)) {
-        return true;
+    bool Quantity::operator==(const Quantity &that) const
+    {
+        return m_value == that.m_value && m_unit == that.m_unit;
     }
 
-    const auto digitFollows = [&input, &locale](const std::size_t offset) {
-        int nextDigit = 0;
-        std::size_t nextDigitLength = 0;
-        return offset < input.size() &&
-               Base::localizedDigitAt(input, offset, locale, nextDigit, nextDigitLength);
-    };
-
-    if (input[position] == '.') {
-        return digitFollows(position + 1);
-    }
-    if (startsAt(input, position, locale.decimalSeparator)) {
-        return digitFollows(position + locale.decimalSeparator.size());
+    bool Quantity::operator!=(const Quantity &that) const
+    {
+        return !(*this == that);
     }
 
-    // 符号后面必须紧跟数字或小数点，否则符号属于表达式运算符
-    for (const std::string_view sign : {std::string_view{"+"},
-                                        std::string_view{"-"},
-                                        std::string_view{locale.positiveSign},
-                                        std::string_view{locale.negativeSign}}) {
-        if (startsAt(input, position, sign)) {
-            const auto next = position + sign.size();
-            return digitFollows(next) || (next < input.size() && input[next] == '.') ||
-                   startsAt(input, next, locale.decimalSeparator);
+    bool Quantity::operator<(const Quantity &that) const
+    {
+        // 量纲不同时大小无意义，宁可报错也不按数值硬比
+        if (m_unit != that.m_unit)
+        {
+            throw Base::UnitsMismatchError("比较两个量的大小时单位必须一致，请先换算成同一单位");
+        }
+
+        return m_value < that.m_value;
+    }
+
+    bool Quantity::operator>(const Quantity &that) const
+    {
+        if (m_unit != that.m_unit)
+        {
+            throw Base::UnitsMismatchError("比较两个量的大小时单位必须一致，请先换算成同一单位");
+        }
+
+        return m_value > that.m_value;
+    }
+
+    bool Quantity::operator<=(const Quantity &that) const
+    {
+        if (m_unit != that.m_unit)
+        {
+            throw Base::UnitsMismatchError("比较两个量的大小时单位必须一致，请先换算成同一单位");
+        }
+
+        return m_value <= that.m_value;
+    }
+
+    bool Quantity::operator>=(const Quantity &that) const
+    {
+        if (m_unit != that.m_unit)
+        {
+            throw Base::UnitsMismatchError("比较两个量的大小时单位必须一致，请先换算成同一单位");
+        }
+
+        return m_value >= that.m_value;
+    }
+
+    Quantity Quantity::operator*(const Quantity &other) const
+    {
+        return Quantity(m_value * other.m_value, m_unit * other.m_unit);
+    }
+
+    Quantity Quantity::operator*(double factor) const
+    {
+        return Quantity(m_value * factor, m_unit);
+    }
+
+    Quantity Quantity::operator/(const Quantity &other) const
+    {
+        return Quantity(m_value / other.m_value, m_unit / other.m_unit);
+    }
+
+    Quantity Quantity::operator/(double factor) const
+    {
+        return Quantity(m_value / factor, m_unit);
+    }
+
+    Quantity Quantity::pow(const Quantity &exponent) const
+    {
+        if (!exponent.isDimensionless())
+        {
+            throw Base::UnitsMismatchError("幂次必须是无量纲的纯数字，请去掉指数上的单位");
+        }
+
+        // 幂次交给 Unit::pow() 按实数处理：不是整数时它会报错，不在这里静默取整
+        return Quantity(std::pow(m_value, exponent.m_value), m_unit.pow(exponent.m_value));
+    }
+
+    Quantity Quantity::pow(double exponent) const
+    {
+        return Quantity(std::pow(m_value, exponent), m_unit.pow(exponent));
+    }
+
+    Quantity Quantity::operator+(const Quantity &other) const
+    {
+        if (m_unit != other.m_unit)
+        {
+            throw Base::UnitsMismatchError("相加的两个量单位必须一致，请先换算成同一单位");
+        }
+
+        return Quantity(m_value + other.m_value, m_unit);
+    }
+
+    Quantity &Quantity::operator+=(const Quantity &other)
+    {
+        if (m_unit != other.m_unit)
+        {
+            throw Base::UnitsMismatchError("相加的两个量单位必须一致，请先换算成同一单位");
+        }
+
+        m_value += other.m_value;
+        return *this;
+    }
+
+    Quantity Quantity::operator-(const Quantity &other) const
+    {
+        if (m_unit != other.m_unit)
+        {
+            throw Base::UnitsMismatchError("相减的两个量单位必须一致，请先换算成同一单位");
+        }
+
+        return Quantity(m_value - other.m_value, m_unit);
+    }
+
+    Quantity &Quantity::operator-=(const Quantity &other)
+    {
+        if (m_unit != other.m_unit)
+        {
+            throw Base::UnitsMismatchError("相减的两个量单位必须一致，请先换算成同一单位");
+        }
+
+        m_value -= other.m_value;
+        return *this;
+    }
+
+    Quantity Quantity::operator-() const
+    {
+        return Quantity(-m_value, m_unit);
+    }
+
+    std::string Quantity::toString(const QuantityFormat &format) const
+    {
+        return std::format("'{} {}'", toNumber(format), m_unit.getString());
+    }
+
+    std::string Quantity::toNumber(const QuantityFormat &format) const
+    {
+        // 记数法直接映射到 std::format 的呈现方式，精度取自格式设置
+        switch (format.format)
+        {
+            case QuantityFormat::NumberFormat::Fixed:
+                return std::format("{:.{}f}", m_value, format.getPrecision());
+            case QuantityFormat::NumberFormat::Scientific:
+                return std::format("{:.{}e}", m_value, format.getPrecision());
+            default:
+                return std::format("{:.{}g}", m_value, format.getPrecision());
         }
     }
 
-    return false;
-}
+    std::string Quantity::getUserString() const
+    {
+        double      unusedFactor{};
+        std::string unusedUnitString;
+        return getUserString(unusedFactor, unusedUnitString);
+    }
 
-/// 把用户输入里的区域化数字改写成与区域无关的标准写法，其余字节原样保留
-[[nodiscard]] std::string normalizeQuantityInput(const std::string_view input,
-                                                 const Base::NumericLocaleContext& locale) {
-    std::string normalized;
-    normalized.reserve(input.size());
+    std::string Quantity::getUserString(double &factor, std::string &unitString) const
+    {
+        return UnitsApi::schemaTranslate(*this, factor, unitString);
+    }
 
-    std::size_t position = 0;
-    while (position < input.size()) {
-        // 方括号注释整段照抄：里面即使是「看起来像数字」的内容也不扫描
-        if (input[position] == '[') {
-            const auto closing = input.find(']', position + 1);
-            if (closing == std::string_view::npos) {
-                normalized.append(input.substr(position));
-                break;
+    std::string Quantity::getUserString(UnitsSchema *schema, double &factor, std::string &unitString) const
+    {
+        return schema->translate(*this, factor, unitString);
+    }
+
+    std::string Quantity::getSafeUserString() const
+    {
+        auto userString = getUserString();
+        if (m_value != 0.0)
+        {
+            // 用户串必须能被自己解析回来，否则回退到基准单位写法，避免回填表达式时失真
+            bool needsFallback{false};
+            try
+            {
+                needsFallback = parseUserInput(userString, Base::currentNumericLocaleContext()).getValue() == 0;
+            } catch (const Base::ParserError &)
+            {
+                needsFallback = true;
             }
-            const auto length = closing + 1 - position;
-            normalized.append(input.substr(position, length));
-            position += length;
-            continue;
+
+            if (needsFallback)
+            {
+                const auto unitText = m_unit.getString();
+                userString          = std::format("{}{}{}", m_value, unitText.empty() ? "" : " ", unitText);
+            }
         }
 
-        if (!startsNumericToken(input, position, locale)) {
-            normalized.push_back(input[position++]);
-            continue;
-        }
-
-        const auto result = Base::scanLocalizedNumber(
-            input.substr(position), locale, Base::NumericSyntaxContext::Standalone);
-        if (result.status != Base::LocalizedNumberResult::Status::Complete) {
-            throw Base::ParserError(std::format(
-                "用户输入第 {} "
-                "个字符处的数字不符合当前区域的写法（{}），请按该区域的小数点与分组分隔符重新输入",
-                position + 1,
-                result.diagnostic.has_value() ? "分隔符或分组位数不正确" : "数字不完整"));
-        }
-
-        normalized += result.canonicalText;
-        position += result.consumedBytes;
+        return Base::Tools::escapeQuotesFromString(userString);
     }
 
-    return normalized;
-}
-}  // namespace
+    bool Quantity::isDimensionless() const
+    {
+        return m_unit == Unit::One;
+    }
 
-Quantity Quantity::parseUserInput(const std::string& text,
-                                  const Base::NumericLocaleContext& locale) {
-    return parse(normalizeQuantityInput(text, locale));
-}
+    bool Quantity::isDimensionlessOrUnit(const Unit &unit) const
+    {
+        return isDimensionless() || m_unit == unit;
+    }
 
-Quantity Quantity::parse(const std::string& text) {
-    return QuantityParser::parse(text);
-}
+    bool Quantity::isValid() const
+    {
+        return !std::isnan(m_value);
+    }
+
+    void Quantity::setInvalid()
+    {
+        m_value = std::numeric_limits<double>::quiet_NaN();
+    }
+
+    namespace
+    {
+        /// 判断从 position 起是否为给定片段
+        [[nodiscard]] bool startsAt(const std::string_view input, const std::size_t position, const std::string_view value)
+        {
+            return !value.empty() && position + value.size() <= input.size() && input.substr(position, value.size()) == value;
+        }
+
+        /// 判断从 position 起是否是一个区域化数字的开头（数字、带符号数字或以小数点开头）
+        [[nodiscard]] bool startsNumericToken(const std::string_view input, const std::size_t position, const Base::NumericLocaleContext &locale)
+        {
+            if (position >= input.size())
+            {
+                return false;
+            }
+
+            int         digit       = 0;
+            std::size_t digitLength = 0;
+            if (Base::localizedDigitAt(input, position, locale, digit, digitLength))
+            {
+                return true;
+            }
+
+            const auto digitFollows = [&input, &locale](const std::size_t offset)
+            {
+                int         nextDigit       = 0;
+                std::size_t nextDigitLength = 0;
+                return offset < input.size() && Base::localizedDigitAt(input, offset, locale, nextDigit, nextDigitLength);
+            };
+
+            if (input[position] == '.')
+            {
+                return digitFollows(position + 1);
+            }
+            if (startsAt(input, position, locale.decimalSeparator))
+            {
+                return digitFollows(position + locale.decimalSeparator.size());
+            }
+
+            // 符号后面必须紧跟数字或小数点，否则符号属于表达式运算符
+            for (const std::string_view sign: {std::string_view{"+"}, std::string_view{"-"}, std::string_view{locale.positiveSign}, std::string_view{locale.negativeSign}})
+            {
+                if (startsAt(input, position, sign))
+                {
+                    const auto next = position + sign.size();
+                    return digitFollows(next) || (next < input.size() && input[next] == '.') || startsAt(input, next, locale.decimalSeparator);
+                }
+            }
+
+            return false;
+        }
+
+        /// 把用户输入里的区域化数字改写成与区域无关的标准写法，其余字节原样保留
+        [[nodiscard]] std::string normalizeQuantityInput(const std::string_view input, const Base::NumericLocaleContext &locale)
+        {
+            std::string normalized;
+            normalized.reserve(input.size());
+
+            std::size_t position = 0;
+            while (position < input.size())
+            {
+                // 方括号注释整段照抄：里面即使是「看起来像数字」的内容也不扫描
+                if (input[position] == '[')
+                {
+                    const auto closing = input.find(']', position + 1);
+                    if (closing == std::string_view::npos)
+                    {
+                        normalized.append(input.substr(position));
+                        break;
+                    }
+                    const auto length = closing + 1 - position;
+                    normalized.append(input.substr(position, length));
+                    position += length;
+                    continue;
+                }
+
+                if (!startsNumericToken(input, position, locale))
+                {
+                    normalized.push_back(input[position++]);
+                    continue;
+                }
+
+                const auto result = Base::scanLocalizedNumber(input.substr(position), locale, Base::NumericSyntaxContext::Standalone);
+                if (result.status != Base::LocalizedNumberResult::Status::Complete)
+                {
+                    throw Base::ParserError(std::format("用户输入第 {} "
+                                                        "个字符处的数字不符合当前区域的写法（{}），请按该区域的小数点与分组分隔符重新输入",
+                                                        position + 1, result.diagnostic.has_value() ? "分隔符或分组位数不正确" : "数字不完整"));
+                }
+
+                normalized += result.canonicalText;
+                position += result.consumedBytes;
+            }
+
+            return normalized;
+        }
+    } // namespace
+
+    Quantity Quantity::parseUserInput(const std::string &text, const Base::NumericLocaleContext &locale)
+    {
+        return parse(normalizeQuantityInput(text, locale));
+    }
+
+    Quantity Quantity::parse(const std::string &text)
+    {
+        return QuantityParser::parse(text);
+    }
 
 // === 预定义量 ==============================================================
 // clang-format off
@@ -496,5 +549,5 @@ const Quantity Quantity::AngSecond              ( 1.0 / 3600.0          , Unit::
 const Quantity Quantity::Degree                 ( 1.0                   , Unit::Angle                   );
 const Quantity Quantity::Radian                 ( 180 / std::numbers::pi, Unit::Angle                   );
 const Quantity Quantity::Gon                    ( 360.0 / 400.0         , Unit::Angle                   );
-// clang-format on
-}  // namespace ExpressionEngine::Units
+    // clang-format on
+} // namespace ExpressionEngine::Units

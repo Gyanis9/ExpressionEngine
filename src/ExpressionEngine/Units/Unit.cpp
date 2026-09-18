@@ -6,16 +6,19 @@
 #include <limits>
 #include <ranges>
 
-namespace ExpressionEngine::Units {
-namespace {
-/// 类型名与量纲指数的对照表，既供反查类型名，也供按名构造静态单位
-struct UnitSpec {
-    std::string_view name;
-    UnitExponents exponents;
-};
+namespace ExpressionEngine::Units
+{
+    namespace
+    {
+        /// 类型名与量纲指数的对照表，既供反查类型名，也供按名构造静态单位
+        struct UnitSpec
+        {
+            std::string_view name;
+            UnitExponents    exponents;
+        };
 
-constexpr auto unitSpecs = std::to_array<UnitSpec>({
-    // clang-format off
+        constexpr auto unitSpecs = std::to_array<UnitSpec>({
+                // clang-format off
     //                                             Length
     //                                             .   Mass
     //                                             .   .   Time
@@ -84,218 +87,221 @@ constexpr auto unitSpecs = std::to_array<UnitSpec>({
     { "Work"                                  , {  2,  1, -2                     } },
     { "YieldStrength"                         , { -1,  1, -2                     } },
     { "YoungsModulus"                         , { -1,  1, -2                     } },
-});  // clang-format on
+}); // clang-format on
 
-/// 按类型名构造静态单位；名字必须存在于对照表中
-constexpr Unit makeUnit(const std::string_view name) {
-    if (const auto spec = std::ranges::find(unitSpecs, name, &UnitSpec::name);
-        spec != unitSpecs.end()) {
-        return Unit{spec->exponents, spec->name};
-    }
-    throw Base::NameError("单位类型名不在对照表中，可用 getTypeString() 取当前单位支持的名称");
-}
-}  // namespace
-
-Unit::Unit(const int length,
-           const int mass,
-           const int time,
-           const int electricCurrent,
-           const int thermodynamicTemperature,
-           const int amountOfSubstance,
-           const int luminousIntensity,
-           const int angle)
-    : m_name{""} {
-    // 先夹到 int8 可表示范围再写入：越界值由 checkRange() 统一报错，不在这里静默回绕
-    const auto clampToExponent = [](const int value) {
-        return static_cast<std::int8_t>(
-            std::clamp(value,
-                       static_cast<int>(std::numeric_limits<std::int8_t>::min()),
-                       static_cast<int>(std::numeric_limits<std::int8_t>::max())));
-    };
-
-    m_exponents[0] = clampToExponent(length);
-    m_exponents[1] = clampToExponent(mass);
-    m_exponents[2] = clampToExponent(time);
-    m_exponents[3] = clampToExponent(electricCurrent);
-    m_exponents[4] = clampToExponent(thermodynamicTemperature);
-    m_exponents[5] = clampToExponent(amountOfSubstance);
-    m_exponents[6] = clampToExponent(luminousIntensity);
-    m_exponents[7] = clampToExponent(angle);
-
-    checkRange();
-}
-
-bool Unit::operator==(const Unit& that) const {
-    return m_exponents == that.m_exponents;
-}
-
-bool Unit::operator!=(const Unit& that) const {
-    return m_exponents != that.m_exponents;
-}
-
-Unit& Unit::operator*=(const Unit& that) {
-    *this = *this * that;
-    return *this;
-}
-
-Unit& Unit::operator/=(const Unit& that) {
-    *this = *this / that;
-    return *this;
-}
-
-Unit Unit::operator*(const Unit& right) const {
-    UnitExponents result{};
-    std::transform(m_exponents.begin(),
-                   m_exponents.end(),
-                   right.m_exponents.begin(),
-                   result.begin(),
-                   [](const auto leftExponent, const auto rightExponent) {
-                       return static_cast<std::int8_t>(leftExponent + rightExponent);
-                   });
-
-    // 结果构造时校验指数范围，乘法溢出一律报错而非截断
-    return Unit{result};
-}
-
-Unit Unit::operator/(const Unit& right) const {
-    UnitExponents result{};
-    std::transform(m_exponents.begin(),
-                   m_exponents.end(),
-                   right.m_exponents.begin(),
-                   result.begin(),
-                   [](const auto leftExponent, const auto rightExponent) {
-                       return static_cast<std::int8_t>(leftExponent - rightExponent);
-                   });
-
-    return Unit{result};
-}
-
-Unit Unit::root(const uint8_t num) const {
-    if (num < 1) {
-        throw Base::UnitsMismatchError("开方次数必须大于 0，请传入 2 表示平方根、3 表示立方根");
-    }
-
-    UnitExponents result{};
-    std::transform(
-        m_exponents.begin(), m_exponents.end(), result.begin(), [num](const auto exponent) {
-            // 指数必须能被开方次数整除，否则会得到分数次幂，单位无法表示
-            if (exponent % num != 0) {
-                throw Base::UnitsMismatchError(
-                    std::format("单位指数 {} 不能被开方次数 {} 整除，请改用 pow() 或先换算量纲",
-                                exponent,
-                                num));
+        /// 按类型名构造静态单位；名字必须存在于对照表中
+        constexpr Unit makeUnit(const std::string_view name)
+        {
+            if (const auto spec = std::ranges::find(unitSpecs, name, &UnitSpec::name); spec != unitSpecs.end())
+            {
+                return Unit{spec->exponents, spec->name};
             }
-            return static_cast<std::int8_t>(exponent / num);
-        });
+            throw Base::NameError("单位类型名不在对照表中，可用 getTypeString() 取当前单位支持的名称");
+        }
+    } // namespace
 
-    return Unit{result};
-}
+    Unit::Unit(const int length, const int mass, const int time, const int electricCurrent, const int thermodynamicTemperature, const int amountOfSubstance,
+               const int luminousIntensity, const int angle) : m_name{""}
+    {
+        // 先夹到 int8 可表示范围再写入：越界值由 checkRange() 统一报错，不在这里静默回绕
+        const auto clampToExponent = [](const int value)
+        {
+            return static_cast<std::int8_t>(
+                    std::clamp(value, static_cast<int>(std::numeric_limits<std::int8_t>::min()), static_cast<int>(std::numeric_limits<std::int8_t>::max())));
+        };
 
-Unit Unit::pow(const double exponent) const {
-    UnitExponents result{};
-    std::transform(m_exponents.begin(),
-                   m_exponents.end(),
-                   result.begin(),
-                   [exponent](const auto exponentValue) {
-                       const auto scaled{exponentValue * exponent};
-                       // 允许浮点误差，但结果必须落在整数格点上，否则单位无法表示
-                       if (std::fabs(std::round(scaled) - scaled) >=
-                           std::numeric_limits<double>::epsilon()) {
-                           throw Base::UnitsMismatchError(
-                               std::format("单位指数 {} 乘以幂次 {} 不是整数，请改用可整除的幂次",
-                                           exponentValue,
-                                           exponent));
-                       }
-                       return static_cast<std::int8_t>(std::lround(scaled));
-                   });
+        m_exponents[0] = clampToExponent(length);
+        m_exponents[1] = clampToExponent(mass);
+        m_exponents[2] = clampToExponent(time);
+        m_exponents[3] = clampToExponent(electricCurrent);
+        m_exponents[4] = clampToExponent(thermodynamicTemperature);
+        m_exponents[5] = clampToExponent(amountOfSubstance);
+        m_exponents[6] = clampToExponent(luminousIntensity);
+        m_exponents[7] = clampToExponent(angle);
 
-    return Unit{result};
-}
+        checkRange();
+    }
 
-UnitExponents Unit::exponents() const {
-    return m_exponents;
-}
+    bool Unit::operator==(const Unit &that) const
+    {
+        return m_exponents == that.m_exponents;
+    }
 
-int Unit::length() const {
-    return m_exponents[0];
-}
+    bool Unit::operator!=(const Unit &that) const
+    {
+        return m_exponents != that.m_exponents;
+    }
 
-std::string Unit::getString() const {
-    // 单个量纲的写法：指数为 1 时省略 ^1，指数取绝对值，正负在分子分母分派
-    const auto buildComponent = [this](const std::size_t index) {
-        const std::string symbol{unitSymbols.at(index)};
-        const auto absoluteExponent{std::abs(static_cast<int>(m_exponents.at(index)))};
+    Unit &Unit::operator*=(const Unit &that)
+    {
+        *this = *this * that;
+        return *this;
+    }
 
-        return absoluteExponent <= 1 ? symbol : std::format("{}^{}", symbol, absoluteExponent);
-    };
+    Unit &Unit::operator/=(const Unit &that)
+    {
+        *this = *this / that;
+        return *this;
+    }
 
-    const auto buildProduct = [&buildComponent](const std::vector<std::size_t>& indexes) {
-        std::string product;
-        for (const std::size_t index : indexes) {
-            if (!product.empty()) {
-                product += "*";
+    Unit Unit::operator*(const Unit &right) const
+    {
+        UnitExponents result{};
+        std::transform(m_exponents.begin(), m_exponents.end(), right.m_exponents.begin(), result.begin(),
+                       [](const auto leftExponent, const auto rightExponent) { return static_cast<std::int8_t>(leftExponent + rightExponent); });
+
+        // 结果构造时校验指数范围，乘法溢出一律报错而非截断
+        return Unit{result};
+    }
+
+    Unit Unit::operator/(const Unit &right) const
+    {
+        UnitExponents result{};
+        std::transform(m_exponents.begin(), m_exponents.end(), right.m_exponents.begin(), result.begin(),
+                       [](const auto leftExponent, const auto rightExponent) { return static_cast<std::int8_t>(leftExponent - rightExponent); });
+
+        return Unit{result};
+    }
+
+    Unit Unit::root(const uint8_t num) const
+    {
+        if (num < 1)
+        {
+            throw Base::UnitsMismatchError("开方次数必须大于 0，请传入 2 表示平方根、3 表示立方根");
+        }
+
+        UnitExponents result{};
+        std::transform(m_exponents.begin(), m_exponents.end(), result.begin(),
+                       [num](const auto exponent)
+                       {
+                           // 指数必须能被开方次数整除，否则会得到分数次幂，单位无法表示
+                           if (exponent % num != 0)
+                           {
+                               throw Base::UnitsMismatchError(std::format("单位指数 {} 不能被开方次数 {} 整除，请改用 pow() 或先换算量纲", exponent, num));
+                           }
+                           return static_cast<std::int8_t>(exponent / num);
+                       });
+
+        return Unit{result};
+    }
+
+    Unit Unit::pow(const double exponent) const
+    {
+        UnitExponents result{};
+        std::transform(m_exponents.begin(), m_exponents.end(), result.begin(),
+                       [exponent](const auto exponentValue)
+                       {
+                           const auto scaled{exponentValue * exponent};
+                           // 允许浮点误差，但结果必须落在整数格点上，否则单位无法表示
+                           if (std::fabs(std::round(scaled) - scaled) >= std::numeric_limits<double>::epsilon())
+                           {
+                               throw Base::UnitsMismatchError(std::format("单位指数 {} 乘以幂次 {} 不是整数，请改用可整除的幂次", exponentValue, exponent));
+                           }
+                           return static_cast<std::int8_t>(std::lround(scaled));
+                       });
+
+        return Unit{result};
+    }
+
+    UnitExponents Unit::exponents() const
+    {
+        return m_exponents;
+    }
+
+    int Unit::length() const
+    {
+        return m_exponents[0];
+    }
+
+    std::string Unit::getString() const
+    {
+        // 单个量纲的写法：指数为 1 时省略 ^1，指数取绝对值，正负在分子分母分派
+        const auto buildComponent = [this](const std::size_t index)
+        {
+            const std::string symbol{unitSymbols.at(index)};
+            const auto        absoluteExponent{std::abs(static_cast<int>(m_exponents.at(index)))};
+
+            return absoluteExponent <= 1 ? symbol : std::format("{}^{}", symbol, absoluteExponent);
+        };
+
+        const auto buildProduct = [&buildComponent](const std::vector<std::size_t> &indexes)
+        {
+            std::string product;
+            for (const std::size_t index: indexes)
+            {
+                if (!product.empty())
+                {
+                    product += "*";
+                }
+                product += buildComponent(index);
             }
-            product += buildComponent(index);
+            return product;
+        };
+
+        const auto [positiveIndexes, negativeIndexes] = nonZeroValueIndexes();
+        const auto numerator                          = buildProduct(positiveIndexes);
+        if (negativeIndexes.empty())
+        {
+            return numerator;
         }
-        return product;
-    };
 
-    const auto [positiveIndexes, negativeIndexes] = nonZeroValueIndexes();
-    const auto numerator = buildProduct(positiveIndexes);
-    if (negativeIndexes.empty()) {
-        return numerator;
+        const auto denominator = buildProduct(negativeIndexes);
+
+        // 分母有多个量纲时加括号，避免 "kg/mm*s^2" 这类歧义写法
+        return std::format("{}/{}", numerator.empty() ? "1" : numerator, negativeIndexes.size() > 1 ? std::format("({})", denominator) : denominator);
     }
 
-    const auto denominator = buildProduct(negativeIndexes);
-
-    // 分母有多个量纲时加括号，避免 "kg/mm*s^2" 这类歧义写法
-    return std::format("{}/{}",
-                       numerator.empty() ? "1" : numerator,
-                       negativeIndexes.size() > 1 ? std::format("({})", denominator) : denominator);
-}
-
-std::string Unit::representation() const {
-    std::string exponentList;
-    for (const auto exponent : m_exponents) {
-        if (!exponentList.empty()) {
-            exponentList += ",";
+    std::string Unit::representation() const
+    {
+        std::string exponentList;
+        for (const auto exponent: m_exponents)
+        {
+            if (!exponentList.empty())
+            {
+                exponentList += ",";
+            }
+            exponentList += std::format("{}", exponent);
         }
-        exponentList += std::format("{}", exponent);
+
+        const auto withExponents = std::format("Unit: {} ({})", getString(), exponentList);
+        const auto typeName      = getTypeString();
+
+        return typeName.empty() ? withExponents : std::format("{} [{}]", withExponents, typeName);
     }
 
-    const auto withExponents = std::format("Unit: {} ({})", getString(), exponentList);
-    const auto typeName = getTypeString();
-
-    return typeName.empty() ? withExponents : std::format("{} [{}]", withExponents, typeName);
-}
-
-std::string Unit::getTypeString() const {
-    // 显式给了类型名就直接用，否则按指数反查对照表
-    if (!m_name.empty()) {
-        return std::string{m_name};
-    }
-
-    const auto spec = std::ranges::find(unitSpecs, m_exponents, &UnitSpec::exponents);
-    return std::string(spec == unitSpecs.end() ? std::string_view{} : spec->name);
-}
-
-std::pair<std::vector<std::size_t>, std::vector<std::size_t>> Unit::nonZeroValueIndexes() const {
-    std::vector<std::size_t> positiveIndexes;
-    std::vector<std::size_t> negativeIndexes;
-
-    for (std::size_t index = 0; index < m_exponents.size(); ++index) {
-        const auto exponent = m_exponents.at(index);
-        if (exponent > 0) {
-            positiveIndexes.push_back(index);
-        } else if (exponent < 0) {
-            negativeIndexes.push_back(index);
+    std::string Unit::getTypeString() const
+    {
+        // 显式给了类型名就直接用，否则按指数反查对照表
+        if (!m_name.empty())
+        {
+            return std::string{m_name};
         }
+
+        const auto spec = std::ranges::find(unitSpecs, m_exponents, &UnitSpec::exponents);
+        return std::string(spec == unitSpecs.end() ? std::string_view{} : spec->name);
     }
 
-    return {positiveIndexes, negativeIndexes};
-}
+    std::pair<std::vector<std::size_t>, std::vector<std::size_t>> Unit::nonZeroValueIndexes() const
+    {
+        std::vector<std::size_t> positiveIndexes;
+        std::vector<std::size_t> negativeIndexes;
 
-// clang-format off
+        for (std::size_t index = 0; index < m_exponents.size(); ++index)
+        {
+            const auto exponent = m_exponents.at(index);
+            if (exponent > 0)
+            {
+                positiveIndexes.push_back(index);
+            } else if (exponent < 0)
+            {
+                negativeIndexes.push_back(index);
+            }
+        }
+
+        return {positiveIndexes, negativeIndexes};
+    }
+
+    // clang-format off
 constexpr Unit Unit::One                                   = makeUnit("1"                           );
 
 constexpr Unit Unit::Length                                = makeUnit("Length"                      );
@@ -359,5 +365,5 @@ constexpr Unit Unit::VolumetricThermalExpansionCoefficient = makeUnit("ThermalEx
 constexpr Unit Unit::Work                                  = makeUnit("Work"                        );
 constexpr Unit Unit::YieldStrength                         = makeUnit("Pressure"                    );
 constexpr Unit Unit::YoungsModulus                         = makeUnit("Pressure"                    );
-// clang-format on
-}  // namespace ExpressionEngine::Units
+    // clang-format on
+} // namespace ExpressionEngine::Units

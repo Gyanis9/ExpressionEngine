@@ -13,213 +13,218 @@
 
 #include <ExpressionEngine/Base/DualNumber.h>
 
-namespace ExpressionEngine::Base {
-/**
- * @brief 分量取对偶数的四元数，用于位姿插值（见 pow()）
- * @details 旋转存放在实部，平移编码进对偶部：dual() = 0.5·t·r，其中 t 为平移量对应的纯四元数、
- *          r 为旋转四元数。四个分量 x、y、z、w 是构成值语义的公开数据，按数学惯例不加前缀。
- */
-class DualQuat {
-public:
-    DualNumber x;  ///< x 分量
-    DualNumber y;  ///< y 分量
-    DualNumber z;  ///< z 分量
-    DualNumber w;  ///< w（标量）分量
-
+namespace ExpressionEngine::Base
+{
     /**
-     * @brief 构造零四元数（所有分量为零）
+     * @brief 分量取对偶数的四元数，用于位姿插值（见 pow()）
+     * @details 旋转存放在实部，平移编码进对偶部：dual() = 0.5·t·r，其中 t 为平移量对应的纯四元数、
+     *          r 为旋转四元数。四个分量 x、y、z、w 是构成值语义的公开数据，按数学惯例不加前缀。
      */
-    DualQuat() = default;
+    class DualQuat
+    {
+    public:
+        DualNumber x; ///< x 分量
+        DualNumber y; ///< y 分量
+        DualNumber z; ///< z 分量
+        DualNumber w; ///< w（标量）分量
+
+        /**
+         * @brief 构造零四元数（所有分量为零）
+         */
+        DualQuat() = default;
+
+        /**
+         * @brief 按对偶分量构造
+         * @param x x 分量
+         * @param y y 分量
+         * @param z z 分量
+         * @param w w 分量
+         */
+        DualQuat(DualNumber x, DualNumber y, DualNumber z, DualNumber w) : x(x), y(y), z(z), w(w)
+        {
+        }
+
+        /**
+         * @brief 逐分量构造，各分量的实部与对偶部依次给出
+         * @param x x 分量实部
+         * @param y y 分量实部
+         * @param z z 分量实部
+         * @param w w 分量实部
+         * @param dualX x 分量对偶部
+         * @param dualY y 分量对偶部
+         * @param dualZ z 分量对偶部
+         * @param dualW w 分量对偶部
+         */
+        DualQuat(double x, double y, double z, double w, double dualX, double dualY, double dualZ, double dualW) : x(x, dualX), y(y, dualY), z(z, dualZ), w(w, dualW)
+        {
+        }
+
+        /**
+         * @brief 按纯实四元数构造（对偶部全为零）
+         * @param x x 分量实部
+         * @param y y 分量实部
+         * @param z z 分量实部
+         * @param w w 分量实部
+         */
+        DualQuat(const double x, double y, double z, double w) : x(x), y(y), z(z), w(w)
+        {
+        }
+
+        /**
+         * @brief 由实部与对偶部两个纯实四元数构造
+         * @details 只读取两个参数各自的实部-实部；若参数带有非零对偶分量，说明调用方传错了对象
+         *          （例如把整个对偶四元数当实部），此时抛 ValueError 而不是静默丢数据。
+         * @param realPart 实部，即旋转四元数
+         * @param dualPart 对偶部，即平移编码
+         * @throws ValueError 任一参数含非零对偶分量
+         */
+        DualQuat(const DualQuat &realPart, const DualQuat &dualPart);
+
+        /**
+         * @brief 取恒等位姿对应的对偶四元数
+         * @return 四元数 (0, 0, 0, 1)
+         */
+        static DualQuat identity()
+        {
+            return {0.0, 0.0, 0.0, 1.0};
+        }
+
+        /**
+         * @brief 取实部（对偶部清零）
+         * @return 纯实四元数
+         */
+        [[nodiscard]] DualQuat real() const
+        {
+            return {x.re, y.re, z.re, w.re};
+        }
+
+        /**
+         * @brief 取对偶部（作为纯实四元数返回）
+         * @return 由各分量对偶部组成的纯实四元数
+         */
+        [[nodiscard]] DualQuat dual() const
+        {
+            return {x.du, y.du, z.du, w.du};
+        }
+
+        /**
+         * @brief 取共轭
+         * @return 向量部分取反的结果
+         */
+        [[nodiscard]] DualQuat conj() const
+        {
+            return {-x, -y, -z, w};
+        }
+
+        /**
+         * @brief 取向量部分（标量分量 w 清零）
+         * @return w 为零的四元数
+         */
+        [[nodiscard]] DualQuat vec() const
+        {
+            return {x, y, z, 0.0};
+        }
+
+        /**
+         * @brief 取实部四元数的模长
+         * @return 旋转部分的模，单位旋转时为 1
+         */
+        [[nodiscard]] double length() const
+        {
+            return std::sqrt(x.re * x.re + y.re * y.re + z.re * z.re + w.re * w.re);
+        }
+
+        /**
+         * @brief 取所表示旋转的转角
+         * @return 转角，单位弧度，取值范围 [0, 2π)
+         */
+        [[nodiscard]] double theta() const
+        {
+            return 2.0 * std::atan2(vec().length(), w.re);
+        }
+
+        /**
+         * @brief 取两个对偶四元数实部的点积
+         * @details 用于判断两者的旋转方向是否相反，从而决定插值前是否取反一个操作数。
+         * @param left 左操作数
+         * @param right 右操作数
+         * @return 实部四元数的点积
+         */
+        static double dot(const DualQuat &left, const DualQuat &right);
+
+        /**
+         * @brief 螺旋插值（ScLERP）
+         * @details t=0 返回恒等位姿、t=1 返回自身，t 可超出 [0, 1] 做外插；本身无旋转时退化为
+         *          平移的线性插值。shorten 为真且旋转角超过 180° 时取短弧。
+         * @param t 插值参数
+         * @param shorten 是否取短弧，默认取
+         * @return 插值结果
+         */
+        [[nodiscard]] DualQuat pow(double t, bool shorten = true) const;
+
+        /**
+         * @brief 取相反数
+         * @return 各分量的实部与对偶部都取反的结果
+         */
+        DualQuat operator-() const
+        {
+            return {-x, -y, -z, -w};
+        }
+    };
 
     /**
-     * @brief 按对偶分量构造
-     * @param x x 分量
-     * @param y y 分量
-     * @param z z 分量
-     * @param w w 分量
-     */
-    DualQuat(DualNumber x, DualNumber y, DualNumber z, DualNumber w) : x(x), y(y), z(z), w(w) {
-    }
-
-    /**
-     * @brief 逐分量构造，各分量的实部与对偶部依次给出
-     * @param x x 分量实部
-     * @param y y 分量实部
-     * @param z z 分量实部
-     * @param w w 分量实部
-     * @param dualX x 分量对偶部
-     * @param dualY y 分量对偶部
-     * @param dualZ z 分量对偶部
-     * @param dualW w 分量对偶部
-     */
-    DualQuat(double x,
-             double y,
-             double z,
-             double w,
-             double dualX,
-             double dualY,
-             double dualZ,
-             double dualW)
-        : x(x, dualX), y(y, dualY), z(z, dualZ), w(w, dualW) {
-    }
-
-    /**
-     * @brief 按纯实四元数构造（对偶部全为零）
-     * @param x x 分量实部
-     * @param y y 分量实部
-     * @param z z 分量实部
-     * @param w w 分量实部
-     */
-    DualQuat(double x, double y, double z, double w) : x(x), y(y), z(z), w(w) {
-    }
-
-    /**
-     * @brief 由实部与对偶部两个纯实四元数构造
-     * @details 只读取两个参数各自的实部-实部；若参数带有非零对偶分量，说明调用方传错了对象
-     *          （例如把整个对偶四元数当实部），此时抛 ValueError 而不是静默丢数据。
-     * @param realPart 实部，即旋转四元数
-     * @param dualPart 对偶部，即平移编码
-     * @throws ValueError 任一参数含非零对偶分量
-     */
-    DualQuat(DualQuat realPart, DualQuat dualPart);
-
-    /**
-     * @brief 取恒等位姿对应的对偶四元数
-     * @return 四元数 (0, 0, 0, 1)
-     */
-    static DualQuat identity() {
-        return {0.0, 0.0, 0.0, 1.0};
-    }
-
-    /**
-     * @brief 取实部（对偶部清零）
-     * @return 纯实四元数
-     */
-    DualQuat real() const {
-        return {x.re, y.re, z.re, w.re};
-    }
-
-    /**
-     * @brief 取对偶部（作为纯实四元数返回）
-     * @return 由各分量对偶部组成的纯实四元数
-     */
-    DualQuat dual() const {
-        return {x.du, y.du, z.du, w.du};
-    }
-
-    /**
-     * @brief 取共轭
-     * @return 向量部分取反的结果
-     */
-    DualQuat conj() const {
-        return {-x, -y, -z, w};
-    }
-
-    /**
-     * @brief 取向量部分（标量分量 w 清零）
-     * @return w 为零的四元数
-     */
-    DualQuat vec() const {
-        return {x, y, z, 0.0};
-    }
-
-    /**
-     * @brief 取实部四元数的模长
-     * @return 旋转部分的模，单位旋转时为 1
-     */
-    double length() const {
-        return std::sqrt(x.re * x.re + y.re * y.re + z.re * z.re + w.re * w.re);
-    }
-
-    /**
-     * @brief 取所表示旋转的转角
-     * @return 转角，单位弧度，取值范围 [0, 2π)
-     */
-    double theta() const {
-        return 2.0 * std::atan2(vec().length(), w.re);
-    }
-
-    /**
-     * @brief 取两个对偶四元数实部的点积
-     * @details 用于判断两者的旋转方向是否相反，从而决定插值前是否取反一个操作数。
+     * @brief 对偶四元数相加
      * @param left 左操作数
      * @param right 右操作数
-     * @return 实部四元数的点积
+     * @return 逐分量之和
      */
-    static double dot(DualQuat left, DualQuat right);
+    DualQuat operator+(const DualQuat &left, const DualQuat &right);
 
     /**
-     * @brief 螺旋插值（ScLERP）
-     * @details t=0 返回恒等位姿、t=1 返回自身，t 可超出 [0, 1] 做外插；本身无旋转时退化为
-     *          平移的线性插值。shorten 为真且旋转角超过 180° 时取短弧。
-     * @param t 插值参数
-     * @param shorten 是否取短弧，默认取
-     * @return 插值结果
+     * @brief 对偶四元数相减
+     * @param left 左操作数
+     * @param right 右操作数
+     * @return 逐分量之差
      */
-    DualQuat pow(double t, bool shorten = true) const;
+    DualQuat operator-(const DualQuat &left, const DualQuat &right);
 
     /**
-     * @brief 取相反数
-     * @return 各分量的实部与对偶部都取反的结果
+     * @brief 对偶四元数相乘
+     * @param left 左操作数
+     * @param right 右操作数
+     * @return 乘积，对应两次位姿变换的复合
      */
-    DualQuat operator-() const {
-        return {-x, -y, -z, -w};
-    }
-};
+    DualQuat operator*(const DualQuat &left, const DualQuat &right);
 
-/**
- * @brief 对偶四元数相加
- * @param left 左操作数
- * @param right 右操作数
- * @return 逐分量之和
- */
-DualQuat operator+(DualQuat left, DualQuat right);
+    /**
+     * @brief 对偶四元数乘实数
+     * @param left 被缩放的对偶四元数
+     * @param right 缩放因子
+     * @return 逐分量缩放的结果
+     */
+    DualQuat operator*(const DualQuat &left, double right);
 
-/**
- * @brief 对偶四元数相减
- * @param left 左操作数
- * @param right 右操作数
- * @return 逐分量之差
- */
-DualQuat operator-(DualQuat left, DualQuat right);
+    /**
+     * @brief 实数乘对偶四元数
+     * @param left 缩放因子
+     * @param right 被缩放的对偶四元数
+     * @return 逐分量缩放的结果
+     */
+    DualQuat operator*(double left, const DualQuat &right);
 
-/**
- * @brief 对偶四元数相乘
- * @param left 左操作数
- * @param right 右操作数
- * @return 乘积，对应两次位姿变换的复合
- */
-DualQuat operator*(DualQuat left, DualQuat right);
+    /**
+     * @brief 对偶四元数乘对偶数
+     * @param left 被缩放的对偶四元数
+     * @param right 对偶数缩放因子
+     * @return 逐分量缩放的结果
+     */
+    DualQuat operator*(const DualQuat &left, DualNumber right);
 
-/**
- * @brief 对偶四元数乘实数
- * @param left 被缩放的对偶四元数
- * @param right 缩放因子
- * @return 逐分量缩放的结果
- */
-DualQuat operator*(DualQuat left, double right);
-
-/**
- * @brief 实数乘对偶四元数
- * @param left 缩放因子
- * @param right 被缩放的对偶四元数
- * @return 逐分量缩放的结果
- */
-DualQuat operator*(double left, DualQuat right);
-
-/**
- * @brief 对偶四元数乘对偶数
- * @param left 被缩放的对偶四元数
- * @param right 对偶数缩放因子
- * @return 逐分量缩放的结果
- */
-DualQuat operator*(DualQuat left, DualNumber right);
-
-/**
- * @brief 对偶数乘对偶四元数
- * @param left 对偶数缩放因子
- * @param right 被缩放的对偶四元数
- * @return 逐分量缩放的结果
- */
-DualQuat operator*(DualNumber left, DualQuat right);
-}  // namespace ExpressionEngine::Base
+    /**
+     * @brief 对偶数乘对偶四元数
+     * @param left 对偶数缩放因子
+     * @param right 被缩放的对偶四元数
+     * @return 逐分量缩放的结果
+     */
+    DualQuat operator*(DualNumber left, const DualQuat &right);
+} // namespace ExpressionEngine::Base

@@ -16,19 +16,21 @@ using ExpressionEngine::Base::ValueError;
 using ExpressionEngine::Base::Vector3d;
 using ExpressionEngine::Base::Vector3f;
 
-namespace {
+namespace
+{
 
-/// 判定用的通用容差，单位与四元数分量一致
-constexpr double Tolerance = 1e-12;
+    /// 判定用的通用容差，单位与四元数分量一致
+    constexpr double Tolerance = 1e-12;
 
-}  // namespace
+} // namespace
 
 /**
  * @brief 钉住：默认构造就是单位旋转（四元数 0,0,0,1），且不会改变任何向量
  */
-TEST(RotationTest, DefaultConstructorIsIdentity) {
+TEST(RotationTest, DefaultConstructorIsIdentity)
+{
     const Rotation rotation;
-    const double* values = rotation.getValue();
+    const double  *values = rotation.getValue();
     EXPECT_DOUBLE_EQ(values[0], 0.0);
     EXPECT_DOUBLE_EQ(values[1], 0.0);
     EXPECT_DOUBLE_EQ(values[2], 0.0);
@@ -43,22 +45,22 @@ TEST(RotationTest, DefaultConstructorIsIdentity) {
 /**
  * @brief 钉住：轴角构造出的四元数符合半角公式，且四元数与轴角能双向取回
  */
-TEST(RotationTest, AxisAngleAndQuaternionRoundTrip) {
-    const double quarterTurn = std::numbers::pi / 2.0;
+TEST(RotationTest, AxisAngleAndQuaternionRoundTrip)
+{
+    const double   quarterTurn = std::numbers::pi / 2.0;
     const Rotation rotation(Vector3d(0.0, 0.0, 1.0), quarterTurn);
 
-    const double* values = rotation.getValue();
+    const double *values = rotation.getValue();
     EXPECT_NEAR(values[0], 0.0, Tolerance);
     EXPECT_NEAR(values[1], 0.0, Tolerance);
     EXPECT_NEAR(values[2], std::sin(quarterTurn / 2.0), Tolerance);
     EXPECT_NEAR(values[3], std::cos(quarterTurn / 2.0), Tolerance);
 
     // 绕 Z 轴转 90°：X 轴应落到 Y 轴上
-    EXPECT_TRUE(
-        rotation.multVec(Vector3d(1.0, 0.0, 0.0)).IsEqual(Vector3d(0.0, 1.0, 0.0), Tolerance));
+    EXPECT_TRUE(rotation.multVec(Vector3d(1.0, 0.0, 0.0)).IsEqual(Vector3d(0.0, 1.0, 0.0), Tolerance));
 
     Vector3d axis;
-    double angle = 0.0;
+    double   angle = 0.0;
     rotation.getValue(axis, angle);
     EXPECT_TRUE(axis.IsEqual(Vector3d(0.0, 0.0, 1.0), Tolerance));
     EXPECT_DOUBLE_EQ(angle, quarterTurn);
@@ -78,14 +80,14 @@ TEST(RotationTest, AxisAngleAndQuaternionRoundTrip) {
 /**
  * @brief 钉住：构造时对非单位四元数做归一化，缩放因子不影响所表示的旋转
  */
-TEST(RotationTest, NonUnitQuaternionIsNormalized) {
+TEST(RotationTest, NonUnitQuaternionIsNormalized)
+{
     // (0, 0, 2, 0) 是绕 Z 轴 180° 的四元数放大两倍
     const Rotation scaled(0.0, 0.0, 2.0, 0.0);
     EXPECT_FALSE(scaled.isNull());
-    EXPECT_TRUE(
-        scaled.multVec(Vector3d(1.0, 0.0, 0.0)).IsEqual(Vector3d(-1.0, 0.0, 0.0), Tolerance));
+    EXPECT_TRUE(scaled.multVec(Vector3d(1.0, 0.0, 0.0)).IsEqual(Vector3d(-1.0, 0.0, 0.0), Tolerance));
 
-    const double* values = scaled.getValue();
+    const double *values = scaled.getValue();
     EXPECT_NEAR(values[2], 1.0, Tolerance);
     EXPECT_NEAR(values[3], 0.0, Tolerance);
 }
@@ -94,18 +96,20 @@ TEST(RotationTest, NonUnitQuaternionIsNormalized) {
  * @brief 钉住：零四元数可构造、可检出（isNull），但其轴角退化且不产生 NaN；
  *        它是调用方必须自己检查的拒绝面，不是内部会替你修正的错误
  */
-TEST(RotationTest, NullQuaternionIsDetectableButHasNoUsableAxis) {
+TEST(RotationTest, NullQuaternionIsDetectableButHasNoUsableAxis)
+{
     const Rotation nullRotation(0.0, 0.0, 0.0, 0.0);
     EXPECT_TRUE(nullRotation.isNull());
     EXPECT_FALSE(nullRotation.isIdentity());
 
-    const double* values = nullRotation.getValue();
-    for (int index = 0; index < 4; ++index) {
+    const double *values = nullRotation.getValue();
+    for (int index = 0; index < 4; ++index)
+    {
         EXPECT_DOUBLE_EQ(values[index], 0.0) << "第 " << index << " 个分量被非预期地改写";
     }
 
     Vector3d axis;
-    double angle = 0.0;
+    double   angle = 0.0;
     nullRotation.getValue(axis, angle);
     // 零轴表示没有可信方向，绝不能伪造出一个轴向
     EXPECT_DOUBLE_EQ(axis.Length(), 0.0);
@@ -117,14 +121,15 @@ TEST(RotationTest, NullQuaternionIsDetectableButHasNoUsableAxis) {
  * @brief 钉住：复合是四元数右乘（右操作数先施加），两次 90° 复合等于 180°，
  *        且 multLeft 与 multRight 的作用顺序相反
  */
-TEST(RotationTest, CompositionFollowsQuaternionMultiplication) {
-    const double quarterTurn = std::numbers::pi / 2.0;
+TEST(RotationTest, CompositionFollowsQuaternionMultiplication)
+{
+    const double   quarterTurn = std::numbers::pi / 2.0;
     const Rotation rotZ90(Vector3d(0.0, 0.0, 1.0), quarterTurn);
     const Rotation rotX90(Vector3d(1.0, 0.0, 0.0), quarterTurn);
     const Vector3d point(1.0, 0.0, 0.0);
 
     // composed == rotZ90 ∘ rotX90：先 X 后 Z
-    const Rotation composed = rotZ90 * rotX90;
+    const Rotation composed   = rotZ90 * rotX90;
     const Vector3d sequential = rotZ90.multVec(rotX90.multVec(point));
     EXPECT_TRUE(composed.multVec(point).IsEqual(sequential, Tolerance));
 
@@ -143,7 +148,8 @@ TEST(RotationTest, CompositionFollowsQuaternionMultiplication) {
 /**
  * @brief 钉住：invert() 与 inverse() 都还原出逆旋转，与自身复合得到单位旋转
  */
-TEST(RotationTest, InverseUndoesRotation) {
+TEST(RotationTest, InverseUndoesRotation)
+{
     const Rotation rotation(Vector3d(1.0, 2.0, 3.0), 0.7);
     EXPECT_TRUE((rotation * rotation.inverse()).isIdentity(Tolerance));
 
@@ -160,14 +166,14 @@ TEST(RotationTest, InverseUndoesRotation) {
 /**
  * @brief 钉住：slerp 端点即端点旋转、中点是半角旋转，t 越界被钳制到端点
  */
-TEST(RotationTest, SlerpHitsEndpointsAndClampsParameter) {
+TEST(RotationTest, SlerpHitsEndpointsAndClampsParameter)
+{
     const Rotation start = Rotation::identity();
     const Rotation end(Vector3d(0.0, 0.0, 1.0), std::numbers::pi / 2.0);
 
     EXPECT_TRUE(Rotation::slerp(start, end, 0.0).isSame(start, Tolerance));
     EXPECT_TRUE(Rotation::slerp(start, end, 1.0).isSame(end, Tolerance));
-    EXPECT_TRUE(Rotation::slerp(start, end, 0.5)
-                    .isSame(Rotation(Vector3d(0.0, 0.0, 1.0), std::numbers::pi / 4.0), 1e-9));
+    EXPECT_TRUE(Rotation::slerp(start, end, 0.5).isSame(Rotation(Vector3d(0.0, 0.0, 1.0), std::numbers::pi / 4.0), 1e-9));
     EXPECT_TRUE(Rotation::slerp(start, end, -1.0).isSame(start, Tolerance));
     EXPECT_TRUE(Rotation::slerp(start, end, 2.0).isSame(end, Tolerance));
 }
@@ -176,12 +182,13 @@ TEST(RotationTest, SlerpHitsEndpointsAndClampsParameter) {
  * @brief 钉住：setEulerAngles / getEulerAngles 在同一序列下按角度制往返一致，
  *        偏航-俯仰-滚转同样往返一致
  */
-TEST(RotationTest, EulerAnglesAndYawPitchRollRoundTripInDegrees) {
+TEST(RotationTest, EulerAnglesAndYawPitchRollRoundTripInDegrees)
+{
     Rotation rotation;
     rotation.setEulerAngles(Rotation::Intrinsic_ZXY, 30.0, 40.0, 50.0);
 
     double alpha = 0.0;
-    double beta = 0.0;
+    double beta  = 0.0;
     double gamma = 0.0;
     rotation.getEulerAngles(Rotation::Intrinsic_ZXY, alpha, beta, gamma);
     EXPECT_NEAR(alpha, 30.0, 1e-9) << "第一转角应往返一致";
@@ -189,8 +196,7 @@ TEST(RotationTest, EulerAnglesAndYawPitchRollRoundTripInDegrees) {
     EXPECT_NEAR(gamma, 50.0, 1e-9) << "第三转角应往返一致";
 
     // 静态工厂与成员函数等价
-    const Rotation fromFactory =
-        Rotation::fromEulerAngles(Rotation::Intrinsic_ZXY, 30.0, 40.0, 50.0);
+    const Rotation fromFactory = Rotation::fromEulerAngles(Rotation::Intrinsic_ZXY, 30.0, 40.0, 50.0);
     EXPECT_TRUE(fromFactory.isSame(rotation, 1e-9));
 
     rotation.setYawPitchRoll(10.0, 20.0, 30.0);
@@ -207,18 +213,17 @@ TEST(RotationTest, EulerAnglesAndYawPitchRollRoundTripInDegrees) {
  * @brief 钉住：非法欧拉序列（Invalid 与哨兵值）在设置与读取两侧都被 ValueError 拒绝，
  *        而不是悄悄按某种序列解释
  */
-TEST(RotationTest, EulerAnglesRejectInvalidSequence) {
+TEST(RotationTest, EulerAnglesRejectInvalidSequence)
+{
     Rotation rotation;
-    double alpha = 0.0;
-    double beta = 0.0;
-    double gamma = 0.0;
+    double   alpha = 0.0;
+    double   beta  = 0.0;
+    double   gamma = 0.0;
 
     EXPECT_THROW(rotation.setEulerAngles(Rotation::Invalid, 10.0, 20.0, 30.0), ValueError);
-    EXPECT_THROW(rotation.setEulerAngles(Rotation::EulerSequenceLast, 10.0, 20.0, 30.0),
-                 ValueError);
+    EXPECT_THROW(rotation.setEulerAngles(Rotation::EulerSequenceLast, 10.0, 20.0, 30.0), ValueError);
     EXPECT_THROW(rotation.getEulerAngles(Rotation::Invalid, alpha, beta, gamma), ValueError);
-    EXPECT_THROW(rotation.getEulerAngles(Rotation::EulerSequenceLast, alpha, beta, gamma),
-                 ValueError);
+    EXPECT_THROW(rotation.getEulerAngles(Rotation::EulerSequenceLast, alpha, beta, gamma), ValueError);
 
     // 合法序列不受影响
     EXPECT_NO_THROW(rotation.setEulerAngles(Rotation::Intrinsic_ZXY, 10.0, 20.0, 30.0));
@@ -227,7 +232,8 @@ TEST(RotationTest, EulerAnglesRejectInvalidSequence) {
 /**
  * @brief 钉住：序列名与序列编号双向映射，名字匹配大小写不敏感，非法名字返回 nullptr/Invalid
  */
-TEST(RotationTest, EulerSequenceNameMappingIsCaseInsensitive) {
+TEST(RotationTest, EulerSequenceNameMappingIsCaseInsensitive)
+{
     EXPECT_STREQ(Rotation::eulerSequenceName(Rotation::EulerAngles), "Euler");
     EXPECT_STREQ(Rotation::eulerSequenceName(Rotation::Intrinsic_ZXY), "IZXY");
     EXPECT_EQ(Rotation::eulerSequenceName(Rotation::Invalid), nullptr);
@@ -242,38 +248,28 @@ TEST(RotationTest, EulerSequenceNameMappingIsCaseInsensitive) {
 /**
  * @brief 钉住：makeRotationByAxes 把局部轴映射到给定方向，并对优先级串与全零方向抛 ValueError
  */
-TEST(RotationTest, MakeRotationByAxesMapsLocalAxesAndRejectsBadInput) {
+TEST(RotationTest, MakeRotationByAxesMapsLocalAxesAndRejectsBadInput)
+{
     // 正交单位方向按默认优先级 "ZXY" 构造出单位旋转
-    EXPECT_TRUE(Rotation::makeRotationByAxes(
-                    Vector3d(1.0, 0.0, 0.0), Vector3d(0.0, 1.0, 0.0), Vector3d(0.0, 0.0, 1.0))
-                    .isIdentity(1e-12));
+    EXPECT_TRUE(Rotation::makeRotationByAxes(Vector3d(1.0, 0.0, 0.0), Vector3d(0.0, 1.0, 0.0), Vector3d(0.0, 0.0, 1.0)).isIdentity(1e-12));
 
     // 只给出 zdir（优先级最高的 Z）时，局部 Z 轴应对准它
-    const Rotation aligned =
-        Rotation::makeRotationByAxes(Vector3d(), Vector3d(), Vector3d(1.0, 0.0, 0.0));
+    const Rotation aligned = Rotation::makeRotationByAxes(Vector3d(), Vector3d(), Vector3d(1.0, 0.0, 0.0));
     EXPECT_TRUE(aligned.multVec(Vector3d(0.0, 0.0, 1.0)).IsEqual(Vector3d(1.0, 0.0, 0.0), 1e-12));
 
     // 拒绝面：长度不为 3、含小写、轴重复、三方向全零
-    EXPECT_THROW(
-        Rotation::makeRotationByAxes(Vector3d(1.0, 0.0, 0.0), Vector3d(), Vector3d(), "ZX"),
-        ValueError);
-    EXPECT_THROW(
-        Rotation::makeRotationByAxes(Vector3d(1.0, 0.0, 0.0), Vector3d(), Vector3d(), "zxy"),
-        ValueError);
-    EXPECT_THROW(
-        Rotation::makeRotationByAxes(Vector3d(1.0, 0.0, 0.0), Vector3d(), Vector3d(), "XXY"),
-        ValueError);
-    EXPECT_THROW(Rotation::makeRotationByAxes(Vector3d(), Vector3d(), Vector3d(), "ZXY"),
-                 ValueError);
-    EXPECT_THROW(
-        Rotation::makeRotationByAxes(Vector3d(1.0, 0.0, 0.0), Vector3d(), Vector3d(), nullptr),
-        ValueError);
+    EXPECT_THROW(Rotation::makeRotationByAxes(Vector3d(1.0, 0.0, 0.0), Vector3d(), Vector3d(), "ZX"), ValueError);
+    EXPECT_THROW(Rotation::makeRotationByAxes(Vector3d(1.0, 0.0, 0.0), Vector3d(), Vector3d(), "zxy"), ValueError);
+    EXPECT_THROW(Rotation::makeRotationByAxes(Vector3d(1.0, 0.0, 0.0), Vector3d(), Vector3d(), "XXY"), ValueError);
+    EXPECT_THROW(Rotation::makeRotationByAxes(Vector3d(), Vector3d(), Vector3d(), "ZXY"), ValueError);
+    EXPECT_THROW(Rotation::makeRotationByAxes(Vector3d(1.0, 0.0, 0.0), Vector3d(), Vector3d(), nullptr), ValueError);
 }
 
 /**
  * @brief 钉住：由起点方向与终点方向构造的最短旋转，含同向与反向两个退化分支
  */
-TEST(RotationTest, RotateFromToHandlesParallelAndAntiparallelVectors) {
+TEST(RotationTest, RotateFromToHandlesParallelAndAntiparallelVectors)
+{
     // 同向：单位旋转
     EXPECT_TRUE(Rotation(Vector3d(0.0, 0.0, 1.0), Vector3d(0.0, 0.0, 2.0)).isIdentity(Tolerance));
 
@@ -289,9 +285,10 @@ TEST(RotationTest, RotateFromToHandlesParallelAndAntiparallelVectors) {
 /**
  * @brief 钉住：四元数展开的旋转矩阵与多向量变换一致，矩阵构造能往返取回原旋转
  */
-TEST(RotationTest, MatrixRoundTripKeepsRotation) {
+TEST(RotationTest, MatrixRoundTripKeepsRotation)
+{
     const Rotation original(Vector3d(1.0, 2.0, 3.0), 0.7);
-    Matrix4D matrix;
+    Matrix4D       matrix;
     original.getValue(matrix);
 
     const Rotation fromMatrix(matrix);
@@ -305,11 +302,12 @@ TEST(RotationTest, MatrixRoundTripKeepsRotation) {
 /**
  * @brief 钉住：单精度变换与双精度变换在单精度容差内一致（multVec 的 float 重载）
  */
-TEST(RotationTest, FloatVectorOverloadMatchesDoublePath) {
+TEST(RotationTest, FloatVectorOverloadMatchesDoublePath)
+{
     const Rotation rotation(Vector3d(0.0, 1.0, 0.0), 0.6);
     const Vector3f source(1.0F, 2.0F, 3.0F);
 
-    const Vector3f floatResult = rotation.multVec(source);
+    const Vector3f floatResult  = rotation.multVec(source);
     const Vector3d doubleResult = rotation.multVec(Vector3d(1.0, 2.0, 3.0));
 
     EXPECT_NEAR(floatResult.x, doubleResult.x, 1e-5);

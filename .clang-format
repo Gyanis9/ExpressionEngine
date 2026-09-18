@@ -1,38 +1,61 @@
-# 本库的排版基线：花括号同行、命名空间内容不缩进、&/* 贴类型名，
-# 与 cpp-coding-standards 的示例一致；改动此文件需要一次性重排全仓源码。
-BasedOnStyle: LLVM
+---
 Language: Cpp
-Standard: c++23
-
-IndentWidth: 4
-TabWidth: 4
-UseTab: Never
-ColumnLimit: 100
+BasedOnStyle: LLVM
 AccessModifierOffset: -4
-ConstructorInitializerIndentWidth: 4
-ContinuationIndentWidth: 4
-
-BreakBeforeBraces: Attach
-NamespaceIndentation: None
-FixNamespaceComments: true
-
-PointerAlignment: Left
-ReferenceAlignment: Pointer
-DerivePointerAlignment: false
-
+AlignConsecutiveAssignments: true
+AlignConsecutiveDeclarations: true
+AlignOperands: true
+AlignTrailingComments: true
+AllowShortBlocksOnASingleLine: false
 AllowShortFunctionsOnASingleLine: None
-AllowShortBlocksOnASingleLine: Never
-AllowShortIfStatementsOnASingleLine: Never
-AllowShortLoopsOnASingleLine: false
-AllowShortEnumsOnASingleLine: false
-
-AlignAfterOpenBracket: Align
-BinPackArguments: false
-BinPackParameters: false
-BreakBeforeBinaryOperators: None
-
-# 头文件分组与顺序由人工维护（标准库在前、本库在后），格式化器不得重排
-SortIncludes: Never
-IncludeBlocks: Preserve
-SpacesBeforeTrailingComments: 2
-QualifierAlignment: Leave
+AllowShortIfStatementsOnASingleLine: false
+AlwaysBreakTemplateDeclarations: Yes
+BraceWrapping: 
+  AfterCaseLabel: true
+  AfterClass: true
+  AfterControlStatement: true
+  AfterEnum: true
+  AfterFunction: true
+  AfterNamespace: true
+  AfterStruct: true
+  AfterUnion: true
+  AfterExternBlock: true
+  BeforeCatch: false
+  BeforeElse: false
+  BeforeLambdaBody: true
+  BeforeWhile: false
+  IndentBraces: false
+  SplitEmptyFunction: true
+  SplitEmptyRecord: true
+  SplitEmptyNamespace: true
+BreakBeforeBraces: Custom
+BreakConstructorInitializers: AfterColon
+BreakConstructorInitializersBeforeComma: false
+ColumnLimit: 180
+ConstructorInitializerAllOnOneLineOrOnePerLine: false
+ContinuationIndentWidth: 8
+IncludeCategories: 
+  - Regex: '^<.*'
+    Priority: 1
+  - Regex: '^".*'
+    Priority: 2
+  - Regex: '.*'
+    Priority: 3
+IncludeIsMainRegex: '([-_](test|unittest))?$'
+IndentCaseLabels: true
+IndentWidth: 4
+InsertNewlineAtEOF: true
+MacroBlockBegin: ''
+MacroBlockEnd: ''
+MaxEmptyLinesToKeep: 2
+NamespaceIndentation: All
+SpaceAfterCStyleCast: true
+SpaceAfterTemplateKeyword: false
+SpaceBeforeRangeBasedForLoopColon: false
+SpaceInEmptyParentheses: false
+SpacesInAngles: false
+SpacesInConditionalStatement: false
+SpacesInCStyleCastParentheses: false
+SpacesInParentheses: false
+TabWidth: 4
+...

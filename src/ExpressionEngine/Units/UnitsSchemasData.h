@@ -28,11 +28,12 @@
  * UnitSchemas raw data
  */
 
-namespace ExpressionEngine::Units::UnitsSchemasData {
-constexpr std::size_t defDecimals{2};
-constexpr std::size_t defDenominator{8};
+namespace ExpressionEngine::Units::UnitsSchemasData
+{
+    constexpr std::size_t defDecimals{2};
+    constexpr std::size_t defDenominator{8};
 
-using namespace UnitsConvData;
+    using namespace UnitsConvData;
 
 // NOLINTBEGIN
 // clang-format off
@@ -679,110 +680,118 @@ inline const UnitsSchemaSpec s9
     }
 };
 
-// clang-format on
-// NOLINTEND
-inline const std::vector schemaSpecs{s3, s4, s5, s6, s7, s8, s9, s0, s1, s2};
+    // clang-format on
+    // NOLINTEND
+    inline const std::vector schemaSpecs{s3, s4, s5, s6, s7, s8, s9, s0, s1, s2};
 
-/**
- * 特殊换算函数
- *
- * 方案的某个单位条目可以指定「换算因子为 0 + unitString 为函数名」，
- * 由下面的函数接管格式化；新增函数需同时登记进 specials 表。
- */
+    /**
+     * 特殊换算函数
+     *
+     * 方案的某个单位条目可以指定「换算因子为 0 + unitString 为函数名」，
+     * 由下面的函数接管格式化；新增函数需同时登记进 specials 表。
+     */
 
-/// 求最大公约数，欧几里得算法
-inline std::size_t greatestCommonDenominator(const std::size_t first, const std::size_t second) {
-    return second == 0 ? first : greatestCommonDenominator(second, first % second);
-}
-
-/**
- * @brief 把毫米值写成「英尺' 英寸" 分数"」的形式
- * @param value 以毫米为单位的数值，可为负
- * @param denominator 分数的分母，如 8 表示精确到 1/8 英寸
- * @return 如 3' 4" + 3/8" 的文本
- */
-inline std::string toFractional(const double value, std::size_t denominator) {
-    constexpr auto inchPerFoot{12};
-    constexpr auto millimetrePerInch{25.4};
-
-    // 先把毫米值换算成分数单位的整数个数，避免后续逐级取整时累积误差
-    auto fractionalUnitCount = static_cast<std::size_t>(
-        std::round(std::abs(value) / millimetrePerInch * static_cast<double>(denominator)));
-    if (fractionalUnitCount == 0) {
-        return "0";
+    /// 求最大公约数，欧几里得算法
+    inline std::size_t greatestCommonDenominator(const std::size_t first, const std::size_t second)
+    {
+        return second == 0 ? first : greatestCommonDenominator(second, first % second);
     }
 
-    const auto feet =
-        static_cast<std::size_t>(std::floor(static_cast<double>(fractionalUnitCount) /
-                                            (inchPerFoot * static_cast<double>(denominator))));
-    fractionalUnitCount -= inchPerFoot * denominator * feet;
+    /**
+     * @brief 把毫米值写成「英尺' 英寸" 分数"」的形式
+     * @param value 以毫米为单位的数值，可为负
+     * @param denominator 分数的分母，如 8 表示精确到 1/8 英寸
+     * @return 如 3' 4" + 3/8" 的文本
+     */
+    inline std::string toFractional(const double value, std::size_t denominator)
+    {
+        constexpr auto inchPerFoot{12};
+        constexpr auto millimetrePerInch{25.4};
 
-    const auto inches = static_cast<std::size_t>(
-        std::floor(static_cast<double>(fractionalUnitCount) / static_cast<double>(denominator)));
-    std::size_t numerator = fractionalUnitCount - (denominator * inches);
+        // 先把毫米值换算成分数单位的整数个数，避免后续逐级取整时累积误差
+        auto fractionalUnitCount = static_cast<std::size_t>(std::round(std::abs(value) / millimetrePerInch * static_cast<double>(denominator)));
+        if (fractionalUnitCount == 0)
+        {
+            return "0";
+        }
 
-    // 分数要约到最简，否则 4/8" 这类写法会让显示结果不可读
-    const std::size_t commonDenominator = greatestCommonDenominator(numerator, denominator);
-    numerator /= commonDenominator;
-    denominator /= commonDenominator;
+        const auto feet = static_cast<std::size_t>(std::floor(static_cast<double>(fractionalUnitCount) / (inchPerFoot * static_cast<double>(denominator))));
+        fractionalUnitCount -= inchPerFoot * denominator * feet;
 
-    bool addSpace{false};
-    std::string result;
+        const auto  inches    = static_cast<std::size_t>(std::floor(static_cast<double>(fractionalUnitCount) / static_cast<double>(denominator)));
+        std::size_t numerator = fractionalUnitCount - (denominator * inches);
 
-    if (value < 0) {
-        result += "-";
-    }
+        // 分数要约到最简，否则 4/8" 这类写法会让显示结果不可读
+        const std::size_t commonDenominator = greatestCommonDenominator(numerator, denominator);
+        numerator /= commonDenominator;
+        denominator /= commonDenominator;
 
-    if (feet > 0) {
-        result += std::format("{}'", feet);
-        addSpace = true;
-    }
+        bool        addSpace{false};
+        std::string result;
 
-    if (inches > 0) {
-        result += std::format("{}{}\"", addSpace ? " " : "", inches);
-        addSpace = false;
-    }
+        if (value < 0)
+        {
+            result += "-";
+        }
 
-    if (numerator > 0) {
-        // 英寸与分数之间补一个加减号，明确它是叠加在英寸上的余量
-        if (inches > 0) {
-            result += std::format(" {} ", value < 0 ? "-" : "+");
+        if (feet > 0)
+        {
+            result += std::format("{}'", feet);
+            addSpace = true;
+        }
+
+        if (inches > 0)
+        {
+            result += std::format("{}{}\"", addSpace ? " " : "", inches);
             addSpace = false;
         }
-        result += std::format("{}{}/{}\"", addSpace ? " " : "", numerator, denominator);
-    }
 
-    return result;
-}
-
-/**
- * @brief 把十进制度数写成「度°分′秒″」的形式
- * @param value 十进制度数
- * @return 如 12°30′45″ 的文本，分秒为零时省略对应部分
- */
-inline std::string toDms(const double value) {
-    constexpr auto degreeMinuteSecondRatio{60.0};
-
-    // 逐级取整：度取整后余量乘 60 得分，分取整后余量乘 60 得秒
-    const auto splitWholeAndRemainder = [](const double total) -> std::pair<int, double> {
-        const double whole = std::floor(total);
-        return {static_cast<int>(whole), degreeMinuteSecondRatio * (total - whole)};
-    };
-
-    const auto [degrees, totalMinutes] = splitWholeAndRemainder(value);
-    std::string out = std::format("{}°", degrees);
-
-    if (totalMinutes > 0) {
-        const auto [minutes, totalSeconds] = splitWholeAndRemainder(totalMinutes);
-        out += std::format("{}′", minutes);
-
-        if (totalSeconds > 0) {
-            out += std::format("{}″", std::lround(totalSeconds));
+        if (numerator > 0)
+        {
+            // 英寸与分数之间补一个加减号，明确它是叠加在英寸上的余量
+            if (inches > 0)
+            {
+                result += std::format(" {} ", value < 0 ? "-" : "+");
+                addSpace = false;
+            }
+            result += std::format("{}{}/{}\"", addSpace ? " " : "", numerator, denominator);
         }
+
+        return result;
     }
 
-    return out;
-}
+    /**
+     * @brief 把十进制度数写成「度°分′秒″」的形式
+     * @param value 十进制度数
+     * @return 如 12°30′45″ 的文本，分秒为零时省略对应部分
+     */
+    inline std::string toDms(const double value)
+    {
+        constexpr auto degreeMinuteSecondRatio{60.0};
+
+        // 逐级取整：度取整后余量乘 60 得分，分取整后余量乘 60 得秒
+        const auto splitWholeAndRemainder = [](const double total) -> std::pair<int, double>
+        {
+            const double whole = std::floor(total);
+            return {static_cast<int>(whole), degreeMinuteSecondRatio * (total - whole)};
+        };
+
+        const auto [degrees, totalMinutes] = splitWholeAndRemainder(value);
+        std::string out                    = std::format("{}°", degrees);
+
+        if (totalMinutes > 0)
+        {
+            const auto [minutes, totalSeconds] = splitWholeAndRemainder(totalMinutes);
+            out += std::format("{}′", minutes);
+
+            if (totalSeconds > 0)
+            {
+                out += std::format("{}″", std::lround(totalSeconds));
+            }
+        }
+
+        return out;
+    }
 
 /// 特殊换算函数的登记表：函数名 → 实现
 // clang-format off
@@ -802,29 +811,23 @@ inline const std::map<std::string, std::function<std::string(double, std::size_t
             return toFractional(value, denominator);
         }}
     }
-};  // clang-format on
+}; // clang-format on
 
-/**
- * @brief 按名字调用特殊换算函数
- * @param name 函数名，来自方案条目的 unitString
- * @param value 以基准单位表示的数值
- * @param precision 保留的小数位数
- * @param denominator 分数分母
- * @param factor 输出参数，写回换算因子
- * @param unitString 输出参数，写回单位串
- * @return 格式化文本；名字未登记时返回空串，由调用方决定如何降级
- */
-inline std::string runSpecial(const std::string& name,
-                              const double value,
-                              const std::size_t precision,
-                              const std::size_t denominator,
-                              double& factor,
-                              std::string& unitString) {
-    return specials.contains(name)
-               ? specials.at(name)(value, precision, denominator, factor, unitString)
-               : "";
-}
+    /**
+     * @brief 按名字调用特殊换算函数
+     * @param name 函数名，来自方案条目的 unitString
+     * @param value 以基准单位表示的数值
+     * @param precision 保留的小数位数
+     * @param denominator 分数分母
+     * @param factor 输出参数，写回换算因子
+     * @param unitString 输出参数，写回单位串
+     * @return 格式化文本；名字未登记时返回空串，由调用方决定如何降级
+     */
+    inline std::string runSpecial(const std::string &name, const double value, const std::size_t precision, const std::size_t denominator, double &factor, std::string &unitString)
+    {
+        return specials.contains(name) ? specials.at(name)(value, precision, denominator, factor, unitString) : "";
+    }
 
-/// 内置方案数据包：全部方案、默认小数位数与默认分数分母
-inline const UnitsSchemasDataPack unitSchemasDataPack{schemaSpecs, defDecimals, defDenominator};
-}  // namespace ExpressionEngine::Units::UnitsSchemasData
+    /// 内置方案数据包：全部方案、默认小数位数与默认分数分母
+    inline const UnitsSchemasDataPack unitSchemasDataPack{schemaSpecs, defDecimals, defDenominator};
+} // namespace ExpressionEngine::Units::UnitsSchemasData

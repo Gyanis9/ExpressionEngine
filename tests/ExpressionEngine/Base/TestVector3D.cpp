@@ -5,19 +5,21 @@
 #include <ExpressionEngine/Base/Exception.h>
 #include <ExpressionEngine/Base/Vector3D.h>
 
-namespace {
+namespace
+{
 
-using ExpressionEngine::Base::Distance;
-using ExpressionEngine::Base::IndexError;
-using ExpressionEngine::Base::ValueError;
-using ExpressionEngine::Base::Vector3d;
+    using ExpressionEngine::Base::Distance;
+    using ExpressionEngine::Base::IndexError;
+    using ExpressionEngine::Base::ValueError;
+    using ExpressionEngine::Base::Vector3d;
 
-}  // namespace
+} // namespace
 
 /**
  * @brief 钉住默认构造、带值构造、容差相等比较与分量下标越界拒绝面
  */
-TEST(Vector3D, ConstructionAndEquality) {
+TEST(Vector3D, ConstructionAndEquality)
+{
     const Vector3d origin;
     EXPECT_DOUBLE_EQ(origin.x, 0.0);
     EXPECT_DOUBLE_EQ(origin.y, 0.0);
@@ -36,7 +38,7 @@ TEST(Vector3D, ConstructionAndEquality) {
     EXPECT_TRUE(Vector3d::UnitZ == Vector3d(0.0, 0.0, 1.0));
 
     // 越界下标必须显式报错，而不是静默返回首分量
-    EXPECT_THROW((void)point[3], IndexError);
+    EXPECT_THROW((void) point[3], IndexError);
 
     EXPECT_DOUBLE_EQ(Distance(Vector3d(0.0, 0.0, 0.0), Vector3d(3.0, 4.0, 0.0)), 5.0);
 }
@@ -44,7 +46,8 @@ TEST(Vector3D, ConstructionAndEquality) {
 /**
  * @brief 钉住加减、标量乘除、点积与叉积的数值结果
  */
-TEST(Vector3D, AddSubtractDotCross) {
+TEST(Vector3D, AddSubtractDotCross)
+{
     const Vector3d first(1.0, 2.0, 3.0);
     const Vector3d second(4.0, 5.0, 6.0);
 
@@ -67,7 +70,8 @@ TEST(Vector3D, AddSubtractDotCross) {
 /**
  * @brief 钉住归一化的零向量拒绝面与正常归一化结果
  */
-TEST(Vector3D, NormalizeRejectsZeroVector) {
+TEST(Vector3D, NormalizeRejectsZeroVector)
+{
     const Vector3d vector(3.0, 0.0, 4.0);
     EXPECT_NEAR(vector.Normalized().Length(), 1.0, 1e-15);
     EXPECT_TRUE(vector.Normalized() == Vector3d(0.6, 0.0, 0.8));
@@ -79,13 +83,14 @@ TEST(Vector3D, NormalizeRejectsZeroVector) {
     // 零向量没有方向：必须报错，不能静默返回原样
     Vector3d zeroVector;
     EXPECT_THROW(zeroVector.Normalize(), ValueError);
-    EXPECT_THROW((void)Vector3d().Normalized(), ValueError);
+    EXPECT_THROW((void) Vector3d().Normalized(), ValueError);
 }
 
 /**
  * @brief 钉住零向量的夹角语义：GetAngle 返回 NaN，平行/垂直判定返回 false
  */
-TEST(Vector3D, ZeroVectorAngleIsNaN) {
+TEST(Vector3D, ZeroVectorAngleIsNaN)
+{
     const Vector3d zeroVector;
     EXPECT_TRUE(std::isnan(zeroVector.GetAngle(Vector3d::UnitX)));
     EXPECT_FALSE(zeroVector.IsParallel(Vector3d::UnitX, 1e-9));

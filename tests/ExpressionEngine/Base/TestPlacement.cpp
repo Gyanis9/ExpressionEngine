@@ -19,27 +19,30 @@ using ExpressionEngine::Base::ValueError;
 using ExpressionEngine::Base::Vector3d;
 using ExpressionEngine::Base::Vector3f;
 
-namespace {
+namespace
+{
 
-/// 旋转与四元数比较用的通用容差
-constexpr double Tolerance = 1e-12;
+    /// 旋转与四元数比较用的通用容差
+    constexpr double Tolerance = 1e-12;
 
-/// 绕 Z 轴四分之一圈，多个用例复用
-constexpr double QuarterTurn = std::numbers::pi / 2.0;
+    /// 绕 Z 轴四分之一圈，多个用例复用
+    constexpr double QuarterTurn = std::numbers::pi / 2.0;
 
-/// 测试辅助：按出参形式调用 multVec，返回像点便于直接断言
-Vector3d applyPlacement(const Placement& placement, const Vector3d& point) {
-    Vector3d destination;
-    placement.multVec(point, destination);
-    return destination;
-}
+    /// 测试辅助：按出参形式调用 multVec，返回像点便于直接断言
+    Vector3d applyPlacement(const Placement &placement, const Vector3d &point)
+    {
+        Vector3d destination;
+        placement.multVec(point, destination);
+        return destination;
+    }
 
-}  // namespace
+} // namespace
 
 /**
  * @brief 钉住：默认构造是恒等位姿（零位置 + 单位旋转），且 isIdentity 的容差版本一致
  */
-TEST(PlacementTest, DefaultConstructorIsIdentity) {
+TEST(PlacementTest, DefaultConstructorIsIdentity)
+{
     const Placement placement;
     EXPECT_TRUE(placement.isIdentity());
     EXPECT_TRUE(placement.isIdentity(Tolerance));
@@ -49,7 +52,7 @@ TEST(PlacementTest, DefaultConstructorIsIdentity) {
 
     // 恒等位姿不改变任何点
     const Vector3d point(1.0, 2.0, 3.0);
-    Vector3d destination;
+    Vector3d       destination;
     placement.multVec(point, destination);
     EXPECT_TRUE(destination.IsEqual(point, Tolerance));
 }
@@ -57,8 +60,9 @@ TEST(PlacementTest, DefaultConstructorIsIdentity) {
 /**
  * @brief 钉住：multVec 等价于「先旋转再加位置」，以旋转中心构造时该中心落到 position + center
  */
-TEST(PlacementTest, MultVecAppliesRotationThenTranslation) {
-    const Rotation rotation(Vector3d(0.0, 0.0, 1.0), QuarterTurn);
+TEST(PlacementTest, MultVecAppliesRotationThenTranslation)
+{
+    const Rotation  rotation(Vector3d(0.0, 0.0, 1.0), QuarterTurn);
     const Placement placement(Vector3d(1.0, 2.0, 3.0), rotation);
 
     const Vector3d point(1.0, 0.0, 0.0);
@@ -73,7 +77,7 @@ TEST(PlacementTest, MultVecAppliesRotationThenTranslation) {
     EXPECT_NEAR(floatDestination.z, 3.0F, 1e-5F);
 
     // 以 center 为旋转中心：center 自身是不动点（除 position 外不再有别的位移）
-    const Vector3d center(0.0, 5.0, 0.0);
+    const Vector3d  center(0.0, 5.0, 0.0);
     const Placement aboutCenter(Vector3d(0.0, 0.0, 0.0), rotation, center);
     EXPECT_TRUE(applyPlacement(aboutCenter, center).IsEqual(center, 1e-12));
 }
@@ -81,16 +85,16 @@ TEST(PlacementTest, MultVecAppliesRotationThenTranslation) {
 /**
  * @brief 钉住：复合按「右操作数先作用」的约定，逆位姿与自身复合回到恒等，multLeft 顺序相反
  */
-TEST(PlacementTest, CompositionAppliesRightOperandFirstAndInverseUndoesIt) {
-    const Rotation rotation(Vector3d(0.0, 0.0, 1.0), QuarterTurn);
-    const Placement first(Vector3d(1.0, 0.0, 0.0), rotation);  // 先转 90°，再平移 (1,0,0)
-    const Placement second(Vector3d(0.0, 2.0, 0.0), Rotation::identity());  // 只平移 (0,2,0)
-    const Vector3d point(1.0, 0.0, 0.0);
+TEST(PlacementTest, CompositionAppliesRightOperandFirstAndInverseUndoesIt)
+{
+    const Rotation  rotation(Vector3d(0.0, 0.0, 1.0), QuarterTurn);
+    const Placement first(Vector3d(1.0, 0.0, 0.0), rotation);              // 先转 90°，再平移 (1,0,0)
+    const Placement second(Vector3d(0.0, 2.0, 0.0), Rotation::identity()); // 只平移 (0,2,0)
+    const Vector3d  point(1.0, 0.0, 0.0);
 
     const Placement product = first * second;
     // 等价于逐个施加：second 的平移先发生
-    EXPECT_TRUE(applyPlacement(product, point)
-                    .IsEqual(applyPlacement(first, applyPlacement(second, point)), Tolerance));
+    EXPECT_TRUE(applyPlacement(product, point).IsEqual(applyPlacement(first, applyPlacement(second, point)), Tolerance));
     EXPECT_TRUE(applyPlacement(product, point).IsEqual(Vector3d(-1.0, 1.0, 0.0), 1e-12));
 
     // 逆：把像点送回原点，且与自身复合得到恒等位姿
@@ -113,8 +117,9 @@ TEST(PlacementTest, CompositionAppliesRightOperandFirstAndInverseUndoesIt) {
 /**
  * @brief 钉住：toMatrix 的平移列即位置，fromMatrix 能原样取回，矩阵变换与 multVec 一致
  */
-TEST(PlacementTest, MatrixRoundTripKeepsPositionAndRotation) {
-    const Rotation rotation(Vector3d(1.0, 2.0, 3.0), 0.7);
+TEST(PlacementTest, MatrixRoundTripKeepsPositionAndRotation)
+{
+    const Rotation  rotation(Vector3d(1.0, 2.0, 3.0), 0.7);
     const Placement original(Vector3d(1.5, -2.5, 3.5), rotation);
 
     const Matrix4D matrix = original.toMatrix();
@@ -133,12 +138,13 @@ TEST(PlacementTest, MatrixRoundTripKeepsPositionAndRotation) {
 /**
  * @brief 钉住：toDualQuaternion 与 fromDualQuaternion 往返一致，move 在全局系累加平移
  */
-TEST(PlacementTest, DualQuaternionRoundTripAndMove) {
-    const Rotation rotation(Vector3d(0.0, 0.0, 1.0), QuarterTurn);
+TEST(PlacementTest, DualQuaternionRoundTripAndMove)
+{
+    const Rotation  rotation(Vector3d(0.0, 0.0, 1.0), QuarterTurn);
     const Placement original(Vector3d(1.0, 2.0, 3.0), rotation);
 
-    const DualQuat asDualQuaternion = original.toDualQuaternion();
-    const Placement back = Placement::fromDualQuaternion(asDualQuaternion);
+    const DualQuat  asDualQuaternion = original.toDualQuaternion();
+    const Placement back             = Placement::fromDualQuaternion(asDualQuaternion);
     EXPECT_TRUE(back.isSame(original, 1e-12));
 
     // 实部即旋转四元数，长度应为 1
@@ -154,19 +160,18 @@ TEST(PlacementTest, DualQuaternionRoundTripAndMove) {
 /**
  * @brief 钉住：pow 的端点语义（t=0 恒等、t=1 原位姿），以及螺旋插值下平移沿螺旋轴按比例推进
  */
-TEST(PlacementTest, PowInterpolatesAlongScrewMotion) {
+TEST(PlacementTest, PowInterpolatesAlongScrewMotion)
+{
     // 平移与转轴同向：半程应得半程平移与半角旋转
-    const Rotation rotation(Vector3d(0.0, 0.0, 1.0), QuarterTurn);
+    const Rotation  rotation(Vector3d(0.0, 0.0, 1.0), QuarterTurn);
     const Placement original(Vector3d(0.0, 0.0, 2.0), rotation);
 
     EXPECT_TRUE(original.pow(0.0).isIdentity(1e-12));
     EXPECT_TRUE(original.pow(1.0).isSame(original, 1e-9));
 
     const Placement half = original.pow(0.5);
-    EXPECT_TRUE(half.getPosition().IsEqual(Vector3d(0.0, 0.0, 1.0), 1e-9))
-        << "沿螺旋轴的平移应线性推进";
-    EXPECT_TRUE(
-        half.getRotation().isSame(Rotation(Vector3d(0.0, 0.0, 1.0), std::numbers::pi / 4.0), 1e-9));
+    EXPECT_TRUE(half.getPosition().IsEqual(Vector3d(0.0, 0.0, 1.0), 1e-9)) << "沿螺旋轴的平移应线性推进";
+    EXPECT_TRUE(half.getRotation().isSame(Rotation(Vector3d(0.0, 0.0, 1.0), std::numbers::pi / 4.0), 1e-9));
 
     // 无旋转时退化为平移的线性插值
     const Placement pureTranslation(Vector3d(0.0, 0.0, 2.0), Rotation::identity());
@@ -176,7 +181,8 @@ TEST(PlacementTest, PowInterpolatesAlongScrewMotion) {
 /**
  * @brief 钉住：slerp 端点即端点、位置线性；sclerp 端点即端点且与 pow 的螺旋路径一致
  */
-TEST(PlacementTest, SlerpAndSclerpHitEndpoints) {
+TEST(PlacementTest, SlerpAndSclerpHitEndpoints)
+{
     const Placement start;
     const Placement end(Vector3d(2.0, 0.0, 0.0), Rotation(Vector3d(0.0, 0.0, 1.0), QuarterTurn));
 
@@ -184,8 +190,7 @@ TEST(PlacementTest, SlerpAndSclerpHitEndpoints) {
     EXPECT_TRUE(Placement::slerp(start, end, 1.0).isSame(end, Tolerance));
     const Placement slerpHalf = Placement::slerp(start, end, 0.5);
     EXPECT_TRUE(slerpHalf.getPosition().IsEqual(Vector3d(1.0, 0.0, 0.0), Tolerance));
-    EXPECT_TRUE(slerpHalf.getRotation().isSame(
-        Rotation(Vector3d(0.0, 0.0, 1.0), std::numbers::pi / 4.0), 1e-9));
+    EXPECT_TRUE(slerpHalf.getRotation().isSame(Rotation(Vector3d(0.0, 0.0, 1.0), std::numbers::pi / 4.0), 1e-9));
 
     EXPECT_TRUE(Placement::sclerp(start, end, 0.0).isIdentity(1e-12));
     EXPECT_TRUE(Placement::sclerp(start, end, 1.0).isSame(end, 1e-9));
@@ -196,7 +201,8 @@ TEST(PlacementTest, SlerpAndSclerpHitEndpoints) {
 /**
  * @brief 钉住：DualQuat 的取值与基本量，以及 (real, dual) 构造拒绝含非零对偶分量的参数
  */
-TEST(DualQuaternionTest, ValuesAndPurityRejection) {
+TEST(DualQuaternionTest, ValuesAndPurityRejection)
+{
     const DualQuat identity = DualQuat::identity();
     EXPECT_DOUBLE_EQ(identity.length(), 1.0);
     EXPECT_DOUBLE_EQ(identity.theta(), 0.0);
