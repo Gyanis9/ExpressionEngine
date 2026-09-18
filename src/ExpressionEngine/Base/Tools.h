@@ -11,9 +11,7 @@
 
 #include <string>
 
-namespace ExpressionEngine::Base::Tools
-{
-
+namespace ExpressionEngine::Base::Tools {
 /**
  * @brief 转义文本中的单双引号
  * @details 用于把值安全嵌入以引号作定界符的表达式文本，反斜杠本身不在此处处理。
@@ -30,5 +28,4 @@ namespace ExpressionEngine::Base::Tools
  * @return 全 ASCII 的转义文本；输入含非法 UTF-8 序列时按单字节原样保留，不静默丢弃
  */
 [[nodiscard]] std::string escapedUnicodeFromUtf8(const char* text);
-
 }  // namespace ExpressionEngine::Base::Tools

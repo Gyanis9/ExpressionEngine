@@ -13,9 +13,7 @@
 #include <stdexcept>
 #include <string>
 
-namespace ExpressionEngine::Base
-{
-
+namespace ExpressionEngine::Base {
 /**
  * @brief 运行期故障的统一基类
  * @details 库对外抛出的运行期故障全部派生自本类，调用方可用一条 catch (const Exception&) 兜住。
@@ -24,40 +22,33 @@ namespace ExpressionEngine::Base
  *          每个派生类型对应一种处置方式：改文本（ParserError）、改单位（UnitsMismatchError）、
  *          改数值范围（OverflowError / UnderflowError）、其余按引擎故障记录。
  */
-class Exception: public std::runtime_error
-{
+class Exception : public std::runtime_error {
 public:
     /**
      * @brief 构造异常
      * @param message 中文可操作文案，写清「原因 + 替代做法」
      * @param location 抛出位置，默认由编译器在调用点填入
      */
-    explicit Exception(
-        std::string message,
-        const std::source_location& location = std::source_location::current()
-    );
+    explicit Exception(std::string message,
+                       const std::source_location& location = std::source_location::current());
 
     /// 取原始消息，不含位置信息
-    [[nodiscard]] const std::string& message() const noexcept
-    {
+    [[nodiscard]] const std::string& message() const noexcept {
         return m_message;
     }
 
     /// 取抛出点所在的源文件
-    [[nodiscard]] const char* file() const noexcept
-    {
+    [[nodiscard]] const char* file() const noexcept {
         return m_file;
     }
 
     /// 取抛出点所在的行号
-    [[nodiscard]] int sourceLine() const noexcept
-    {
+    [[nodiscard]] int sourceLine() const noexcept {
         return m_sourceLine;
     }
 
     /// 取抛出点所在的函数名
-    [[nodiscard]] const char* function() const noexcept
-    {
+    [[nodiscard]] const char* function() const noexcept {
         return m_function;
     }
 
@@ -75,73 +66,62 @@ private:
 };
 
 /// 文本解析失败：表达式或数量文本存在词法/语法错误，调用方应把消息报告给用户去改文本
-class ParserError: public Exception
-{
+class ParserError : public Exception {
 public:
     using Exception::Exception;
 };
 
 /// 单位不匹配：加、减、比较等运算的两侧单位不同，调用方应改成同一单位的量再运算
-class UnitsMismatchError: public Exception
-{
+class UnitsMismatchError : public Exception {
 public:
     using Exception::Exception;
 };
 
 /// 数值溢出：指数或数值超出可表示范围，调用方应缩小量级后再试
-class OverflowError: public Exception
-{
+class OverflowError : public Exception {
 public:
     using Exception::Exception;
 };
 
 /// 数值下溢：指数或数值低于可表示范围，调用方应放大量级后再试
-class UnderflowError: public Exception
-{
+class UnderflowError : public Exception {
 public:
     using Exception::Exception;
 };
 
 /// 类型不符：运算符或函数收到不能参与该运算的值类型，调用方应改表达式
-class TypeError: public Exception
-{
+class TypeError : public Exception {
 public:
     using Exception::Exception;
 };
 
 /// 取值非法：值类型正确但内容不被接受（如除数为零），调用方应改表达式
-class ValueError: public Exception
-{
+class ValueError : public Exception {
 public:
     using Exception::Exception;
 };
 
 /// 索引越界：分量下标超出容器范围，调用方应改下标
-class IndexError: public Exception
-{
+class IndexError : public Exception {
 public:
     using Exception::Exception;
 };
 
 /// 属性不存在：对象上找不到被引用的属性或分量，调用方应改引用路径
-class AttributeError: public Exception
-{
+class AttributeError : public Exception {
 public:
     using Exception::Exception;
 };
 
 /// 标识符无法解析：变量名既不是已注册对象也不是已定义参数，调用方应补上定义或改名字
-class NameError: public Exception
-{
+class NameError : public Exception {
 public:
     using Exception::Exception;
 };
 
 /// 表达式引擎运行期故障：循环引用、求值深度超限等，调用方应修正表达式结构
-class ExpressionError: public Exception
-{
+class ExpressionError : public Exception {
 public:
     using Exception::Exception;
 };
-
 }  // namespace ExpressionEngine::Base
