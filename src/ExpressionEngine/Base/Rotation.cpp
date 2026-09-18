@@ -536,39 +536,39 @@ namespace ExpressionEngine::Base
 
     Rotation &Rotation::multRight(const Rotation &other)
     {
-        // 四元数乘法 (x0,y0,z0,w0) ⊗ (x1,y1,z1,w1)，右乘表示先施加 other
-        double x0{};
-        double y0{};
-        double z0{};
-        double w0{};
-        this->getValue(x0, y0, z0, w0);
+        // 四元数乘法 (leftX,leftY,leftZ,leftW) ⊗ (rightX,rightY,rightZ,rightW)，右乘表示先施加 other
+        double leftX{};
+        double leftY{};
+        double leftZ{};
+        double leftW{};
+        this->getValue(leftX, leftY, leftZ, leftW);
 
-        double x1{};
-        double y1{};
-        double z1{};
-        double w1{};
-        other.getValue(x1, y1, z1, w1);
+        double rightX{};
+        double rightY{};
+        double rightZ{};
+        double rightW{};
+        other.getValue(rightX, rightY, rightZ, rightW);
 
-        this->setValue(w0 * x1 + x0 * w1 + y0 * z1 - z0 * y1, w0 * y1 - x0 * z1 + y0 * w1 + z0 * x1, w0 * z1 + x0 * y1 - y0 * x1 + z0 * w1, w0 * w1 - x0 * x1 - y0 * y1 - z0 * z1);
+        this->setValue(leftW * rightX + leftX * rightW + leftY * rightZ - leftZ * rightY, leftW * rightY - leftX * rightZ + leftY * rightW + leftZ * rightX, leftW * rightZ + leftX * rightY - leftY * rightX + leftZ * rightW, leftW * rightW - leftX * rightX - leftY * rightY - leftZ * rightZ);
         return *this;
     }
 
     Rotation &Rotation::multLeft(const Rotation &other)
     {
         // 与右乘同一公式，但操作数角色互换，等价于 other ⊗ this
-        double x0{};
-        double y0{};
-        double z0{};
-        double w0{};
-        other.getValue(x0, y0, z0, w0);
+        double leftX{};
+        double leftY{};
+        double leftZ{};
+        double leftW{};
+        other.getValue(leftX, leftY, leftZ, leftW);
 
-        double x1{};
-        double y1{};
-        double z1{};
-        double w1{};
-        this->getValue(x1, y1, z1, w1);
+        double rightX{};
+        double rightY{};
+        double rightZ{};
+        double rightW{};
+        this->getValue(rightX, rightY, rightZ, rightW);
 
-        this->setValue(w0 * x1 + x0 * w1 + y0 * z1 - z0 * y1, w0 * y1 - x0 * z1 + y0 * w1 + z0 * x1, w0 * z1 + x0 * y1 - y0 * x1 + z0 * w1, w0 * w1 - x0 * x1 - y0 * y1 - z0 * z1);
+        this->setValue(leftW * rightX + leftX * rightW + leftY * rightZ - leftZ * rightY, leftW * rightY - leftX * rightZ + leftY * rightW + leftZ * rightX, leftW * rightZ + leftX * rightY - leftY * rightX + leftZ * rightW, leftW * rightW - leftX * rightX - leftY * rightY - leftZ * rightZ);
         return *this;
     }
 
@@ -596,14 +596,14 @@ namespace ExpressionEngine::Base
         const double y  = m_quaternion[1];
         const double z  = m_quaternion[2];
         const double w  = m_quaternion[3];
-        const double x2 = x * x;
-        const double y2 = y * y;
-        const double z2 = z * z;
-        const double w2 = w * w;
+        const double xSquared = x * x;
+        const double ySquared = y * y;
+        const double zSquared = z * z;
+        const double wSquared = w * w;
 
-        const double resultX = (x2 + w2 - y2 - z2) * source.x + 2.0 * (x * y - z * w) * source.y + 2.0 * (x * z + y * w) * source.z;
-        const double resultY = 2.0 * (x * y + z * w) * source.x + (w2 - x2 + y2 - z2) * source.y + 2.0 * (y * z - x * w) * source.z;
-        const double resultZ = 2.0 * (x * z - y * w) * source.x + 2.0 * (x * w + y * z) * source.y + (w2 - x2 - y2 + z2) * source.z;
+        const double resultX = (xSquared + wSquared - ySquared - zSquared) * source.x + 2.0 * (x * y - z * w) * source.y + 2.0 * (x * z + y * w) * source.z;
+        const double resultY = 2.0 * (x * y + z * w) * source.x + (wSquared - xSquared + ySquared - zSquared) * source.y + 2.0 * (y * z - x * w) * source.z;
+        const double resultZ = 2.0 * (x * z - y * w) * source.x + 2.0 * (x * w + y * z) * source.y + (wSquared - xSquared - ySquared + zSquared) * source.z;
         destination.x        = resultX;
         destination.y        = resultY;
         destination.z        = resultZ;
@@ -884,14 +884,14 @@ namespace ExpressionEngine::Base
         pitch = radiansFromDegrees(pitch);
         roll  = radiansFromDegrees(roll);
 
-        const double c1 = std::cos(yaw / 2.0);
-        const double s1 = std::sin(yaw / 2.0);
-        const double c2 = std::cos(pitch / 2.0);
-        const double s2 = std::sin(pitch / 2.0);
-        const double c3 = std::cos(roll / 2.0);
-        const double s3 = std::sin(roll / 2.0);
+        const double cosineYawHalf = std::cos(yaw / 2.0);
+        const double sineYawHalf = std::sin(yaw / 2.0);
+        const double cosinePitchHalf = std::cos(pitch / 2.0);
+        const double sinePitchHalf = std::sin(pitch / 2.0);
+        const double cosineRollHalf = std::cos(roll / 2.0);
+        const double sineRollHalf = std::sin(roll / 2.0);
 
-        this->setValue(c1 * c2 * s3 - s1 * s2 * c3, c1 * s2 * c3 + s1 * c2 * s3, s1 * c2 * c3 - c1 * s2 * s3, c1 * c2 * c3 + s1 * s2 * s3);
+        this->setValue(cosineYawHalf * cosinePitchHalf * sineRollHalf - sineYawHalf * sinePitchHalf * cosineRollHalf, cosineYawHalf * sinePitchHalf * cosineRollHalf + sineYawHalf * cosinePitchHalf * sineRollHalf, sineYawHalf * cosinePitchHalf * cosineRollHalf - cosineYawHalf * sinePitchHalf * sineRollHalf, cosineYawHalf * cosinePitchHalf * cosineRollHalf + sineYawHalf * sinePitchHalf * sineRollHalf);
     }
 
     void Rotation::getYawPitchRoll(double &yaw, double &pitch, double &roll) const

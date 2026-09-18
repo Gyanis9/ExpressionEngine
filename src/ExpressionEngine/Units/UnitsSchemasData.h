@@ -20,6 +20,8 @@
 #include <ExpressionEngine/Units/UnitsConvData.h>
 #include <ExpressionEngine/Units/UnitsSchemasSpecifications.h>
 
+// 翻译标记：本库不带翻译体系，宏展开即原文，作用只是标出后续需要本地化的文案；
+// 它不是常量宏，保留在此以便将来接入翻译工具时能直接替换实现。
 #ifndef QT_TRANSLATE_NOOP
 #define QT_TRANSLATE_NOOP(context, sourceText) sourceText
 #endif
@@ -41,7 +43,7 @@ namespace ExpressionEngine::Units::UnitsSchemasData
 // NOLINTBEGIN
 // clang-format off
 /// 编号 6 方案 MmMin：毫米与毫米每分钟，CNC 小件与公制小尺寸用
-inline const UnitsSchemaSpecification s0
+inline const UnitsSchemaSpecification mmMinSchema
 { 6, "MmMin", "mm" , false, false , QT_TRANSLATE_NOOP("UnitsApi", "Metric small parts & CNC (mm, mm/min)"), false,
     {
         { "Length",   {{ 0 , "mm"     , 1.0        }}},
@@ -51,7 +53,7 @@ inline const UnitsSchemaSpecification s0
 };
 
 /// 编号 9 方案 MeterDecimal：米制小数（m、m²、m³）
-inline const UnitsSchemaSpecification s1
+inline const UnitsSchemaSpecification meterDecimalSchema
 { 9, "MeterDecimal", "m", false, false, QT_TRANSLATE_NOOP("UnitsApi", "Meter decimal (m, m², m³)"), false,
     {
         { "Length",             {{ 0 , "m"    , 1e3 }}},
@@ -66,7 +68,7 @@ inline const UnitsSchemaSpecification s1
 };
 
 /// 编号 3 方案 ImperialDecimal：英制小数（in、lb）
-inline const UnitsSchemaSpecification s2
+inline const UnitsSchemaSpecification imperialDecimalSchema
 { 3, "ImperialDecimal", "in", false, false, QT_TRANSLATE_NOOP("UnitsApi", "Imperial decimal (in, lb)"), false,
     {
         { "Length",       {{ 0 , "in"      , inch                }}},
@@ -83,7 +85,7 @@ inline const UnitsSchemaSpecification s2
 };
 
 /// 编号 0 方案 Internal：默认方案，mm、kg、s、°
-inline const UnitsSchemaSpecification s3
+inline const UnitsSchemaSpecification internalSchema
 { 0, "Internal", "mm", false, false, QT_TRANSLATE_NOOP("UnitsApi", "Standard (mm, kg, s, °)"), true,
     {
         { "Length", {
@@ -342,7 +344,7 @@ inline const UnitsSchemaSpecification s3
 };
 
 /// 编号 1 方案 MKS：m、kg、s、°
-inline const UnitsSchemaSpecification s4
+inline const UnitsSchemaSpecification mksSchema
 { 1, "MKS", "m", false, false, QT_TRANSLATE_NOOP("UnitsApi", "MKS (m, kg, s, °)") , false,
     {
         { "Length", {
@@ -574,7 +576,7 @@ inline const UnitsSchemaSpecification s4
 };
 
 /// 编号 4 方案 Centimeter：建筑欧标（cm、m²、m³）
-inline const UnitsSchemaSpecification s5
+inline const UnitsSchemaSpecification centimeterSchema
 { 4, "Centimeter", "cm", false, false, QT_TRANSLATE_NOOP("UnitsApi", "Building Euro (cm, m², m³)") , false,
     {
         { "Length", {
@@ -605,7 +607,7 @@ inline const UnitsSchemaSpecification s5
 };
 
 /// 编号 8 方案 FEM：mm、N、s
-inline const UnitsSchemaSpecification s6
+inline const UnitsSchemaSpecification femSchema
 { 8, "FEM", "mm", false , false , QT_TRANSLATE_NOOP("UnitsApi", "FEM (mm, N, s)"), false,
     {
         { "Length", {
@@ -618,7 +620,7 @@ inline const UnitsSchemaSpecification s6
 };
 
 /// 编号 2 方案 Imperial：美制惯用（in、lb）
-inline const UnitsSchemaSpecification s7
+inline const UnitsSchemaSpecification imperialSchema
 { 2, "Imperial", "in", false, false, QT_TRANSLATE_NOOP("UnitsApi", "US customary (in, lb)"), false,
     {
         { "Length", {
@@ -663,7 +665,7 @@ inline const UnitsSchemaSpecification s7
 };
 
 /// 编号 5 方案 ImperialBuilding：建筑美制（ft-in、sqft、cft）
-inline const UnitsSchemaSpecification s8
+inline const UnitsSchemaSpecification imperialBuildingSchema
 { 5, "ImperialBuilding", "ft", true, false , QT_TRANSLATE_NOOP("UnitsApi", "Building US (ft-in, sqft, cft)"), false,
     {
         { "Length"   , {{ 0   , "toFractional"    , 0              }}},  // <== !
@@ -677,7 +679,7 @@ inline const UnitsSchemaSpecification s8
 };
 
 /// 编号 7 方案 ImperialCivil：土木英制（ft、lb、mph）
-inline const UnitsSchemaSpecification s9
+inline const UnitsSchemaSpecification imperialCivilSchema
 { 7, "ImperialCivil", "ft", false, true, QT_TRANSLATE_NOOP("UnitsApi", "Imperial for Civil Eng (ft, lb, mph)"), false,
     {
         { "Length"   , {{ 0   , "ft"    , foot                       }}},
@@ -696,7 +698,7 @@ inline const UnitsSchemaSpecification s9
     // clang-format on
     // NOLINTEND
     /// 内置方案列表：按编号排列，供 UnitsSchemas 按序号或名字查找
-    inline const std::vector schemaSpecifications{s3, s4, s5, s6, s7, s8, s9, s0, s1, s2};
+    inline const std::vector schemaSpecifications{internalSchema, mksSchema, centimeterSchema, femSchema, imperialSchema, imperialBuildingSchema, imperialCivilSchema, mmMinSchema, meterDecimalSchema, imperialDecimalSchema};
 
     /**
      * 特殊换算函数
