@@ -86,13 +86,16 @@ namespace ExpressionEngine::Units
             Sqrt   ///< sqrt：平方根
         };
 
-        /// 一个记号；数值与单位记号共用 Quantity 作为语义值（单位记号的值为「1 个单位」）
+        /// 一个记号；数值与单位分开存放——数值直接带 double，单位只带指向静态预定义量的指针，
+        /// 免得每个记号都构造一份完整 Quantity（含 Unit 与 QuantityFormat）。
+        /// 需要完整量的地方由消费方现造，记号本身是可平凡拷贝的小对象。
         struct Token
         {
-            TokenKind   kind{TokenKind::End}; ///< 记号类别
-            Quantity    value;                ///< 数值或单位
-            FunctionId  function{};           ///< 函数记号对应的函数
-            std::size_t offset{0};            ///< 记号在输入中的字节偏移，用于报错定位
+            TokenKind       kind{TokenKind::End};  ///< 记号类别
+            FunctionId      function{};            ///< 函数记号对应的函数
+            std::size_t     offset{0};             ///< 记号在输入中的字节偏移，用于报错定位
+            double          numberValue{0.0};      ///< 数值记号的数值
+            const Quantity *unitQuantity{nullptr}; ///< 单位记号对应的预定义量；静态存储期，不持所有权
         };
 
         /// 单位符号到预定义量的对照
@@ -399,117 +402,102 @@ constexpr std::array unitTokenSpecs {
             return digits == 0 ? 0 : cursor + digits - position;
         }
 
-        /// 数字形态一：整数部分可省小数部分，小数点用 '.'（原文法中的第 1 条数字规则）
-        [[nodiscard]] std::size_t matchNumberWithDotInteger(const std::string_view text, const std::size_t position)
+        /// 纯整数可以逐位精确累加的最大位数：10^15 小于 2^53，乘 10 加一位都不会丢精度
+        constexpr std::size_t exactIntegerDigitLimit = 15;
+
+        /// 数字扫描结果：一次扫描给出匹配长度、所用小数点字符；纯整数时还直接带上数值
+        struct NumberScan
         {
-            const auto leadingDigits = matchDigits(text, position);
-            if (leadingDigits == 0)
-            {
-                return 0;
-            }
+            std::size_t length{0};             ///< 匹配到的字节数；0 表示这里不是数字
+            char        decimalSeparator{'.'}; ///< 小数点字符，'.' 或 ','
+            double      integerValue{0.0};     ///< 纯整数时的数值，可由累加过程直接得到
+            bool        isPureInteger{false};  ///< 数值已由 integerValue 给出，不必再从文本转换
+        };
 
-            std::size_t cursor = position + leadingDigits;
-            if (cursor < text.size() && text[cursor] == '.')
-            {
-                ++cursor;
-            }
-            cursor += matchDigits(text, cursor);
-            cursor += matchExponent(text, cursor);
-
-            return cursor - position;
-        }
-
-        /// 数字形态二：允许以 '.' 开头，如 ".5"
-        [[nodiscard]] std::size_t matchNumberWithLeadingDot(const std::string_view text, const std::size_t position)
+        /**
+         * @brief 一遍扫描数字
+         * @details 等价于 flex 里四条数字规则（带/不带整数部分 × '.'/',' 两种小数点）取最长匹配：
+         *          先扫整数部分并顺手累加数值，再按出现的小数点字符扫小数部分，最后扫指数。
+         *          最多只会有一个小数点、一个指数，最长匹配的胜出者与逐条试配时一致。
+         */
+        [[nodiscard]] NumberScan scanNumber(const std::string_view text, const std::size_t position)
         {
-            std::size_t cursor = position;
-            if (cursor < text.size() && text[cursor] == '.')
+            const std::size_t size   = text.size();
+            std::size_t       cursor = position;
+
+            double      integerValue = 0.0;
+            std::size_t digitCount   = 0;
+            while (cursor < size && characterClasses.decimalDigit[static_cast<unsigned char>(text[cursor])] != 0)
             {
-                ++cursor;
-            }
-
-            const auto digits = matchDigits(text, cursor);
-            if (digits == 0)
-            {
-                return 0;
-            }
-            cursor += digits;
-            cursor += matchExponent(text, cursor);
-
-            return cursor - position;
-        }
-
-        /// 数字形态三：与形态一相同，但小数点用 ','，如 "1,5"
-        [[nodiscard]] std::size_t matchNumberWithCommaInteger(const std::string_view text, const std::size_t position)
-        {
-            const auto leadingDigits = matchDigits(text, position);
-            if (leadingDigits == 0)
-            {
-                return 0;
-            }
-
-            std::size_t cursor = position + leadingDigits;
-            if (cursor < text.size() && text[cursor] == ',')
-            {
-                ++cursor;
-            }
-            cursor += matchDigits(text, cursor);
-            cursor += matchExponent(text, cursor);
-
-            return cursor - position;
-        }
-
-        /// 数字形态四：允许以 ',' 开头，如 ",5"
-        [[nodiscard]] std::size_t matchNumberWithLeadingComma(const std::string_view text, const std::size_t position)
-        {
-            std::size_t cursor = position;
-            if (cursor < text.size() && text[cursor] == ',')
-            {
+                integerValue = integerValue * 10.0 + static_cast<double>(text[cursor] - '0');
+                ++digitCount;
                 ++cursor;
             }
 
-            const auto digits = matchDigits(text, cursor);
-            if (digits == 0)
+            NumberScan scan;
+            if (digitCount == 0)
             {
-                return 0;
-            }
-            cursor += digits;
-            cursor += matchExponent(text, cursor);
-
-            return cursor - position;
-        }
-
-        /// 按最长匹配从四条数字规则里挑一条，返回匹配长度与小数点字符
-        [[nodiscard]] std::size_t longestNumberMatch(const std::string_view text, const std::size_t position, char &decimalSeparator)
-        {
-            const std::array matchers{
-                    matchNumberWithDotInteger,
-                    matchNumberWithLeadingDot,
-                    matchNumberWithCommaInteger,
-                    matchNumberWithLeadingComma,
-            };
-
-            std::size_t bestLength = 0;
-            std::size_t bestIndex  = 0;
-            for (std::size_t index = 0; index < matchers.size(); ++index)
-            {
-                const auto length = matchers.at(index)(text, position);
-                // 长度相同则取靠前的规则，与原文法里词法规则的先后顺序一致
-                if (length > bestLength)
+                // 整数部分可省：接受以 '.' 或 ',' 开头的小数，如 ".5"、",5"；小数点后至少要有一位数字
+                if (cursor >= size || (text[cursor] != '.' && text[cursor] != ','))
                 {
-                    bestLength = length;
-                    bestIndex  = index;
+                    return scan;
                 }
+                if (cursor + 1 >= size || characterClasses.decimalDigit[static_cast<unsigned char>(text[cursor + 1])] == 0)
+                {
+                    return scan;
+                }
+                scan.decimalSeparator = text[cursor];
+                cursor += 1 + matchDigits(text, cursor + 1);
+            } else if (cursor < size && (text[cursor] == '.' || text[cursor] == ','))
+            {
+                scan.decimalSeparator = text[cursor];
+                cursor += 1 + matchDigits(text, cursor + 1);
+            } else if (digitCount <= exactIntegerDigitLimit)
+            {
+                // 位数不超上限时逐位累加是精确的，数值现成可用，省掉一次文本转换
+                scan.integerValue  = integerValue;
+                scan.isPureInteger = true;
             }
 
-            // 前两条规则按 '.' 解释小数点，后两条按 ',' 解释
-            decimalSeparator = bestIndex < 2 ? '.' : ',';
-            return bestLength;
+            const auto exponentLength = matchExponent(text, cursor);
+            if (exponentLength != 0)
+            {
+                scan.isPureInteger = false;
+                cursor += exponentLength;
+            }
+
+            scan.length = cursor - position;
+            return scan;
         }
 
-        /// 把匹配到的数字文本换算成双精度值，去掉分组分隔符并把小数点统一成 '.'
+        /// 从整段文本解析双精度值；失败时按既有文案报错，display 是写进文案的数字写法
+        [[nodiscard]] double parseNumberText(const char *begin, const std::size_t size, const std::string_view display)
+        {
+            double     value  = 0.0;
+            const auto result = std::from_chars(begin, begin + size, value);
+            if (result.ec == std::errc::result_out_of_range)
+            {
+                throw Base::ParserError(std::format("数量文本里的数字 {} 超出双精度可表示范围，请改用量级更小的写法", display));
+            }
+            if (result.ec != std::errc{} || result.ptr != begin + size)
+            {
+                throw Base::ParserError(std::format("数量文本里的数字 {} 无法解析，请检查写法", display));
+            }
+
+            return value;
+        }
+
+        /// 把匹配到的数字文本换算成双精度值；分隔符本就是 '.' 又不需要补尾零时原地解析，不拼临时串
         [[nodiscard]] double convertNumberText(const std::string_view text, const char decimalSeparator)
         {
+            // 快路径：原文就是 from_chars 能接受的写法，直接解析；对另一种分隔符仍做一次防御性检查，
+            // 免得日后改动扫描规则时这里悄悄失效
+            if (decimalSeparator == '.' && text.back() != '.' && text.find(',') == std::string_view::npos)
+            {
+                return parseNumberText(text.data(), text.size(), text);
+            }
+
+            // 慢路径：把小数点统一成 '.'、去掉分组分隔符，并给 "1." 这类写法补一个 0
             std::string canonical;
             canonical.reserve(text.size() + 1);
 
@@ -523,24 +511,12 @@ constexpr std::array unitTokenSpecs {
                 canonical += character == decimalSeparator ? '.' : character;
             }
 
-            // "1." 这类写法补一个 0，保证 from_chars 能接受
             if (!canonical.empty() && canonical.back() == '.')
             {
                 canonical += '0';
             }
 
-            double     value  = 0.0;
-            const auto result = std::from_chars(canonical.data(), canonical.data() + canonical.size(), value);
-            if (result.ec == std::errc::result_out_of_range)
-            {
-                throw Base::ParserError(std::format("数量文本里的数字 {} 超出双精度可表示范围，请改用量级更小的写法", canonical));
-            }
-            if (result.ec != std::errc{} || result.ptr != canonical.data() + canonical.size())
-            {
-                throw Base::ParserError(std::format("数量文本里的数字 {} 无法解析，请检查写法", canonical));
-            }
-
-            return value;
+            return parseNumberText(canonical.data(), canonical.size(), canonical);
         }
 
         /// 词法分析器：跳过空白与方括号注释，按下标推进
@@ -636,14 +612,13 @@ constexpr std::array unitTokenSpecs {
                 return singleCharacter(TokenKind::Minus, std::string_view{"−"}.size());
             }
 
-            // 数值：四条规则取最长匹配
-            char       decimalSeparator = '.';
-            const auto numberLength     = longestNumberMatch(remaining, 0, decimalSeparator);
-            if (numberLength != 0)
+            // 数值：一遍扫描取最长匹配，纯整数连文本转换都省了
+            const NumberScan numberScan = scanNumber(remaining, 0);
+            if (numberScan.length != 0)
             {
-                token.kind  = TokenKind::Number;
-                token.value = Quantity(convertNumberText(remaining.substr(0, numberLength), decimalSeparator));
-                m_position += numberLength;
+                token.kind        = TokenKind::Number;
+                token.numberValue = numberScan.isPureInteger ? numberScan.integerValue : convertNumberText(remaining.substr(0, numberScan.length), numberScan.decimalSeparator);
+                m_position += numberScan.length;
                 return token;
             }
 
@@ -670,16 +645,16 @@ constexpr std::array unitTokenSpecs {
                 // 长度相同时按「单位 → 函数 → 常量」定序，与需求里记号类别的优先级一致
                 if (unitMatch.length == bestLength)
                 {
-                    token.kind  = TokenKind::Unit;
-                    token.value = *unitMatch.spec->quantity;
+                    token.kind         = TokenKind::Unit;
+                    token.unitQuantity = unitMatch.spec->quantity;
                 } else if (functionMatch.length == bestLength)
                 {
                     token.kind     = TokenKind::Function;
                     token.function = functionMatch.spec->function;
                 } else
                 {
-                    token.kind  = TokenKind::Number;
-                    token.value = Quantity(matchedConstantValue);
+                    token.kind        = TokenKind::Number;
+                    token.numberValue = matchedConstantValue;
                 }
                 m_position += bestLength;
                 return token;
@@ -902,7 +877,8 @@ constexpr std::array unitTokenSpecs {
             {
                 case TokenKind::Number:
                 {
-                    const Quantity value = m_current.value;
+                    // 完整量到这里才构造：记号本身只带数值
+                    const Quantity value = Quantity(m_current.numberValue);
                     advance();
                     return value;
                 }
@@ -973,7 +949,8 @@ constexpr std::array unitTokenSpecs {
             {
                 case TokenKind::Unit:
                 {
-                    const Quantity value = m_current.value;
+                    // 静态预定义量在这里拷一份，记号里只存指针
+                    const Quantity value = *m_current.unitQuantity;
                     advance();
                     return value;
                 }
