@@ -9,6 +9,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 option(EXPRESSIONENGINE_BUILD_TESTS "构建单元测试" ON)
+option(EXPRESSIONENGINE_BUILD_BENCHMARKS "构建解析器性能基准" OFF)
 
 # 零告警是提交硬判据：库与测试共用同一组告警开关，第三方源码不套用
 add_library(ExpressionEngineWarnings INTERFACE)
@@ -23,4 +24,8 @@ add_subdirectory(src)
 if(EXPRESSIONENGINE_BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests)
+endif()
+
+if(EXPRESSIONENGINE_BUILD_BENCHMARKS)
+    add_subdirectory(benchmarks)
 endif()
