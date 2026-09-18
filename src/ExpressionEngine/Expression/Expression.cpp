@@ -35,18 +35,18 @@ namespace ExpressionEngine::Expression
     {
 
         /// 角度与弧度的换算：库内角度量一律以度存储，与 FreeCAD 的基准单位一致
-        double toRadians(double degrees)
+        double toRadians(const double degrees)
         {
             return degrees * std::numbers::pi / 180.0;
         }
 
-        double toDegrees(double radians)
+        double toDegrees(const double radians)
         {
             return radians * 180.0 / std::numbers::pi;
         }
 
         /// 真值判定：与 FreeCAD 一致，|值| 达到重合精度即视为真
-        bool asBoolean(double value)
+        bool asBoolean(const double value)
         {
             return std::fabs(value) >= Base::Precision::Confusion();
         }
@@ -57,7 +57,7 @@ namespace ExpressionEngine::Expression
          * @param result 输出参数；是整数时写入该整数
          * @return 数值为整数且能装进 long 时为 true
          */
-        bool essentiallyInteger(double value, long &result)
+        bool essentiallyInteger(const double value, long &result)
         {
             double integralPart = 0.0;
             if (std::modf(value, &integralPart) != 0.0)
@@ -156,7 +156,7 @@ namespace ExpressionEngine::Expression
          * @throws EvaluationError 参数个数不符
          * @throws Base::ParserError 函数是哨兵名字，或依赖宿主的对象工厂
          */
-        void validateFunctionCall(FunctionExpression::Function function, std::size_t argumentCount, std::string_view label)
+        void validateFunctionCall(const FunctionExpression::Function function, const std::size_t argumentCount, std::string_view label)
         {
             using Function = FunctionExpression::Function;
             switch (function)
@@ -300,7 +300,7 @@ namespace ExpressionEngine::Expression
         }
 
         /// 是否聚合函数
-        bool isAggregate(FunctionExpression::Function function)
+        bool isAggregate(const FunctionExpression::Function function)
         {
             using Function = FunctionExpression::Function;
             switch (function)
@@ -320,7 +320,7 @@ namespace ExpressionEngine::Expression
         }
 
         /// 取第 index 个实参的向量取值
-        Base::Vector3d vectorArgument(const std::vector<ExpressionPtr> &arguments, std::size_t index, std::string_view label)
+        Base::Vector3d vectorArgument(const std::vector<ExpressionPtr> &arguments, const std::size_t index, std::string_view label)
         {
             const Value value = arguments[index]->evaluate();
             if (const auto *vector = std::get_if<Base::Vector3d>(&value))
@@ -331,26 +331,25 @@ namespace ExpressionEngine::Expression
         }
 
         /// 取第 index 个实参的数值，要求无量纲或长度量纲，返回基准单位下的数值
-        double lengthArgument(const std::vector<ExpressionPtr> &arguments, std::size_t index, std::string_view label)
+        double lengthArgument(const std::vector<ExpressionPtr> &arguments, const std::size_t index, std::string_view label)
         {
             const Units::Quantity quantity = toQuantity(arguments[index]->evaluate(), std::format("{}() 的第 {} 个参数", label, index + 1));
             if (!quantity.isDimensionlessOrUnit(Units::Unit::Length))
             {
                 throw Base::UnitsMismatchError(std::format("{}() 的第 {} 个参数需要长度量或纯数，实际是 {}；"
-                                                           "请改用 mm、in 这类长度单位",
-                                                           label, index + 1, quantity.getUserString()));
+                                                           "请改用 mm、in 这类长度单位", label, index + 1, quantity.getUserString()));
             }
             return quantity.getValue();
         }
 
         /// 取第 index 个实参的纯数值
-        double numberArgument(const std::vector<ExpressionPtr> &arguments, std::size_t index, std::string_view label)
+        double numberArgument(const std::vector<ExpressionPtr> &arguments, const std::size_t index, std::string_view label)
         {
             return toDouble(arguments[index]->evaluate(), std::format("{}() 的第 {} 个参数", label, index + 1));
         }
 
         /// 取第二个向量实参：两参数形式直接给向量，四参数形式给三个分量
-        Base::Vector3d secondVectorArgument(const std::vector<ExpressionPtr> &arguments, std::string_view label)
+        Base::Vector3d secondVectorArgument(const std::vector<ExpressionPtr> &arguments, const std::string_view label)
         {
             if (arguments.size() == 2)
             {
@@ -378,8 +377,7 @@ namespace ExpressionEngine::Expression
                 return Base::Rotation(transformationMatrix * rotationMatrix);
             }
             throw Base::TypeError(std::format("{}() 的第一个参数需要矩阵、位姿或旋转，实际是{}；"
-                                              "请用 matrix()、placement()、rotation() 构造这类取值",
-                                              label, valueTypeName(target)));
+                                              "请用 matrix()、placement()、rotation() 构造这类取值", label, valueTypeName(target)));
         }
 
         /// 取数量，要求无量纲或角度量纲，返回弧度值
@@ -406,13 +404,13 @@ namespace ExpressionEngine::Expression
                 }
                 return *leftText + *rightText;
             }
-            return Value(toQuantity(left, "加法左操作数") + toQuantity(right, "加法右操作数"));
+            return {toQuantity(left, "加法左操作数") + toQuantity(right, "加法右操作数")};
         }
 
         /// 数值按数量相减
         Value subtractValues(const Value &left, const Value &right)
         {
-            return Value(toQuantity(left, "减法左操作数") - toQuantity(right, "减法右操作数"));
+            return {toQuantity(left, "减法左操作数") - toQuantity(right, "减法右操作数")};
         }
 
         /// 数值相乘；矩阵、旋转与位姿按复合相乘，向量按缩放处理
@@ -447,7 +445,7 @@ namespace ExpressionEngine::Expression
             {
                 return *vector * toDouble(left, "向量的乘数");
             }
-            return Value(toQuantity(left, "乘法左操作数") * toQuantity(right, "乘法右操作数"));
+            return {toQuantity(left, "乘法左操作数") * toQuantity(right, "乘法右操作数")};
         }
 
         /// 数值相除；除数为零时报错而不是产出 inf
@@ -459,7 +457,7 @@ namespace ExpressionEngine::Expression
             {
                 throw Base::ValueError("除法的除数为零，无法求值；请检查表达式里的分母");
             }
-            return Value(leftQuantity / rightQuantity);
+            return {leftQuantity / rightQuantity};
         }
 
         /// 取余；量纲不一致或除数为零时报错
@@ -477,7 +475,7 @@ namespace ExpressionEngine::Expression
             {
                 throw Base::ValueError("取余的模数为零，无法求值；请检查表达式里的模数");
             }
-            return Value(Units::Quantity(std::fmod(leftQuantity.getValue(), rightQuantity.getValue()), leftQuantity.getUnit()));
+            return {Units::Quantity(std::fmod(leftQuantity.getValue(), rightQuantity.getValue()), leftQuantity.getUnit())};
         }
 
         /// 幂运算；底数带量纲时由 Quantity::pow 要求整数指数，量纲不一致时抛 UnitsMismatchError
@@ -485,7 +483,7 @@ namespace ExpressionEngine::Expression
         {
             const Units::Quantity base     = toQuantity(left, "幂运算的底数");
             const Units::Quantity exponent = toQuantity(right, "幂运算的指数");
-            return Value(base.pow(exponent));
+            return {base.pow(exponent)};
         }
 
         /// 取负；数值与向量支持取负
@@ -557,7 +555,7 @@ namespace ExpressionEngine::Expression
             {
                 Collector::collect(value);
                 m_result += value;
-                m_first = false;
+                m_first  = false;
             }
         };
 
@@ -878,7 +876,8 @@ namespace ExpressionEngine::Expression
     // 分量
     //
 
-    Expression::Component::Component(std::string componentName) : kind(ComponentKind::Name), name(std::move(componentName))
+    Expression::Component::Component(std::string componentName) :
+        kind(ComponentKind::Name), name(std::move(componentName))
     {
     }
 
@@ -990,7 +989,8 @@ namespace ExpressionEngine::Expression
     // 表达式基类
     //
 
-    Expression::Expression(IObjectResolver *resolver) : m_resolver(resolver)
+    Expression::Expression(IObjectResolver *resolver) :
+        m_resolver(resolver)
     {
     }
 
@@ -1275,7 +1275,8 @@ namespace ExpressionEngine::Expression
     // 数值节点
     //
 
-    NumberExpression::NumberExpression(IObjectResolver *resolver, const Units::Quantity &quantity) : UnitExpression(resolver, quantity)
+    NumberExpression::NumberExpression(IObjectResolver *resolver, const Units::Quantity &quantity) :
+        UnitExpression(resolver, quantity)
     {
     }
 
@@ -1689,7 +1690,7 @@ namespace ExpressionEngine::Expression
         {
             // 一元运算直接贴在操作数前，操作数优先级更低时补括号
             needsParentheses = m_left->priority() < priority();
-            text += m_operator == Operator::Negate ? '-' : '+';
+            text             += m_operator == Operator::Negate ? '-' : '+';
             if (needsParentheses)
             {
                 text += '(';
@@ -1995,7 +1996,7 @@ namespace ExpressionEngine::Expression
                     if (std::fabs(matrix->determinant()) <= std::numeric_limits<double>::epsilon())
                     {
                         throw Base::ValueError("minvert() 的矩阵不可逆（行列式接近 0）；请检查矩阵是否退化，"
-                                               "或改用可逆的构造方式");
+                                "或改用可逆的构造方式");
                     }
                     Base::Matrix4D inverted = *matrix;
                     inverted.inverseGauss();
@@ -2067,7 +2068,7 @@ namespace ExpressionEngine::Expression
                 const Base::Rotation rotation(Base::Vector3d(function == Function::MatrixRotateX ? 1.0 : 0.0, function == Function::MatrixRotateY ? 1.0 : 0.0,
                                                              function == Function::MatrixRotateZ ? 1.0 : 0.0),
                                               angle);
-                Base::Matrix4D       rotationMatrix;
+                Base::Matrix4D rotationMatrix;
                 rotation.getValue(rotationMatrix);
                 return transformFirstArgument(arguments, rotationMatrix, label);
             }
@@ -2139,7 +2140,7 @@ namespace ExpressionEngine::Expression
 
                 const Base::Vector3d position      = vectorArgument(arguments, 0, label);
                 const Value          rotationValue = arguments[1]->evaluate();
-                const auto          *rotation      = std::get_if<Base::Rotation>(&rotationValue);
+                const auto *         rotation      = std::get_if<Base::Rotation>(&rotationValue);
                 if (rotation == nullptr)
                 {
                     throw Base::TypeError(std::format("placement() 的第二个参数需要旋转，实际是{}；"
@@ -2186,7 +2187,7 @@ namespace ExpressionEngine::Expression
             case Function::ParseQuantity:
             {
                 const Value       value        = arguments[0]->evaluate();
-                const auto       *text         = std::get_if<std::string>(&value);
+                const auto *      text         = std::get_if<std::string>(&value);
                 const std::string quantityText = text != nullptr ? *text : valueText(value);
                 try
                 {
@@ -2492,7 +2493,7 @@ namespace ExpressionEngine::Expression
                     break;
                 }
                 throw Base::UnitsMismatchError("translationm() 的三个平移分量必须是长度量或纯数；"
-                                               "请改用 mm、in 这类长度单位");
+                        "请改用 mm、in 这类长度单位");
             case Function::LogicalNot:
                 // 与 FreeCAD 一致：只看数值不看量纲
                 unit = Units::Unit();
@@ -2887,7 +2888,8 @@ namespace ExpressionEngine::Expression
     // 变量引用节点
     //
 
-    VariableExpression::VariableExpression(IObjectResolver *resolver, Reference reference) : UnitExpression(resolver), m_reference(std::move(reference))
+    VariableExpression::VariableExpression(IObjectResolver *resolver, Reference reference) :
+        UnitExpression(resolver), m_reference(std::move(reference))
     {
     }
 
@@ -2924,7 +2926,7 @@ namespace ExpressionEngine::Expression
 
     IProperty *VariableExpression::resolveProperty() const
     {
-        IObjectResolver  *objectResolver = resolver();
+        IObjectResolver * objectResolver = resolver();
         const std::string path           = pathText();
         if (objectResolver == nullptr)
         {
@@ -2988,7 +2990,7 @@ namespace ExpressionEngine::Expression
 
     Value VariableExpression::evaluateNode() const
     {
-        IProperty                 *property = resolveProperty();
+        IProperty *                property = resolveProperty();
         const std::optional<Value> value    = property->value();
         if (!value.has_value())
         {
@@ -3029,7 +3031,8 @@ namespace ExpressionEngine::Expression
     // 文本节点
     //
 
-    StringExpression::StringExpression(IObjectResolver *resolver, std::string text) : Expression(resolver), m_text(std::move(text))
+    StringExpression::StringExpression(IObjectResolver *resolver, std::string text) :
+        Expression(resolver), m_text(std::move(text))
     {
     }
 
@@ -3072,7 +3075,8 @@ namespace ExpressionEngine::Expression
     // 取值节点
     //
 
-    ValueExpression::ValueExpression(IObjectResolver *resolver, Value value) : Expression(resolver), m_value(std::move(value))
+    ValueExpression::ValueExpression(IObjectResolver *resolver, Value value) :
+        Expression(resolver), m_value(std::move(value))
     {
     }
 
@@ -3110,7 +3114,8 @@ namespace ExpressionEngine::Expression
     // 单元格区间节点
     //
 
-    RangeExpression::RangeExpression(IObjectResolver *resolver, std::string begin, std::string end) : Expression(resolver), m_begin(std::move(begin)), m_end(std::move(end))
+    RangeExpression::RangeExpression(IObjectResolver *resolver, std::string begin, std::string end) :
+        Expression(resolver), m_begin(std::move(begin)), m_end(std::move(end))
     {
     }
 
