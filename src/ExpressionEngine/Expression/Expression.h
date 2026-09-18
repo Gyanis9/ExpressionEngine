@@ -9,19 +9,13 @@
 
 #pragma once
 
-#include <cstddef>
 #include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
-#include <utility>
 #include <vector>
 
 #include <ExpressionEngine/Base/Exception.h>
-#include <ExpressionEngine/Base/Matrix.h>
-#include <ExpressionEngine/Base/Placement.h>
-#include <ExpressionEngine/Base/Rotation.h>
-#include <ExpressionEngine/Base/Vector3D.h>
 #include <ExpressionEngine/Expression/PropertyModel.h>
 #include <ExpressionEngine/Expression/Range.h>
 #include <ExpressionEngine/Expression/Value.h>
@@ -77,7 +71,9 @@ namespace ExpressionEngine::Expression
     class Expression
     {
     public:
-        /// 分量种类
+        /**
+         * @brief 分量种类
+         */
         enum class ComponentKind
         {
             Name,  ///< 属性路径上的一段名字，如 .Rotation
@@ -86,7 +82,9 @@ namespace ExpressionEngine::Expression
             MapKey ///< 映射键，如 ['Length']
         };
 
-        /// 引用路径上的一段分量
+        /**
+         * @brief 引用路径上的一段分量
+         */
         struct Component
         {
             ComponentKind kind{ComponentKind::Name}; ///< 分量种类
@@ -97,28 +95,57 @@ namespace ExpressionEngine::Expression
 
             Component() = default;
 
-            /// 造一个名字分量，如 .Rotation
+            /**
+             * @brief 造一个名字分量，如 .Rotation
+             * @param componentName 分量名字
+             */
             explicit Component(std::string componentName);
 
             Component(const Component &other);
+
             Component(Component &&other) noexcept;
+
             ~Component();
+
             Component &operator=(const Component &other);
+
             Component &operator=(Component &&other) noexcept;
 
-            /// 造一个数组下标分量，如 [0]
+            /**
+             * @brief 造一个数组下标分量，如 [0]
+             * @param indexExpression 下标表达式
+             * @return 下标分量
+             */
             static Component arrayIndex(ExpressionPtr indexExpression);
 
-            /// 造一个映射键分量，如 ['Length']
+            /**
+             * @brief 造一个映射键分量，如 ['Length']
+             * @param key 映射键文本
+             * @return 映射键分量
+             */
             static Component mapKey(std::string key);
 
-            /// 造一个区间分量，如 [1:3]；endIndex 为空表示开放区间
+            /**
+             * @brief 造一个区间分量，如 [1:3]
+             * @param begin 起始下标表达式
+             * @param end 结束下标表达式；空表示开放区间
+             * @param stepExpression 步长表达式；空表示步长 1
+             * @return 区间分量
+             */
             static Component rangeComponent(ExpressionPtr begin, ExpressionPtr end, ExpressionPtr stepExpression = nullptr);
 
-            /// 两段分量是否结构相同（名字相同、下标表达式结构相同）
+            /**
+             * @brief 两段分量是否结构相同（名字相同、下标表达式结构相同）
+             * @param other 另一段分量
+             * @return 结构相同时为 true
+             */
             [[nodiscard]] bool isSame(const Component &other) const;
 
-            /// 追加分量的文本写法
+            /**
+             * @brief 追加分量的文本写法
+             * @param text 输出：在末尾追加分量文本
+             * @param persistent true 时生成可回填、可持久化的文本
+             */
             void appendText(std::string &text, bool persistent) const;
         };
 
@@ -142,10 +169,14 @@ namespace ExpressionEngine::Expression
 
         virtual ~Expression();
 
-        Expression(const Expression &)            = delete;
+        Expression(const Expression &) = delete;
+
         Expression &operator=(const Expression &) = delete;
 
-        /// 取对象解析器，可为空
+        /**
+         * @brief 取对象解析器
+         * @return 对象解析器；未绑定时为空
+         */
         [[nodiscard]] IObjectResolver *resolver() const noexcept;
 
         /**
@@ -185,7 +216,10 @@ namespace ExpressionEngine::Expression
          */
         [[nodiscard]] virtual int priority() const;
 
-        /// 深拷贝，连同分量与注释
+        /**
+         * @brief 深拷贝，连同分量与注释
+         * @return 本节点的新副本
+         */
         [[nodiscard]] ExpressionPtr copy() const;
 
         /**
@@ -196,10 +230,16 @@ namespace ExpressionEngine::Expression
          */
         [[nodiscard]] bool isSame(const Expression &other, bool checkComment = true) const;
 
-        /// 是否带分量
+        /**
+         * @brief 是否带分量
+         * @return 带分量时为 true
+         */
         [[nodiscard]] bool hasComponent() const noexcept;
 
-        /// 取分量列表
+        /**
+         * @brief 取分量列表
+         * @return 分量列表
+         */
         [[nodiscard]] const ComponentList &components() const noexcept;
 
         /**
@@ -215,22 +255,40 @@ namespace ExpressionEngine::Expression
          */
         [[nodiscard]] std::vector<VariableReference> collectReferences() const;
 
-        /// 取注释
+        /**
+         * @brief 取注释
+         * @return 注释文本
+         */
         [[nodiscard]] const std::string &comment() const noexcept;
 
-        /// 设置注释
+        /**
+         * @brief 设置注释
+         * @param text 注释文本
+         */
         void setComment(std::string text);
 
-        /// 节点种类名，用于相等判定与诊断
+        /**
+         * @brief 节点种类名，用于相等判定与诊断
+         * @return 本节点的种类名
+         */
         [[nodiscard]] virtual std::string_view nodeName() const = 0;
 
-        /// 本节点是区间表达式时返回自身，否则返回 nullptr；供聚合函数识别区间参数
+        /**
+         * @brief 本节点是区间表达式时返回自身，否则返回 nullptr；供聚合函数识别区间参数
+         * @return 本节点自身；非区间节点为空
+         */
         [[nodiscard]] virtual const RangeExpression *asRangeExpression() const noexcept;
 
-        /// 本节点是运算符节点时返回自身，否则返回 nullptr；供文本化判断结合性
+        /**
+         * @brief 本节点是运算符节点时返回自身，否则返回 nullptr；供文本化判断结合性
+         * @return 本节点自身；非运算符节点为空
+         */
         [[nodiscard]] virtual const OperatorExpression *asOperatorExpression() const noexcept;
 
-        /// 本节点是否已是常量数值（数值节点或命名常量节点）；供常量折叠判断
+        /**
+         * @brief 本节点是否已是常量数值（数值节点或命名常量节点）；供常量折叠判断
+         * @return 已是常量数值时为 true
+         */
         [[nodiscard]] virtual bool isConstantNumeric() const noexcept;
 
     protected:
@@ -322,25 +380,46 @@ namespace ExpressionEngine::Expression
 
         ~UnitExpression() override;
 
-        /// 设置数量
+        /**
+         * @brief 设置数量
+         * @param quantity 数量
+         */
         void setQuantity(const Units::Quantity &quantity);
 
-        /// 设置数量；与 setQuantity() 等价，保留 FreeCAD 的命名以便对照
+        /**
+         * @brief 设置数量；与 setQuantity() 等价，保留 FreeCAD 的命名以便对照
+         * @param quantity 数量
+         */
         void setUnit(const Units::Quantity &quantity);
 
-        /// 取数值（以基准量纲表示）
+        /**
+         * @brief 取数值（以基准量纲表示）
+         * @return 基准量纲下的数值
+         */
         [[nodiscard]] double getValue() const;
 
-        /// 取单位（量纲）
+        /**
+         * @brief 取单位（量纲）
+         * @return 单位（量纲）
+         */
         [[nodiscard]] const Units::Unit &getUnit() const;
 
-        /// 取数量
+        /**
+         * @brief 取数量
+         * @return 数量
+         */
         [[nodiscard]] const Units::Quantity &getQuantity() const;
 
-        /// 取单位原文
+        /**
+         * @brief 取单位原文
+         * @return 单位原文；空表示按数值排版
+         */
         [[nodiscard]] std::string getUnitText() const;
 
-        /// 取比例系数，等价于 getValue()
+        /**
+         * @brief 取比例系数，等价于 getValue()
+         * @return 比例系数
+         */
         [[nodiscard]] double getScaler() const;
 
         /**
@@ -389,7 +468,9 @@ namespace ExpressionEngine::Expression
         std::string     m_unitText; ///< 单位原文
     };
 
-    /// 数值节点：一个带单位的常量
+    /**
+     * @brief 数值节点：一个带单位的常量
+     */
     class NumberExpression : public UnitExpression
     {
     public:
@@ -408,7 +489,9 @@ namespace ExpressionEngine::Expression
          */
         [[nodiscard]] ExpressionPtr simplify() const override;
 
-        /// 取负
+        /**
+         * @brief 取负
+         */
         void negate();
 
         /**
@@ -451,7 +534,9 @@ namespace ExpressionEngine::Expression
         [[nodiscard]] ExpressionPtr copyNode() const override;
     };
 
-    /// 命名常量节点：True、False 等有名字的常量，取值与名字同时保留
+    /**
+     * @brief 命名常量节点：True、False 等有名字的常量，取值与名字同时保留
+     */
     class ConstantExpression : public NumberExpression
     {
     public:
@@ -463,10 +548,16 @@ namespace ExpressionEngine::Expression
          */
         explicit ConstantExpression(IObjectResolver *resolver = nullptr, std::string name = std::string(), const Units::Quantity &quantity = Units::Quantity());
 
-        /// 取常量名
+        /**
+         * @brief 取常量名
+         * @return 常量名
+         */
         [[nodiscard]] std::string getName() const;
 
-        /// 常量是否按数值参与运算；True 与 False 是布尔值，不算数值
+        /**
+         * @brief 常量是否按数值参与运算；True 与 False 是布尔值，不算数值
+         * @return 参与数值运算时为 true
+         */
         [[nodiscard]] bool isNumber() const;
 
         /**
@@ -507,11 +598,15 @@ namespace ExpressionEngine::Expression
         std::string m_name; ///< 常量名
     };
 
-    /// 运算符节点：一元与二元运算
+    /**
+     * @brief 运算符节点：一元与二元运算
+     */
     class OperatorExpression : public UnitExpression
     {
     public:
-        /// 运算符
+        /**
+         * @brief 运算符
+         */
         enum class Operator
         {
             None,         ///< 未设置
@@ -543,19 +638,34 @@ namespace ExpressionEngine::Expression
 
         ~OperatorExpression() override;
 
-        /// 取运算符
+        /**
+         * @brief 取运算符
+         * @return 运算符
+         */
         [[nodiscard]] Operator getOperator() const noexcept;
 
-        /// 取左操作数
+        /**
+         * @brief 取左操作数
+         * @return 左操作数
+         */
         [[nodiscard]] const Expression *getLeft() const noexcept;
 
-        /// 取右操作数；一元运算符返回 nullptr
+        /**
+         * @brief 取右操作数
+         * @return 右操作数；一元运算符为空
+         */
         [[nodiscard]] const Expression *getRight() const noexcept;
 
-        /// 设置左操作数
+        /**
+         * @brief 设置左操作数
+         * @param expression 新左操作数
+         */
         void setLeft(ExpressionPtr expression);
 
-        /// 设置右操作数
+        /**
+         * @brief 设置右操作数
+         * @param expression 新右操作数
+         */
         void setRight(ExpressionPtr expression);
 
         /**
@@ -574,19 +684,36 @@ namespace ExpressionEngine::Expression
          */
         [[nodiscard]] int priority() const override;
 
-        /// 运算是否可交换
+        /**
+         * @brief 运算是否可交换
+         * @return 可交换时为 true
+         */
         [[nodiscard]] bool isCommutative() const;
 
-        /// 运算是否左结合
+        /**
+         * @brief 运算是否左结合
+         * @return 左结合时为 true
+         */
         [[nodiscard]] bool isLeftAssociative() const;
 
-        /// 运算是否右结合
+        /**
+         * @brief 运算是否右结合
+         * @return 右结合时为 true
+         */
         [[nodiscard]] bool isRightAssociative() const;
 
-        /// 取运算符的文本写法
+        /**
+         * @brief 取运算符的文本写法
+         * @param operation 运算符
+         * @return 运算符文本
+         */
         [[nodiscard]] static std::string_view operatorText(Operator operation);
 
-        /// 取文本对应的运算符；无法识别时返回 None
+        /**
+         * @brief 取文本对应的运算符；无法识别时返回 None
+         * @param text 运算符文本
+         * @return 运算符；无法识别时为 Operator::None
+         */
         [[nodiscard]] static Operator operatorFromText(std::string_view text);
 
         /**
@@ -647,7 +774,9 @@ namespace ExpressionEngine::Expression
         ExpressionPtr m_right;    ///< 右操作数
     };
 
-    /// 三元条件节点：条件 ? 真分支 : 假分支
+    /**
+     * @brief 三元条件节点：条件 ? 真分支 : 假分支
+     */
     class ConditionalExpression : public Expression
     {
     public:
@@ -663,13 +792,22 @@ namespace ExpressionEngine::Expression
 
         ~ConditionalExpression() override;
 
-        /// 取条件表达式
+        /**
+         * @brief 取条件表达式
+         * @return 条件表达式
+         */
         [[nodiscard]] const Expression *getCondition() const noexcept;
 
-        /// 取真分支
+        /**
+         * @brief 取真分支
+         * @return 真分支表达式
+         */
         [[nodiscard]] const Expression *getTrueExpression() const noexcept;
 
-        /// 取假分支
+        /**
+         * @brief 取假分支
+         * @return 假分支表达式
+         */
         [[nodiscard]] const Expression *getFalseExpression() const noexcept;
 
         /**
@@ -736,7 +874,9 @@ namespace ExpressionEngine::Expression
         ExpressionPtr m_falseExpression; ///< 假分支
     };
 
-    /// 函数调用节点
+    /**
+     * @brief 函数调用节点
+     */
     class FunctionExpression : public UnitExpression
     {
     public:
@@ -821,7 +961,7 @@ namespace ExpressionEngine::Expression
             HiddenReference,      ///< hiddenref：隐藏引用，取值但不建立依赖
             HiddenReferenceAlias, ///< href：hiddenref 的旧名
 
-            /// 逻辑
+            // 逻辑
             LogicalNot, ///< not：逻辑非
 
             Aggregates, ///< 聚合函数的起始哨兵，本身不是函数；与其后的聚合函数相邻，便于范围判断
@@ -853,10 +993,16 @@ namespace ExpressionEngine::Expression
 
         ~FunctionExpression() override;
 
-        /// 取函数种类
+        /**
+         * @brief 取函数种类
+         * @return 函数种类
+         */
         [[nodiscard]] Function getFunction() const noexcept;
 
-        /// 取实参
+        /**
+         * @brief 取实参
+         * @return 实参列表
+         */
         [[nodiscard]] const std::vector<ExpressionPtr> &getArguments() const noexcept;
 
         /**
@@ -877,10 +1023,18 @@ namespace ExpressionEngine::Expression
          */
         [[nodiscard]] static Value evaluateFunction(const Expression &context, Function function, const std::vector<ExpressionPtr> &arguments);
 
-        /// 取函数的规范名，如 "sqrt"
+        /**
+         * @brief 取函数的规范名，如 "sqrt"
+         * @param function 函数种类
+         * @return 函数的规范名
+         */
         [[nodiscard]] static std::string_view functionName(Function function);
 
-        /// 取名字对应的函数；无法识别时返回 Function::None
+        /**
+         * @brief 取名字对应的函数；无法识别时返回 Function::None
+         * @param name 函数名
+         * @return 函数种类；无法识别时为 Function::None
+         */
         [[nodiscard]] static Function functionFromName(std::string_view name);
 
         /**
@@ -968,16 +1122,28 @@ namespace ExpressionEngine::Expression
 
         ~VariableExpression() override;
 
-        /// 取引用路径
+        /**
+         * @brief 取引用路径
+         * @return 引用路径
+         */
         [[nodiscard]] const Reference &getReference() const noexcept;
 
-        /// 设置引用路径
+        /**
+         * @brief 设置引用路径
+         * @param reference 新引用路径
+         */
         void setReference(Reference reference);
 
-        /// 属性名
+        /**
+         * @brief 属性名
+         * @return 属性名
+         */
         [[nodiscard]] std::string name() const;
 
-        /// 引用的文本写法，如 "Part.Box.Length"，用于报错
+        /**
+         * @brief 引用的文本写法，如 "Part.Box.Length"，用于报错
+         * @return 引用文本
+         */
         [[nodiscard]] std::string pathText() const;
 
         /**
@@ -1068,7 +1234,9 @@ namespace ExpressionEngine::Expression
         Reference m_reference; ///< 引用路径
     };
 
-    /// 文本节点；求值结果就是文本本身
+    /**
+     * @brief 文本节点；求值结果就是文本本身
+     */
     class StringExpression : public Expression
     {
     public:
@@ -1079,7 +1247,10 @@ namespace ExpressionEngine::Expression
          */
         explicit StringExpression(IObjectResolver *resolver = nullptr, std::string text = std::string());
 
-        /// 取文本内容
+        /**
+         * @brief 取文本内容
+         * @return 文本内容
+         */
         [[nodiscard]] std::string getText() const;
 
         /**
@@ -1135,7 +1306,9 @@ namespace ExpressionEngine::Expression
         std::string m_text; ///< 文本内容
     };
 
-    /// 取值节点：承载已经算出来的几何值，等价于 FreeCAD 的 PyObjectExpression
+    /**
+     * @brief 取值节点：承载已经算出来的几何值，等价于 FreeCAD 的 PyObjectExpression
+     */
     class ValueExpression : public Expression
     {
     public:
@@ -1146,7 +1319,10 @@ namespace ExpressionEngine::Expression
          */
         explicit ValueExpression(IObjectResolver *resolver = nullptr, Value value = Value());
 
-        /// 取取值
+        /**
+         * @brief 取取值
+         * @return 取值
+         */
         [[nodiscard]] const Value &getValue() const noexcept;
 
         /**
@@ -1211,10 +1387,16 @@ namespace ExpressionEngine::Expression
 
         ~RangeExpression() override;
 
-        /// 取起始地址文本
+        /**
+         * @brief 取起始地址文本
+         * @return 起始地址文本
+         */
         [[nodiscard]] std::string getBegin() const;
 
-        /// 取结束地址文本
+        /**
+         * @brief 取结束地址文本
+         * @return 结束地址文本
+         */
         [[nodiscard]] std::string getEnd() const;
 
         /**
