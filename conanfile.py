@@ -41,7 +41,10 @@ class ExpressionEngineRecipe(ConanFile):
 
     def generate(self):
         toolchain = CMakeToolchain(self)
-        # 包内不构建用例与基准：测试依赖 vendor 的 GoogleTest，基准需要 Release 才有意义。
+        # 不在源码树里生成 CMakeUserPresets.json：仓库根的 CMakePresets.json 已覆盖全部开发
+        # 场景，而这个副产物内含指向构建目录的 include，构建目录一删它就失效。
+        toolchain.user_presets_path = ""
+        # 包内不构建用例与基准：用例依赖 GoogleTest、基准需要 Release 才有意义。
         toolchain.cache_variables["EXPRESSIONENGINE_BUILD_TESTS"] = "OFF"
         toolchain.cache_variables["EXPRESSIONENGINE_BUILD_BENCHMARKS"] = "OFF"
         toolchain.generate()

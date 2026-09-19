@@ -10,6 +10,13 @@ get_property(EXPRESSION_SOURCES GLOBAL PROPERTY ExpressionEngineExpressionSource
 
 add_library(ExpressionEngine STATIC ${BASE_SOURCES} ${UNITS_SOURCES} ${EXPRESSION_SOURCES})
 
+# 源码树与安装树同形：子目录集成时也能用带命名空间的目标名（安装导出映射到同一名字）。
+add_library(ExpressionEngine::ExpressionEngine ALIAS ExpressionEngine)
+
+# C++23 是接口的一部分：头文件用了 std::expected、std::format 等设施，下游必须同标准编译。
+# 设为 PUBLIC 后随导出目标传递给消费者，装完即用不依赖对方手动开标准。
+target_compile_features(ExpressionEngine PUBLIC cxx_std_23)
+
 # 以 src 为包含根，对外暴露 <ExpressionEngine/Base/...> 形式的路径：
 # 带库名前缀可避免与其他库同名的 Base/ 目录在同一个编译单元里撞名。
 target_include_directories(ExpressionEngine PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
