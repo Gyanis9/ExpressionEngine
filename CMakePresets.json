@@ -22,7 +22,7 @@
     },
     {
       "name": "release",
-      "description": "Optimized release build with LTO",
+      "description": "Optimized release build",
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/build/release",
       "cacheVariables": {
