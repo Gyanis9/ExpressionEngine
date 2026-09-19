@@ -13,8 +13,8 @@ namespace ExpressionEngine::Units
         /// 类型名与量纲指数的对照表，既供反查类型名，也供按名构造静态单位
         struct UnitSpecification
         {
-            std::string_view name;
-            UnitExponents    exponents;
+            std::string_view name;      ///< 类型名
+            UnitExponents    exponents; ///< 八个量纲上的指数
         };
 
         /// 类型名与量纲指数对照表的全部条目，顺序与 UnitSpecification 的声明一致
@@ -113,49 +113,49 @@ namespace ExpressionEngine::Units
         checkRange();
     }
 
-    bool Unit::operator==(const Unit &that) const
+    bool Unit::operator==(const Unit &other) const
     {
-        return m_exponents == that.m_exponents;
+        return m_exponents == other.m_exponents;
     }
 
-    bool Unit::operator!=(const Unit &that) const
+    bool Unit::operator!=(const Unit &other) const
     {
-        return m_exponents != that.m_exponents;
+        return m_exponents != other.m_exponents;
     }
 
-    Unit &Unit::operator*=(const Unit &that)
+    Unit &Unit::operator*=(const Unit &other)
     {
-        *this = *this * that;
+        *this = *this * other;
         return *this;
     }
 
-    Unit &Unit::operator/=(const Unit &that)
+    Unit &Unit::operator/=(const Unit &other)
     {
-        *this = *this / that;
+        *this = *this / other;
         return *this;
     }
 
-    Unit Unit::operator*(const Unit &that) const
+    Unit Unit::operator*(const Unit &other) const
     {
         UnitExponents result{};
-        std::transform(m_exponents.begin(), m_exponents.end(), that.m_exponents.begin(), result.begin(),
-                       [](const auto leftExponent, const auto rightExponent)
-                       {
-                           return static_cast<std::int8_t>(leftExponent + rightExponent);
-                       });
+        std::ranges::transform(m_exponents, other.m_exponents, result.begin(),
+                               [](const auto leftExponent, const auto rightExponent)
+                               {
+                                   return static_cast<std::int8_t>(leftExponent + rightExponent);
+                               });
 
         // 结果构造时校验指数范围，乘法溢出一律报错而非截断
         return Unit{result};
     }
 
-    Unit Unit::operator/(const Unit &that) const
+    Unit Unit::operator/(const Unit &other) const
     {
         UnitExponents result{};
-        std::transform(m_exponents.begin(), m_exponents.end(), that.m_exponents.begin(), result.begin(),
-                       [](const auto leftExponent, const auto rightExponent)
-                       {
-                           return static_cast<std::int8_t>(leftExponent - rightExponent);
-                       });
+        std::ranges::transform(m_exponents, other.m_exponents, result.begin(),
+                               [](const auto leftExponent, const auto rightExponent)
+                               {
+                                   return static_cast<std::int8_t>(leftExponent - rightExponent);
+                               });
 
         return Unit{result};
     }

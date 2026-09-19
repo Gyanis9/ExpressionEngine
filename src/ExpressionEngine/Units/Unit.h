@@ -82,49 +82,49 @@ namespace ExpressionEngine::Units
 
         /**
          * @brief 判断各量纲指数是否全等，不比较比例
-         * @param that 待比较的单位
+         * @param other 待比较的单位
          * @return 各指数都相同时为 true
          */
-        bool operator==(const Unit &that) const;
+        bool operator==(const Unit &other) const;
 
         /**
          * @brief 判断各量纲指数是否不全等
-         * @param that 待比较的单位
+         * @param other 待比较的单位
          * @return 任一指数组不同为 true
          */
-        bool operator!=(const Unit &that) const;
+        bool operator!=(const Unit &other) const;
 
         /**
          * @brief 就地相乘，指数相加
-         * @param that 右乘的单位
+         * @param other 右乘的单位
          * @return 自身引用
          * @throws OverflowError/UnderflowError 结果指数越界
          */
-        Unit &operator*=(const Unit &that);
+        Unit &operator*=(const Unit &other);
 
         /**
          * @brief 就地相除，指数相减
-         * @param that 右除的单位
+         * @param other 右除的单位
          * @return 自身引用
          * @throws OverflowError/UnderflowError 结果指数越界
          */
-        Unit &operator/=(const Unit &that);
+        Unit &operator/=(const Unit &other);
 
         /**
          * @brief 相乘，指数相加
-         * @param that 右乘的单位
+         * @param other 右乘的单位
          * @return 新的单位
          * @throws OverflowError/UnderflowError 结果指数越界
          */
-        Unit operator*(const Unit &that) const;
+        Unit operator*(const Unit &other) const;
 
         /**
          * @brief 相除，指数相减
-         * @param that 右除的单位
+         * @param other 右除的单位
          * @return 新的单位
          * @throws OverflowError/UnderflowError 结果指数越界
          */
-        Unit operator/(const Unit &that) const;
+        Unit operator/(const Unit &other) const;
 
         /**
          * @brief 求单位的幂
@@ -196,66 +196,69 @@ namespace ExpressionEngine::Units
         [[nodiscard]] std::pair<std::vector<std::size_t>, std::vector<std::size_t> > nonZeroValueIndexes() const;
 
     public:
-        static const Unit Acceleration;
-        static const Unit AmountOfSubstance;
-        static const Unit Angle;
-        static const Unit AngleOfFriction;
-        static const Unit Area;
-        static const Unit CompressiveStrength;
-        static const Unit Concentration;
-        static const Unit CurrentDensity;
-        static const Unit Density;
-        static const Unit DissipationRate;
-        static const Unit DynamicViscosity;
-        static const Unit ElectricalCapacitance;
-        static const Unit ElectricalConductance;
-        static const Unit ElectricalConductivity;
-        static const Unit ElectricalInductance;
-        static const Unit ElectricalResistance;
-        static const Unit ElectricCharge;
-        static const Unit ElectricCurrent;
-        static const Unit ElectricPotential;
-        static const Unit ElectromagneticPotential;
-        static const Unit Force;
-        static const Unit Frequency;
-        static const Unit HeatFlux;
-        static const Unit Inertia;
-        static const Unit InverseArea;
-        static const Unit InverseLength;
-        static const Unit InverseVolume;
-        static const Unit KinematicViscosity;
-        static const Unit Length;
-        static const Unit LuminousIntensity;
-        static const Unit MagneticFieldStrength;
-        static const Unit MagneticFlux;
-        static const Unit MagneticFluxDensity;
-        static const Unit Magnetization;
-        static const Unit Mass;
-        static const Unit Moment;
-        static const Unit One;
-        static const Unit Pressure;
-        static const Unit Power;
-        static const Unit ShearModulus;
-        static const Unit SpecificEnergy;
-        static const Unit SpecificHeat;
-        static const Unit Stiffness;
-        static const Unit StiffnessDensity;
-        static const Unit Stress;
-        static const Unit SurfaceChargeDensity;
-        static const Unit Temperature;
-        static const Unit TimeSpan;
-        static const Unit ThermalConductivity;
-        static const Unit ThermalExpansionCoefficient;
-        static const Unit ThermalTransferCoefficient;
-        static const Unit UltimateTensileStrength;
-        static const Unit VacuumPermittivity;
-        static const Unit Velocity;
-        static const Unit Volume;
-        static const Unit VolumeChargeDensity;
-        static const Unit VolumeFlowRate;
-        static const Unit VolumetricThermalExpansionCoefficient;
-        static const Unit Work;
-        static const Unit YieldStrength;
-        static const Unit YoungsModulus;
+        //@{
+        /** 预定义的单位类型：量纲以基准单位表示（如 Length 为 mm、Area 为 mm^2）。 */
+        static const Unit Acceleration;                          ///< 加速度
+        static const Unit AmountOfSubstance;                     ///< 物质的量
+        static const Unit Angle;                                 ///< 角度
+        static const Unit AngleOfFriction;                       ///< 摩擦角
+        static const Unit Area;                                  ///< 面积
+        static const Unit CompressiveStrength;                   ///< 抗压强度
+        static const Unit Concentration;                         ///< 浓度
+        static const Unit CurrentDensity;                        ///< 电流密度
+        static const Unit Density;                               ///< 密度
+        static const Unit DissipationRate;                       ///< 耗散率
+        static const Unit DynamicViscosity;                      ///< 动力黏度
+        static const Unit ElectricalCapacitance;                 ///< 电容
+        static const Unit ElectricalConductance;                 ///< 电导
+        static const Unit ElectricalConductivity;                ///< 电导率
+        static const Unit ElectricalInductance;                  ///< 电感
+        static const Unit ElectricalResistance;                  ///< 电阻
+        static const Unit ElectricCharge;                        ///< 电荷量
+        static const Unit ElectricCurrent;                       ///< 电流
+        static const Unit ElectricPotential;                     ///< 电势
+        static const Unit ElectromagneticPotential;              ///< 电磁势
+        static const Unit Force;                                 ///< 力
+        static const Unit Frequency;                             ///< 频率
+        static const Unit HeatFlux;                              ///< 热流密度
+        static const Unit Inertia;                               ///< 转动惯量
+        static const Unit InverseArea;                           ///< 每单位面积
+        static const Unit InverseLength;                         ///< 每单位长度
+        static const Unit InverseVolume;                         ///< 每单位体积
+        static const Unit KinematicViscosity;                    ///< 运动黏度
+        static const Unit Length;                                ///< 长度
+        static const Unit LuminousIntensity;                     ///< 发光强度
+        static const Unit MagneticFieldStrength;                 ///< 磁场强度
+        static const Unit MagneticFlux;                          ///< 磁通量
+        static const Unit MagneticFluxDensity;                   ///< 磁通密度
+        static const Unit Magnetization;                         ///< 磁化强度
+        static const Unit Mass;                                  ///< 质量
+        static const Unit Moment;                                ///< 力矩
+        static const Unit One;                                   ///< 无量纲
+        static const Unit Pressure;                              ///< 压强
+        static const Unit Power;                                 ///< 功率
+        static const Unit ShearModulus;                          ///< 剪切模量
+        static const Unit SpecificEnergy;                        ///< 比能
+        static const Unit SpecificHeat;                          ///< 比热容
+        static const Unit Stiffness;                             ///< 刚度
+        static const Unit StiffnessDensity;                      ///< 比刚度
+        static const Unit Stress;                                ///< 应力
+        static const Unit SurfaceChargeDensity;                  ///< 面电荷密度
+        static const Unit Temperature;                           ///< 温度
+        static const Unit TimeSpan;                              ///< 时间
+        static const Unit ThermalConductivity;                   ///< 导热系数
+        static const Unit ThermalExpansionCoefficient;           ///< 线膨胀系数
+        static const Unit ThermalTransferCoefficient;            ///< 传热系数
+        static const Unit UltimateTensileStrength;               ///< 极限抗拉强度
+        static const Unit VacuumPermittivity;                    ///< 真空电容率
+        static const Unit Velocity;                              ///< 速度
+        static const Unit Volume;                                ///< 体积
+        static const Unit VolumeChargeDensity;                   ///< 体电荷密度
+        static const Unit VolumeFlowRate;                        ///< 体积流量
+        static const Unit VolumetricThermalExpansionCoefficient; ///< 体积膨胀系数
+        static const Unit Work;                                  ///< 功
+        static const Unit YieldStrength;                         ///< 屈服强度
+        static const Unit YoungsModulus;                         ///< 弹性模量
+        //@}
     };
 } // namespace ExpressionEngine::Units

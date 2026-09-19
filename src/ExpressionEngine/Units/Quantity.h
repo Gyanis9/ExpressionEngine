@@ -9,6 +9,7 @@
 
 #pragma once
 
+#include <compare>
 #include <cstdint>
 #include <string>
 
@@ -26,7 +27,7 @@ namespace ExpressionEngine::Units
      */
     struct QuantityFormat
     {
-        using NumberOptions                                          = std::uint32_t; /// 数字格式选项位
+        using NumberOptions                                          = std::uint32_t; ///< 数字格式选项位
         static constexpr NumberOptions None                          = 0x00;          ///< 不做特殊处理
         static constexpr NumberOptions OmitGroupSeparator            = 0x01;          ///< 不输出分组分隔符
         static constexpr NumberOptions RejectGroupSeparator          = 0x02;          ///< 拒绝输入中的分组分隔符
@@ -227,36 +228,14 @@ namespace ExpressionEngine::Units
         bool operator!=(const Quantity &other) const;
 
         /**
-         * @brief 比较数值大小，要求两侧量纲相同
+         * @brief 按数值大小比较，要求两侧量纲相同
+         * @details 返回偏序，编译器据此生成 <、>、<=、>= 四个关系；NaN 参与比较时为无序，
+         *          四个关系一律为假。
          * @param other 右侧的量
-         * @return 本量数值更小为 true
+         * @return 数值比较的偏序；量纲不同时抛错而不比较
          * @throws UnitsMismatchError 两侧量纲不同
          */
-        bool operator<(const Quantity &other) const;
-
-        /**
-         * @brief 比较数值大小，要求两侧量纲相同
-         * @param other 右侧的量
-         * @return 本量数值更大为 true
-         * @throws UnitsMismatchError 两侧量纲不同
-         */
-        bool operator>(const Quantity &other) const;
-
-        /**
-         * @brief 比较数值大小，要求两侧量纲相同
-         * @param other 右侧的量
-         * @return 本量数值更小或相等为 true
-         * @throws UnitsMismatchError 两侧量纲不同
-         */
-        bool operator<=(const Quantity &other) const;
-
-        /**
-         * @brief 比较数值大小，要求两侧量纲相同
-         * @param other 右侧的量
-         * @return 本量数值更大或相等为 true
-         * @throws UnitsMismatchError 两侧量纲不同
-         */
-        bool operator>=(const Quantity &other) const;
+        std::partial_ordering operator<=>(const Quantity &other) const;
 
         Quantity &operator=(const Quantity &) = default;
 

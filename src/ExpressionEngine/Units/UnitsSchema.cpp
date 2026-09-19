@@ -55,7 +55,7 @@ namespace ExpressionEngine::Units
         };
 
         const auto &candidates        = m_specification.translationSpecifications.at(unitTypeName);
-        const auto  unitSpecification = std::find_if(candidates.begin(), candidates.end(), isApplicable);
+        const auto  unitSpecification = std::ranges::find_if(candidates, isApplicable);
         if (unitSpecification == candidates.end())
         {
             throw Base::ExpressionError(std::format("单位方案 {} 的 {} 换算表里没有匹配条目，也没有阈值 0 "
@@ -88,7 +88,7 @@ namespace ExpressionEngine::Units
                                                                       : std::to_string(convertedValue);
 
         // 角度与英制的单位符号是上标式记号，与数值之间不留空格才符合书写习惯
-        const auto needsSeparator = [](const std::string &unit) { return !unit.empty() && unit != "°" && unit != "″" && unit != "′" && unit != "\"" && unit != "'"; };
+        const auto needsSeparator = [](const std::string_view unit) { return !unit.empty() && unit != "°" && unit != "″" && unit != "′" && unit != "\"" && unit != "'"; };
 
         return std::format("{}{}{}", valueString, needsSeparator(unitString) ? " " : "", unitString);
     }

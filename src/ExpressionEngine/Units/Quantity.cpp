@@ -83,7 +83,7 @@ namespace ExpressionEngine::Units
         return !(*this == other);
     }
 
-    bool Quantity::operator<(const Quantity &other) const
+    std::partial_ordering Quantity::operator<=>(const Quantity &other) const
     {
         // 量纲不同时大小无意义，宁可报错也不按数值硬比
         if (m_unit != other.m_unit)
@@ -91,37 +91,7 @@ namespace ExpressionEngine::Units
             throw Base::UnitsMismatchError("比较两个量的大小时单位必须一致，请先换算成同一单位");
         }
 
-        return m_value < other.m_value;
-    }
-
-    bool Quantity::operator>(const Quantity &other) const
-    {
-        if (m_unit != other.m_unit)
-        {
-            throw Base::UnitsMismatchError("比较两个量的大小时单位必须一致，请先换算成同一单位");
-        }
-
-        return m_value > other.m_value;
-    }
-
-    bool Quantity::operator<=(const Quantity &other) const
-    {
-        if (m_unit != other.m_unit)
-        {
-            throw Base::UnitsMismatchError("比较两个量的大小时单位必须一致，请先换算成同一单位");
-        }
-
-        return m_value <= other.m_value;
-    }
-
-    bool Quantity::operator>=(const Quantity &other) const
-    {
-        if (m_unit != other.m_unit)
-        {
-            throw Base::UnitsMismatchError("比较两个量的大小时单位必须一致，请先换算成同一单位");
-        }
-
-        return m_value >= other.m_value;
+        return m_value <=> other.m_value;
     }
 
     Quantity Quantity::operator*(const Quantity &other) const
@@ -155,7 +125,7 @@ namespace ExpressionEngine::Units
         return Quantity(std::pow(m_value, exponent.m_value), m_unit.pow(exponent.m_value));
     }
 
-    Quantity Quantity::pow(double exponent) const
+    Quantity Quantity::pow(const double exponent) const
     {
         return Quantity(std::pow(m_value, exponent), m_unit.pow(exponent));
     }

@@ -9,6 +9,7 @@
 
 #pragma once
 
+#include <compare>
 #include <string>
 #include <string_view>
 
@@ -92,17 +93,11 @@ namespace ExpressionEngine::Expression
 
         /**
          * @brief 按行列先后比较两个地址
+         * @details 返回强序，编译器据此生成 <、>、<=、>= 四个关系；无效地址按内部编码参与比较。
          * @param other 另一地址
-         * @return 本地址排在前面时为 true；无效地址按内部编码参与比较
+         * @return 行列先后比较的结果
          */
-        bool operator<(const CellAddress &other) const noexcept;
-
-        /**
-         * @brief 按行列先后比较两个地址
-         * @param other 另一地址
-         * @return 本地址排在后面时为 true
-         */
-        bool operator>(const CellAddress &other) const noexcept;
+        std::strong_ordering operator<=>(const CellAddress &other) const noexcept;
 
         /**
          * @brief 判断两个地址是否指向同一单元格
@@ -204,7 +199,7 @@ namespace ExpressionEngine::Expression
          *          使 const 区间也能参与 `do { … } while (range.next())` 的遍历写法。
          * @return 还有下一个单元格时为 true；已遍历完成为 false
          */
-        bool next() const;
+        [[nodiscard]] bool next() const;
 
         /// 整理区间，使起点在左上、终点在右下
         void normalize();

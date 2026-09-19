@@ -214,8 +214,8 @@ namespace ExpressionEngine::Units
         /// 函数名到函数标识的对照
         struct FunctionTokenSpecification
         {
-            std::string_view name;
-            FunctionId       function;
+            std::string_view name;     ///< 函数名文本
+            FunctionId       function; ///< 对应处理函数
         };
 
         /// 标量函数的名字对照表：走最长匹配，使 log10 胜过 log

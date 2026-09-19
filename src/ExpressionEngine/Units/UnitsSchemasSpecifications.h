@@ -43,8 +43,7 @@ namespace ExpressionEngine::Units
         const char *description{nullptr};     ///< 方案描述
         bool        isDefault{false};         ///< 是否为默认方案
 
-        /// 按单位类型名索引的换算规则集合
-        std::map<std::string, std::vector<UnitTranslationSpecification> > translationSpecifications;
+        std::map<std::string, std::vector<UnitTranslationSpecification> > translationSpecifications; ///< 按单位类型名索引的换算规则集合
     };
 
     /**

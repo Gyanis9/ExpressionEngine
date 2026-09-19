@@ -32,9 +32,9 @@ namespace ExpressionEngine::Expression
         /// 二元运算符的记号、运算符节点取值与结合功率
         struct BinaryOperatorInfo
         {
-            OperatorExpression::Operator operation;
-            int                          leftBinding;
-            int                          rightBinding;
+            OperatorExpression::Operator operation;    ///< 运算符节点取值
+            int                          leftBinding;  ///< 左结合功率
+            int                          rightBinding; ///< 右结合功率
         };
 
         /**

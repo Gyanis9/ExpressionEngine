@@ -943,7 +943,7 @@ namespace ExpressionEngine::Expression
         return expressionsSame(index.get(), other.index.get()) && expressionsSame(endIndex.get(), other.endIndex.get()) && expressionsSame(step.get(), other.step.get());
     }
 
-    void Expression::Component::appendText(std::string &text, bool persistent) const
+    void Expression::Component::appendText(std::string &text, const bool persistent) const
     {
         switch (kind)
         {
@@ -1073,7 +1073,7 @@ namespace ExpressionEngine::Expression
         return s_defaultPriority;
     }
 
-    std::string Expression::toString(bool persistent, bool checkPriority, int indent) const
+    std::string Expression::toString(const bool persistent, const bool checkPriority, const int indent) const
     {
         std::string text;
         if (m_components.empty())
@@ -1117,7 +1117,7 @@ namespace ExpressionEngine::Expression
         return result;
     }
 
-    bool Expression::isSame(const Expression &other, bool checkComment) const
+    bool Expression::isSame(const Expression &other, const bool checkComment) const
     {
         if (&other == this)
         {
@@ -1555,7 +1555,7 @@ namespace ExpressionEngine::Expression
         }
     }
 
-    OperatorExpression::Operator OperatorExpression::operatorFromText(std::string_view text)
+    OperatorExpression::Operator OperatorExpression::operatorFromText(const std::string_view text)
     {
         // 减号统一解析成二元减法；一元取负由解析器按上下文改写成 Negate
         if (text == "+")
@@ -1868,7 +1868,7 @@ namespace ExpressionEngine::Expression
         return m_falseExpression->evaluate();
     }
 
-    void ConditionalExpression::appendText(std::string &text, bool persistent, int) const
+    void ConditionalExpression::appendText(std::string &text, const bool persistent, int) const
     {
         text += m_condition->toString(persistent);
         text += " ? ";
@@ -2851,7 +2851,7 @@ namespace ExpressionEngine::Expression
         return Function::None;
     }
 
-    void FunctionExpression::appendText(std::string &text, bool persistent, int) const
+    void FunctionExpression::appendText(std::string &text, const bool persistent, int) const
     {
         if (m_name.empty())
         {

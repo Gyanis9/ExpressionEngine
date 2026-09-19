@@ -7,6 +7,7 @@
 #include <string>
 #include <string_view>
 #include <system_error>
+#include <utility>
 
 
 namespace ExpressionEngine::Expression
@@ -80,7 +81,7 @@ namespace ExpressionEngine::Expression
         m_row = static_cast<short>(row);
     }
 
-    void CellAddress::setColumn(int column, bool clip)
+    void CellAddress::setColumn(const int column, const bool clip)
     {
         if (column < 0 || column >= s_maxColumns)
         {
@@ -107,12 +108,12 @@ namespace ExpressionEngine::Expression
 
     std::string CellAddress::toString(Cell style) const
     {
-        const auto  flags = static_cast<unsigned int>(style);
+        const auto  flags = std::to_underlying(style);
         std::string text;
 
-        if ((flags & static_cast<unsigned int>(Cell::ShowColumn)) != 0)
+        if ((flags & std::to_underlying(Cell::ShowColumn)) != 0)
         {
-            if (m_absoluteColumn && (flags & static_cast<unsigned int>(Cell::Absolute)) != 0)
+            if (m_absoluteColumn && (flags & std::to_underlying(Cell::Absolute)) != 0)
             {
                 text += '$';
             }
@@ -129,9 +130,9 @@ namespace ExpressionEngine::Expression
             }
         }
 
-        if ((flags & static_cast<unsigned int>(Cell::ShowRow)) != 0)
+        if ((flags & std::to_underlying(Cell::ShowRow)) != 0)
         {
-            if (m_absoluteRow && (flags & static_cast<unsigned int>(Cell::Absolute)) != 0)
+            if (m_absoluteRow && (flags & std::to_underlying(Cell::Absolute)) != 0)
             {
                 text += '$';
             }
@@ -141,14 +142,9 @@ namespace ExpressionEngine::Expression
         return text;
     }
 
-    bool CellAddress::operator<(const CellAddress &other) const noexcept
+    std::strong_ordering CellAddress::operator<=>(const CellAddress &other) const noexcept
     {
-        return asInteger() < other.asInteger();
-    }
-
-    bool CellAddress::operator>(const CellAddress &other) const noexcept
-    {
-        return asInteger() > other.asInteger();
+        return asInteger() <=> other.asInteger();
     }
 
     bool CellAddress::operator==(const CellAddress &other) const noexcept
@@ -276,7 +272,7 @@ namespace ExpressionEngine::Expression
         return value - 1;
     }
 
-    Range::Range(std::string_view rangeText, const bool normalize)
+    Range::Range(const std::string_view rangeText, const bool normalize)
     {
         const std::size_t      separator = rangeText.find(':');
         const std::string_view beginText = separator == std::string_view::npos ? rangeText : rangeText.substr(0, separator);
