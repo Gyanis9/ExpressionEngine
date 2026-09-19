@@ -23,7 +23,7 @@ namespace ExpressionEngine::Base
     {
         // 绕局部点 center 旋转：把 center 的像从位置中扣除，使其在变换后落在 center + position
         Vector3d rotatedCenter = center;
-        rotation.multVec(rotatedCenter, rotatedCenter);
+        rotation.multiplyVector(rotatedCenter, rotatedCenter);
         m_position = position + center - rotatedCenter;
     }
 
@@ -32,7 +32,7 @@ namespace ExpressionEngine::Base
         // 实部就是旋转四元数，分量顺序为 x, y, z, w
         const Rotation rotation(dualQuaternion.x.real, dualQuaternion.y.real, dualQuaternion.z.real, dualQuaternion.w.real);
         // 平移按 t = 2·d·r* 还原：d 为对偶部、r* 为旋转共轭
-        const DualQuaternion moveQuaternion = 2 * dualQuaternion.dual() * dualQuaternion.real().conj();
+        const DualQuaternion moveQuaternion = 2 * dualQuaternion.dual() * dualQuaternion.real().conjugate();
         return Placement(Vector3d(moveQuaternion.x.real, moveQuaternion.y.real, moveQuaternion.z.real), rotation);
     }
 
@@ -81,19 +81,19 @@ namespace ExpressionEngine::Base
     bool Placement::isSame(const Placement &other) const
     {
         // 位置用零容差比较，即要求精确相等
-        return m_rotation.isSame(other.m_rotation) && m_position.IsEqual(other.m_position, 0);
+        return m_rotation.isSame(other.m_rotation) && m_position.isEqual(other.m_position, 0);
     }
 
     bool Placement::isSame(const Placement &other, double tolerance) const
     {
-        return m_rotation.isSame(other.m_rotation, tolerance) && m_position.IsEqual(other.m_position, tolerance);
+        return m_rotation.isSame(other.m_rotation, tolerance) && m_position.isEqual(other.m_position, tolerance);
     }
 
     void Placement::invert()
     {
         // 取逆：旋转取共轭，位置反向旋转后取负，即 T(-R⁻¹·p)·R⁻¹
         m_rotation = m_rotation.inverse();
-        m_rotation.multVec(m_position, m_position);
+        m_rotation.multiplyVector(m_position, m_position);
         m_position = -m_position;
     }
 
@@ -121,7 +121,7 @@ namespace ExpressionEngine::Base
 
     Placement &Placement::operator*=(const Placement &other)
     {
-        return multRight(other);
+        return multiplyRight(other);
     }
 
     Placement Placement::operator*(const Placement &other) const
@@ -137,33 +137,33 @@ namespace ExpressionEngine::Base
         return Placement::fromDualQuaternion(this->toDualQuaternion().pow(t, shorten));
     }
 
-    Placement &Placement::multRight(const Placement &other)
+    Placement &Placement::multiplyRight(const Placement &other)
     {
         // 右乘：other 先作用，其平移量要先经本体旋转变换，再与本体平移相加
         Vector3d temporary(other.m_position);
-        m_rotation.multVec(temporary, temporary);
+        m_rotation.multiplyVector(temporary, temporary);
         m_position += temporary;
-        m_rotation.multRight(other.m_rotation);
+        m_rotation.multiplyRight(other.m_rotation);
         return *this;
     }
 
-    Placement &Placement::multLeft(const Placement &other)
+    Placement &Placement::multiplyLeft(const Placement &other)
     {
         // 左乘：other 后作用，本体平移先被 other 变换，旋转部分左乘
-        other.multVec(m_position, m_position);
-        m_rotation.multLeft(other.m_rotation);
+        other.multiplyVector(m_position, m_position);
+        m_rotation.multiplyLeft(other.m_rotation);
         return *this;
     }
 
-    void Placement::multVec(const Vector3d &source, Vector3d &destination) const
+    void Placement::multiplyVector(const Vector3d &source, Vector3d &destination) const
     {
-        m_rotation.multVec(source, destination);
+        m_rotation.multiplyVector(source, destination);
         destination += m_position;
     }
 
-    void Placement::multVec(const Vector3f &source, Vector3f &destination) const
+    void Placement::multiplyVector(const Vector3f &source, Vector3f &destination) const
     {
-        m_rotation.multVec(source, destination);
+        m_rotation.multiplyVector(source, destination);
         // 单精度路径同样把位置降为单精度，避免混算引入额外的精度分支
         destination += toVector<float>(m_position);
     }

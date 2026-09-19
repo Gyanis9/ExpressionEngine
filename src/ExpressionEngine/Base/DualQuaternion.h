@@ -111,7 +111,7 @@ namespace ExpressionEngine::Base
          * @brief 取共轭
          * @return 向量部分取反的结果
          */
-        [[nodiscard]] DualQuaternion conj() const
+        [[nodiscard]] DualQuaternion conjugate() const
         {
             return {-x, -y, -z, w};
         }
@@ -138,7 +138,7 @@ namespace ExpressionEngine::Base
          * @brief 取所表示旋转的转角
          * @return 转角，单位弧度，取值范围 [0, 2π)
          */
-        [[nodiscard]] double theta() const
+        [[nodiscard]] double rotationAngle() const
         {
             return 2.0 * std::atan2(vector().length(), w.real);
         }

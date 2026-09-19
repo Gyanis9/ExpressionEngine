@@ -193,14 +193,14 @@ namespace ExpressionEngine::Base
          * @param source 待变换向量
          * @param destination 输出：变换结果，可与 source 为同一对象
          */
-        inline void multVec(const Vector3d &source, Vector3d &destination) const;
+        inline void multiplyVector(const Vector3d &source, Vector3d &destination) const;
 
         /**
          * @brief 就地变换向量（含平移分量）
          * @param source 待变换向量
          * @param destination 输出：变换结果，可与 source 为同一对象
          */
-        inline void multVec(const Vector3f &source, Vector3f &destination) const;
+        inline void multiplyVector(const Vector3f &source, Vector3f &destination) const;
 
         /**
          * @brief 矩阵数乘
@@ -322,7 +322,7 @@ namespace ExpressionEngine::Base
          * @param secondVector 右向量
          * @return 自身引用
          */
-        Matrix4D &Outer(const Vector3f &firstVector, const Vector3f &secondVector);
+        Matrix4D &outer(const Vector3f &firstVector, const Vector3f &secondVector);
 
         /**
          * @brief 计算外积（并矢）矩阵
@@ -330,21 +330,21 @@ namespace ExpressionEngine::Base
          * @param secondVector 右向量
          * @return 自身引用
          */
-        Matrix4D &Outer(const Vector3d &firstVector, const Vector3d &secondVector);
+        Matrix4D &outer(const Vector3d &firstVector, const Vector3d &secondVector);
 
         /**
          * @brief 计算反对称矩阵（帽算子）
          * @param vector 生成反对称矩阵的向量
          * @return 自身引用
          */
-        Matrix4D &Hat(const Vector3f &vector);
+        Matrix4D &hat(const Vector3f &vector);
 
         /**
          * @brief 计算反对称矩阵（帽算子）
          * @param vector 生成反对称矩阵的向量
          * @return 自身引用
          */
-        Matrix4D &Hat(const Vector3d &vector);
+        Matrix4D &hat(const Vector3d &vector);
 
         /**
          * @brief 按行优先导出 16 个元素
@@ -362,13 +362,13 @@ namespace ExpressionEngine::Base
          * @brief 按 OpenGL 列主序导出 16 个元素
          * @param values 输出：长度 16 的数组
          */
-        void getGLMatrix(double values[16]) const;
+        void getOpenGlMatrix(double values[16]) const;
 
         /**
          * @brief 按 OpenGL 列主序导入 16 个元素
          * @param values 长度 16 的数组
          */
-        void setGLMatrix(const double values[16]);
+        void setOpenGlMatrix(const double values[16]);
 
         /**
          * @brief 取对象占用的字节数
@@ -509,19 +509,19 @@ namespace ExpressionEngine::Base
          * @brief 绕 X 轴旋转（作用于已变换空间）
          * @param angle 旋转角（弧度）
          */
-        void rotX(double angle);
+        void rotateX(double angle);
 
         /**
          * @brief 绕 Y 轴旋转（作用于已变换空间）
          * @param angle 旋转角（弧度）
          */
-        void rotY(double angle);
+        void rotateY(double angle);
 
         /**
          * @brief 绕 Z 轴旋转（作用于已变换空间）
          * @param angle 旋转角（弧度）
          */
-        void rotZ(double angle);
+        void rotateZ(double angle);
 
         /**
          * @brief 绕过原点的任意轴旋转（单精度）
@@ -529,7 +529,7 @@ namespace ExpressionEngine::Base
          * @param angle 旋转角（弧度）
          * @throws ValueError 轴方向为零向量时抛出
          */
-        void rotLine(const Vector3f &vector, float angle);
+        void rotateLine(const Vector3f &vector, float angle);
 
         /**
          * @brief 绕过原点的任意轴旋转（双精度）
@@ -537,7 +537,7 @@ namespace ExpressionEngine::Base
          * @param angle 旋转角（弧度）
          * @throws ValueError 轴方向为零向量时抛出
          */
-        void rotLine(const Vector3d &vector, double angle);
+        void rotateLine(const Vector3d &vector, double angle);
 
         /**
          * @brief 绕任意轴（不必过原点）旋转（单精度）
@@ -546,7 +546,7 @@ namespace ExpressionEngine::Base
          * @param angle 旋转角（弧度）
          * @throws ValueError 轴方向为零向量时抛出
          */
-        void rotLine(const Vector3f &base, const Vector3f &direction, float angle);
+        void rotateLine(const Vector3f &base, const Vector3f &direction, float angle);
 
         /**
          * @brief 绕任意轴（不必过原点）旋转（双精度）
@@ -555,7 +555,7 @@ namespace ExpressionEngine::Base
          * @param angle 旋转角（弧度）
          * @throws ValueError 轴方向为零向量时抛出
          */
-        void rotLine(const Vector3d &base, const Vector3d &direction, double angle);
+        void rotateLine(const Vector3d &base, const Vector3d &direction, double angle);
 
         /**
          * @brief 从矩阵反解旋转轴、转角与沿轴平移量（单精度）
@@ -618,7 +618,7 @@ namespace ExpressionEngine::Base
          * @brief 打印 4x4 元素到标准输出
          * @details 仅用于调试：直接写 stdout，不经由日志框架，也不随区域设置改变小数格式。
          */
-        void Print() const;
+        void print() const;
 
         /**
          * @brief 把 16 个元素序列化为空格分隔的文本
@@ -725,27 +725,27 @@ namespace ExpressionEngine::Base
     inline Vector3f Matrix4D::operator*(const Vector3f &vector) const
     {
         Vector3f destination;
-        multVec(vector, destination);
+        multiplyVector(vector, destination);
         return destination;
     }
 
     inline Vector3d Matrix4D::operator*(const Vector3d &vector) const
     {
         Vector3d destination;
-        multVec(vector, destination);
+        multiplyVector(vector, destination);
         return destination;
     }
 
-    inline void Matrix4D::multVec(const Vector3d &source, Vector3d &destination) const
+    inline void Matrix4D::multiplyVector(const Vector3d &source, Vector3d &destination) const
     {
         // 齐次坐标隐含 w = 1，所以平移分量（第 4 列）直接参与累加
         const double x = (m_matrix[0][0] * source.x + m_matrix[0][1] * source.y + m_matrix[0][2] * source.z + m_matrix[0][3]);
         const double y = (m_matrix[1][0] * source.x + m_matrix[1][1] * source.y + m_matrix[1][2] * source.z + m_matrix[1][3]);
         const double z = (m_matrix[2][0] * source.x + m_matrix[2][1] * source.y + m_matrix[2][2] * source.z + m_matrix[2][3]);
-        destination.Set(x, y, z);
+        destination.set(x, y, z);
     }
 
-    inline void Matrix4D::multVec(const Vector3f &source, Vector3f &destination) const
+    inline void Matrix4D::multiplyVector(const Vector3f &source, Vector3f &destination) const
     {
         // 累加在 double 下进行，只有最终结果落回 float，减少单精度累积误差
         const double x = static_cast<double>(source.x);
@@ -755,7 +755,7 @@ namespace ExpressionEngine::Base
         const double resultX = (m_matrix[0][0] * x + m_matrix[0][1] * y + m_matrix[0][2] * z + m_matrix[0][3]);
         const double resultY = (m_matrix[1][0] * x + m_matrix[1][1] * y + m_matrix[1][2] * z + m_matrix[1][3]);
         const double resultZ = (m_matrix[2][0] * x + m_matrix[2][1] * y + m_matrix[2][2] * z + m_matrix[2][3]);
-        destination.Set(static_cast<float>(resultX), static_cast<float>(resultY), static_cast<float>(resultZ));
+        destination.set(static_cast<float>(resultX), static_cast<float>(resultY), static_cast<float>(resultZ));
     }
 
     inline Matrix4D Matrix4D::operator*(double scalar) const
@@ -807,7 +807,7 @@ namespace ExpressionEngine::Base
      */
     inline Vector3f &operator*=(Vector3f &vector, const Matrix4D &matrix)
     {
-        matrix.multVec(vector, vector);
+        matrix.multiplyVector(vector, vector);
         return vector;
     }
 

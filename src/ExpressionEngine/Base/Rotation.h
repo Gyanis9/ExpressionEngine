@@ -382,42 +382,42 @@ namespace ExpressionEngine::Base
          * @param other 右操作数
          * @return 自身引用
          */
-        Rotation &multRight(const Rotation &other);
+        Rotation &multiplyRight(const Rotation &other);
 
         /**
          * @brief 就地左乘
          * @param other 左操作数
          * @return 自身引用
          */
-        Rotation &multLeft(const Rotation &other);
+        Rotation &multiplyLeft(const Rotation &other);
 
         /**
          * @brief 用本旋转变换向量
          * @param source 输入向量
          * @param destination 输出向量，可与 source 为同一对象
          */
-        void multVec(const Vector3d &source, Vector3d &destination) const;
+        void multiplyVector(const Vector3d &source, Vector3d &destination) const;
 
         /**
          * @brief 用本旋转变换向量
          * @param source 输入向量
          * @return 变换后的向量
          */
-        Vector3d multVec(const Vector3d &source) const;
+        Vector3d multiplyVector(const Vector3d &source) const;
 
         /**
          * @brief 用本旋转变换单精度向量
          * @param source 输入向量
          * @param destination 输出向量，可与 source 为同一对象
          */
-        void multVec(const Vector3f &source, Vector3f &destination) const;
+        void multiplyVector(const Vector3f &source, Vector3f &destination) const;
 
         /**
          * @brief 用本旋转变换单精度向量
          * @param source 输入向量
          * @return 变换后的向量
          */
-        Vector3f multVec(const Vector3f &source) const;
+        Vector3f multiplyVector(const Vector3f &source) const;
 
         /**
          * @brief 按比例缩放旋转角，转轴保持

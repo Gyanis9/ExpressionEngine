@@ -544,8 +544,8 @@ const Quantity Quantity::NewtonMeter            ( 1e+6                  , Unit::
 const Quantity Quantity::KMH                    ( 1e+6 / 3600           , Unit::Velocity                );
 const Quantity Quantity::MPH                    ( mile / 3600           , Unit::Velocity                );
 
-const Quantity Quantity::AngMinute              ( 1.0 / 60.0            , Unit::Angle                   );
-const Quantity Quantity::AngSecond              ( 1.0 / 3600.0          , Unit::Angle                   );
+const Quantity Quantity::AngleMinute            ( 1.0 / 60.0            , Unit::Angle                   );
+const Quantity Quantity::AngleSecond            ( 1.0 / 3600.0          , Unit::Angle                   );
 const Quantity Quantity::Degree                 ( 1.0                   , Unit::Angle                   );
 const Quantity Quantity::Radian                 ( 180 / std::numbers::pi, Unit::Angle                   );
 const Quantity Quantity::Gon                    ( 360.0 / 400.0         , Unit::Angle                   );

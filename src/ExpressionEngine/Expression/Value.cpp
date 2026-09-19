@@ -42,7 +42,7 @@ namespace ExpressionEngine::Expression
             {
                 for (unsigned int column = 0; column < 4; ++column)
                 {
-                    if (std::fabs(left[row][column] - right[row][column]) > Base::Precision::Confusion())
+                    if (std::fabs(left[row][column] - right[row][column]) > Base::Precision::confusion())
                     {
                         return false;
                     }
@@ -307,19 +307,19 @@ namespace ExpressionEngine::Expression
                         return leftValue == rightValue;
                     } else if constexpr (std::is_same_v<LeftType, Base::Vector3d>)
                     {
-                        return leftValue.IsEqual(rightValue, Base::Precision::Confusion());
+                        return leftValue.isEqual(rightValue, Base::Precision::confusion());
                     } else if constexpr (std::is_same_v<LeftType, Base::Matrix4D>)
                     {
                         return matricesEqual(leftValue, rightValue);
                     } else if constexpr (std::is_same_v<LeftType, Base::Rotation>)
                     {
-                        return leftValue.isSame(rightValue, Base::Precision::Angular());
+                        return leftValue.isSame(rightValue, Base::Precision::angular());
                     } else
                     {
                         // 备选类型只剩位姿；若 Value 将来新增备选，这里的静态断言会先报出来
                         static_assert(std::is_same_v<LeftType, Base::Placement>, "Value 增加了新的备选类型，请同步更新相等判定");
-                        return leftValue.getPosition().IsEqual(rightValue.getPosition(), Base::Precision::Confusion()) &&
-                               leftValue.getRotation().isSame(rightValue.getRotation(), Base::Precision::Angular());
+                        return leftValue.getPosition().isEqual(rightValue.getPosition(), Base::Precision::confusion()) &&
+                               leftValue.getRotation().isSame(rightValue.getRotation(), Base::Precision::angular());
                     }
                 },
                 left, right);

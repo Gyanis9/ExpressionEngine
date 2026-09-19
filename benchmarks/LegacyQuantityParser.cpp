@@ -46,6 +46,12 @@ namespace ExpressionEngine::Benchmarks
         public:
             using Units::Quantity::Quantity;
 
+            /// 角分常量：生成代码按上游的旧名引用，这里按旧名给出别名，避免改动生成代码
+            static constexpr const Units::Quantity &AngMinute = Units::Quantity::AngleMinute;
+
+            /// 角秒常量：同上
+            static constexpr const Units::Quantity &AngSecond = Units::Quantity::AngleSecond;
+
             Quantity(const Units::Quantity &value) : Units::Quantity(value) {}
         };
 

@@ -210,7 +210,7 @@ namespace ExpressionEngine::Expression
          *         布尔为 ConstantExpression，几何值为 ValueExpression
          * @throws Base::Exception 同 evaluate()
          */
-        [[nodiscard]] ExpressionPtr eval() const;
+        [[nodiscard]] ExpressionPtr evaluateToConstantNode() const;
 
         /**
          * @brief 化简
@@ -355,7 +355,7 @@ namespace ExpressionEngine::Expression
          *          引用节点覆写后把自身追加进列表。去重由 collectReferences() 统一完成。
          * @param collectedReferences 输出：按首次出现顺序追加引用
          */
-        virtual void _collectReferences(std::vector<VariableReference> &collectedReferences) const;
+        virtual void collectReferencesInto(std::vector<VariableReference> &collectedReferences) const;
 
         /**
          * @brief 供复合节点的递归钩子把子表达式的引用追加到同一列表
@@ -784,7 +784,7 @@ namespace ExpressionEngine::Expression
          *          不参与收集。
          * @param collectedReferences 输出：追加两侧子树的引用
          */
-        void _collectReferences(std::vector<VariableReference> &collectedReferences) const override;
+        void collectReferencesInto(std::vector<VariableReference> &collectedReferences) const override;
 
     private:
         Operator      m_operator; ///< 运算符
@@ -884,7 +884,7 @@ namespace ExpressionEngine::Expression
          *          否则宿主会漏建依赖；按条件、真分支、假分支的顺序追加。
          * @param collectedReferences 输出：追加三个子表达式的引用
          */
-        void _collectReferences(std::vector<VariableReference> &collectedReferences) const override;
+        void collectReferencesInto(std::vector<VariableReference> &collectedReferences) const override;
 
     private:
         ExpressionPtr m_condition;       ///< 条件表达式
@@ -1096,7 +1096,7 @@ namespace ExpressionEngine::Expression
          *          按实参顺序追加，保证依赖列表与表达式里的出现顺序一致。
          * @param collectedReferences 输出：追加各实参的引用
          */
-        void _collectReferences(std::vector<VariableReference> &collectedReferences) const override;
+        void collectReferencesInto(std::vector<VariableReference> &collectedReferences) const override;
 
     private:
         /**
@@ -1246,7 +1246,7 @@ namespace ExpressionEngine::Expression
          *          分量里只有解析器保证为常量的下标表达式，没有可依赖的变量。
          * @param collectedReferences 输出：追加自身引用
          */
-        void _collectReferences(std::vector<VariableReference> &collectedReferences) const override;
+        void collectReferencesInto(std::vector<VariableReference> &collectedReferences) const override;
 
     private:
         Reference m_reference; ///< 引用路径

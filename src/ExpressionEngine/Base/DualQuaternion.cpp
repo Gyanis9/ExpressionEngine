@@ -99,18 +99,19 @@ namespace ExpressionEngine::Base
             }
         }
 
-        // 换算到螺旋坐标：theta 为转角、pitch 为沿轴位移，轴方向与力矩向量借 DualQuaternion 承载
-        double               theta       = self.theta();
-        double               pitch       = -2.0 * self.w.dual * normalizeMultiplier;
-        const DualQuaternion screwAxis   = self.real().vector() * normalizeMultiplier;
-        const DualQuaternion screwMoment = (self.dual().vector() - pitch / 2 * std::cos(theta / 2) * screwAxis) * normalizeMultiplier;
+        // 换算到螺旋坐标：rotationAngle 为转角、pitch 为沿轴位移，轴方向与力矩向量借 DualQuaternion 承载
+        double               rotationAngle = self.rotationAngle();
+        double               pitch         = -2.0 * self.w.dual * normalizeMultiplier;
+        const DualQuaternion screwAxis     = self.real().vector() * normalizeMultiplier;
+        const DualQuaternion screwMoment   = (self.dual().vector() - pitch / 2 * std::cos(rotationAngle / 2) * screwAxis) * normalizeMultiplier;
 
         // 螺旋坐标下插值：转角与沿轴位移同步按 t 缩放
-        theta *= t;
+        rotationAngle *= t;
         pitch *= t;
 
         // 换算回四元数：实部为旋转，对偶部为沿螺旋轴的平移编码
-        return {screwAxis * std::sin(theta / 2) + DualQuaternion(0.0, 0.0, 0.0, std::cos(theta / 2)),
-                screwMoment * std::sin(theta / 2) + pitch / 2 * std::cos(theta / 2) * screwAxis + DualQuaternion(0.0, 0.0, 0.0, -pitch / 2 * std::sin(theta / 2))};
+        return {screwAxis * std::sin(rotationAngle / 2) + DualQuaternion(0.0, 0.0, 0.0, std::cos(rotationAngle / 2)),
+                screwMoment * std::sin(rotationAngle / 2) + pitch / 2 * std::cos(rotationAngle / 2) * screwAxis +
+                        DualQuaternion(0.0, 0.0, 0.0, -pitch / 2 * std::sin(rotationAngle / 2))};
     }
 } // namespace ExpressionEngine::Base

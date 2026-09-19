@@ -20,7 +20,7 @@ namespace ExpressionEngine::Base
 
     /**
      * @brief 刚体位姿：平移加旋转
-     * @details 语义与 FreeCAD Base::Placement 完全一致。multVec() 先施加旋转再加上位置；
+     * @details 语义与 FreeCAD Base::Placement 完全一致。multiplyVector() 先施加旋转再加上位置；
      *          复合按「右操作数先作用」的约定，零位置加单位旋转即恒等位姿。
      */
     class Placement
@@ -230,28 +230,28 @@ namespace ExpressionEngine::Base
          * @param other 右操作数
          * @return 自身引用
          */
-        Placement &multRight(const Placement &other);
+        Placement &multiplyRight(const Placement &other);
 
         /**
          * @brief 就地左乘另一个位姿
          * @param other 左操作数
          * @return 自身引用
          */
-        Placement &multLeft(const Placement &other);
+        Placement &multiplyLeft(const Placement &other);
 
         /**
          * @brief 用本位姿变换向量
          * @param source 输入向量
          * @param destination 输出向量，可与 source 为同一对象
          */
-        void multVec(const Vector3d &source, Vector3d &destination) const;
+        void multiplyVector(const Vector3d &source, Vector3d &destination) const;
 
         /**
          * @brief 用本位姿变换单精度向量
          * @param source 输入向量
          * @param destination 输出向量，可与 source 为同一对象
          */
-        void multVec(const Vector3f &source, Vector3f &destination) const;
+        void multiplyVector(const Vector3f &source, Vector3f &destination) const;
 
         /**
          * @brief 线性插值位姿：旋转走球面插值，位置走线性插值

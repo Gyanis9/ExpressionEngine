@@ -611,7 +611,7 @@ namespace ExpressionEngine::Expression
          */
         TEST(ExpressionTest, VectorFunctions)
         {
-            EXPECT_TRUE(vectorOf(function(Function::Vector, number(1.0), number(2.0), number(3.0))->evaluate()).IsEqual(Base::Vector3d(1.0, 2.0, 3.0), 1e-12));
+            EXPECT_TRUE(vectorOf(function(Function::Vector, number(1.0), number(2.0), number(3.0))->evaluate()).isEqual(Base::Vector3d(1.0, 2.0, 3.0), 1e-12));
 
             const Base::Vector3d normalized = vectorOf(function(Function::VectorNormalize, vectorNode(3.0, 0.0, 0.0))->evaluate());
             EXPECT_NEAR(normalized.x, 1.0, 1e-12);
@@ -903,7 +903,7 @@ namespace ExpressionEngine::Expression
         }
 
         /**
-         * @brief 钉住：化简只折叠常量，含引用的表达式保持结构；eval 把取值包成常量节点
+         * @brief 钉住：化简只折叠常量，含引用的表达式保持结构；evaluateToConstantNode 把取值包成常量节点
          */
         TEST(ExpressionTest, SimplifyFoldsConstantsOnly)
         {
@@ -932,9 +932,9 @@ namespace ExpressionEngine::Expression
                               ->nodeName(),
                       "Function");
 
-            // eval 把取值包成常量节点
-            EXPECT_EQ(number(4.0)->eval()->nodeName(), "Number");
-            EXPECT_EQ(vectorNode(1.0, 0.0, 0.0)->eval()->nodeName(), "Value");
+            // evaluateToConstantNode 把取值包成常量节点
+            EXPECT_EQ(number(4.0)->evaluateToConstantNode()->nodeName(), "Number");
+            EXPECT_EQ(vectorNode(1.0, 0.0, 0.0)->evaluateToConstantNode()->nodeName(), "Value");
         }
 
         /**
@@ -955,7 +955,7 @@ namespace ExpressionEngine::Expression
             ExpressionPtr wrapped = makeValueExpression(nullptr, Value(Base::Vector3d(1.0, 2.0, 3.0)));
             EXPECT_EQ(wrapped->nodeName(), "Value");
             EXPECT_EQ(wrapped->toString(), "(1, 2, 3)");
-            EXPECT_TRUE(vectorOf(wrapped->evaluate()).IsEqual(Base::Vector3d(1.0, 2.0, 3.0), 1e-12));
+            EXPECT_TRUE(vectorOf(wrapped->evaluate()).isEqual(Base::Vector3d(1.0, 2.0, 3.0), 1e-12));
         }
 
     } // namespace

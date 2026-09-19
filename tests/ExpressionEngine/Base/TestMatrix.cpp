@@ -64,9 +64,9 @@ TEST(Matrix4D, MultiplyAndVectorTransform)
     const Vector3d transformed = combined * Vector3d(1.0, 1.0, 1.0);
     EXPECT_TRUE(transformed == Vector3d(3.0, 5.0, 7.0));
 
-    // multVec 就地变换与 operator* 结果一致
+    // multiplyVector 就地变换与 operator* 结果一致
     Vector3d inPlace(1.0, 1.0, 1.0);
-    combined.multVec(inPlace, inPlace);
+    combined.multiplyVector(inPlace, inPlace);
     EXPECT_TRUE(inPlace == transformed);
 
     EXPECT_DOUBLE_EQ(scaled.trace3(), 9.0);
@@ -81,7 +81,7 @@ TEST(Matrix4D, InverseAndSingularRejection)
 {
     // 刚体变换：inverse() 利用旋转正交性给出精确的逆
     Matrix4D rigid;
-    rigid.rotZ(std::numbers::pi / 2.0);
+    rigid.rotateZ(std::numbers::pi / 2.0);
     rigid.move(Vector3d(1.0, 2.0, 0.0));
     Matrix4D rigidInverse = rigid;
     rigidInverse.inverse();

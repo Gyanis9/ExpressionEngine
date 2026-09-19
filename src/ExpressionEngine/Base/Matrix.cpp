@@ -164,12 +164,12 @@ Matrix4D::Matrix4D(double a11, double a12, double a13, double a14,
 
     Matrix4D::Matrix4D(const Vector3f &base, const Vector3f &direction, float angle) : Matrix4D()
     {
-        rotLine(base, direction, angle);
+        rotateLine(base, direction, angle);
     }
 
     Matrix4D::Matrix4D(const Vector3d &base, const Vector3d &direction, double angle) : Matrix4D()
     {
-        rotLine(base, direction, angle);
+        rotateLine(base, direction, angle);
     }
 
     void Matrix4D::setToUnity()
@@ -291,7 +291,7 @@ Matrix4D::Matrix4D(double a11, double a12, double a13, double a14,
         (*this) = scaleMatrix * (*this);
     }
 
-    void Matrix4D::rotX(double angle)
+    void Matrix4D::rotateX(double angle)
     {
         const double sinAngle = std::sin(angle);
         const double cosAngle = std::cos(angle);
@@ -305,7 +305,7 @@ Matrix4D::Matrix4D(double a11, double a12, double a13, double a14,
         (*this) = rotationMatrix * (*this);
     }
 
-    void Matrix4D::rotY(double angle)
+    void Matrix4D::rotateY(double angle)
     {
         const double sinAngle = std::sin(angle);
         const double cosAngle = std::cos(angle);
@@ -319,7 +319,7 @@ Matrix4D::Matrix4D(double a11, double a12, double a13, double a14,
         (*this) = rotationMatrix * (*this);
     }
 
-    void Matrix4D::rotZ(double angle)
+    void Matrix4D::rotateZ(double angle)
     {
         const double sinAngle = std::sin(angle);
         const double cosAngle = std::cos(angle);
@@ -333,7 +333,7 @@ Matrix4D::Matrix4D(double a11, double a12, double a13, double a14,
         (*this) = rotationMatrix * (*this);
     }
 
-    void Matrix4D::rotLine(const Vector3d &vector, double angle)
+    void Matrix4D::rotateLine(const Vector3d &vector, double angle)
     {
         // 罗德里格公式：R = (1-cos)*a*a^T + cos*I + sin*[a]_x
         Matrix4D outerTerm;
@@ -348,7 +348,7 @@ Matrix4D::Matrix4D(double a11, double a12, double a13, double a14,
         skewTerm.nullify();
 
         // 轴必须归一化，否则旋转矩阵会被轴长额外缩放
-        rotationAxis.Normalize();
+        rotationAxis.normalize();
 
         const double cosAngle = std::cos(angle);
         const double sinAngle = std::sin(angle);
@@ -389,25 +389,25 @@ Matrix4D::Matrix4D(double a11, double a12, double a13, double a14,
         (*this) = rotationMatrix * (*this);
     }
 
-    void Matrix4D::rotLine(const Vector3f &vector, float angle)
+    void Matrix4D::rotateLine(const Vector3f &vector, float angle)
     {
         const auto axis = convertTo<Vector3d>(vector);
-        rotLine(axis, static_cast<double>(angle));
+        rotateLine(axis, static_cast<double>(angle));
     }
 
-    void Matrix4D::rotLine(const Vector3d &base, const Vector3d &direction, double angle)
+    void Matrix4D::rotateLine(const Vector3d &base, const Vector3d &direction, double angle)
     {
         Matrix4D rotationMatrix;
-        rotationMatrix.rotLine(direction, angle);
+        rotationMatrix.rotateLine(direction, angle);
         // 轴不过原点时先平移到原点、旋转、再平移回去
         transform(base, rotationMatrix);
     }
 
-    void Matrix4D::rotLine(const Vector3f &base, const Vector3f &direction, float angle)
+    void Matrix4D::rotateLine(const Vector3f &base, const Vector3f &direction, float angle)
     {
         const auto basePoint = convertTo<Vector3d>(base);
         const auto axis      = convertTo<Vector3d>(direction);
-        rotLine(basePoint, axis, static_cast<double>(angle));
+        rotateLine(basePoint, axis, static_cast<double>(angle));
     }
 
     bool Matrix4D::toAxisAngle(Vector3f &base, Vector3f &direction, float &angle, float &translation) const
@@ -461,7 +461,7 @@ Matrix4D::Matrix4D(double a11, double a12, double a13, double a14,
                 direction.x = (m_matrix[2][1] - m_matrix[1][2]);
                 direction.y = (m_matrix[0][2] - m_matrix[2][0]);
                 direction.z = (m_matrix[1][0] - m_matrix[0][1]);
-                direction.Normalize();
+                direction.normalize();
             } else
             {
                 // 转角为 pi 时 R - R^T 为零，必须从对角线元素反解轴向
@@ -571,7 +571,7 @@ Matrix4D::Matrix4D(double a11, double a12, double a13, double a14,
         Vector3d translation(m_matrix[0][3], m_matrix[1][3], m_matrix[2][3]);
         transpose();
         // 用转置后的矩阵把平移分量变换到新坐标系，再取反
-        multVec(translation, translation);
+        multiplyVector(translation, translation);
         m_matrix[0][3] = -translation.x;
         m_matrix[3][0] = 0.0;
         m_matrix[1][3] = -translation.y;
@@ -587,7 +587,7 @@ Matrix4D::Matrix4D(double a11, double a12, double a13, double a14,
         std::array<double, 16> result{
                 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
         };
-        getGLMatrix(source.data());
+        getOpenGlMatrix(source.data());
 
         if (!gaussInvert(source.data(), result.data()))
         {
@@ -598,7 +598,7 @@ Matrix4D::Matrix4D(double a11, double a12, double a13, double a14,
 
         // 秩亏矩阵未必会在消元中撞上零主元，因此用 M * M^-1 近似单位阵来复核
         Matrix4D candidate;
-        candidate.setGLMatrix(result.data());
+        candidate.setOpenGlMatrix(result.data());
         double largestElement = 0.0;
         for (const double value: source)
         {
@@ -612,7 +612,7 @@ Matrix4D::Matrix4D(double a11, double a12, double a13, double a14,
                              "或对坐标做缩放/归一化后再求逆");
         }
 
-        setGLMatrix(result.data());
+        setOpenGlMatrix(result.data());
     }
 
     void Matrix4D::getMatrix(double values[16]) const
@@ -637,7 +637,7 @@ Matrix4D::Matrix4D(double a11, double a12, double a13, double a14,
         }
     }
 
-    void Matrix4D::getGLMatrix(double values[16]) const
+    void Matrix4D::getOpenGlMatrix(double values[16]) const
     {
         // OpenGL 采用列主序，索引按「行 + 4 * 列」排布
         for (int row = 0; row < 4; ++row)
@@ -649,7 +649,7 @@ Matrix4D::Matrix4D(double a11, double a12, double a13, double a14,
         }
     }
 
-    void Matrix4D::setGLMatrix(const double values[16])
+    void Matrix4D::setOpenGlMatrix(const double values[16])
     {
         for (int row = 0; row < 4; ++row)
         {
@@ -665,7 +665,7 @@ Matrix4D::Matrix4D(double a11, double a12, double a13, double a14,
         return sizeof(Matrix4D);
     }
 
-    void Matrix4D::Print() const
+    void Matrix4D::print() const
     {
         // 只用于调试：直接写标准输出，避免引入 iostream 的开销与全局状态
         for (int row = 0; row < 4; ++row)
@@ -813,14 +813,14 @@ Matrix4D::Matrix4D(double a11, double a12, double a13, double a14,
         return text;
     }
 
-    Matrix4D &Matrix4D::Outer(const Vector3f &firstVector, const Vector3f &secondVector)
+    Matrix4D &Matrix4D::outer(const Vector3f &firstVector, const Vector3f &secondVector)
     {
         setToUnity();
-        Outer(convertTo<Vector3d>(firstVector), convertTo<Vector3d>(secondVector));
+        outer(convertTo<Vector3d>(firstVector), convertTo<Vector3d>(secondVector));
         return *this;
     }
 
-    Matrix4D &Matrix4D::Outer(const Vector3d &firstVector, const Vector3d &secondVector)
+    Matrix4D &Matrix4D::outer(const Vector3d &firstVector, const Vector3d &secondVector)
     {
         // 并矢积的左上 3x3 为外积，其余位置保持单位阵
         setToUnity();
@@ -840,14 +840,14 @@ Matrix4D::Matrix4D(double a11, double a12, double a13, double a14,
         return *this;
     }
 
-    Matrix4D &Matrix4D::Hat(const Vector3f &vector)
+    Matrix4D &Matrix4D::hat(const Vector3f &vector)
     {
         setToUnity();
-        Hat(convertTo<Vector3d>(vector));
+        hat(convertTo<Vector3d>(vector));
         return *this;
     }
 
-    Matrix4D &Matrix4D::Hat(const Vector3d &vector)
+    Matrix4D &Matrix4D::hat(const Vector3d &vector)
     {
         // 反对称矩阵：左上 3x3 满足 [a]x * b = a x b，对角线与第 4 行/列保持单位阵
         setToUnity();
@@ -877,7 +877,7 @@ Matrix4D::Matrix4D(double a11, double a12, double a13, double a14,
         }
 
         // 比较两个绝对值是否成比例：都以较大者为分母，避免放大相对误差
-        auto closeAbs = [&](double first, double second)
+        auto relativelyEqual = [&](double first, double second)
         {
             const double firstAbs  = std::abs(first);
             const double secondAbs = std::abs(second);
@@ -907,17 +907,17 @@ Matrix4D::Matrix4D(double a11, double a12, double a13, double a14,
         const double determinant = determinant3();
 
         // 几何平均与行列式都对不上：投影、剪切等
-        if (!closeAbs(columnProduct, determinant) && !closeAbs(rowProduct, determinant))
+        if (!relativelyEqual(columnProduct, determinant) && !relativelyEqual(rowProduct, determinant))
         {
             return ScaleType::Other;
         }
 
-        if (closeAbs(rowProduct, determinant) && (!closeAbs(rowSquaredX, rowSquaredY) || !closeAbs(rowSquaredY, rowSquaredZ)))
+        if (relativelyEqual(rowProduct, determinant) && (!relativelyEqual(rowSquaredX, rowSquaredY) || !relativelyEqual(rowSquaredY, rowSquaredZ)))
         {
             return ScaleType::NonUniformLeft;
         }
 
-        if (closeAbs(columnProduct, determinant) && (!closeAbs(columnSquaredX, columnSquaredY) || !closeAbs(columnSquaredY, columnSquaredZ)))
+        if (relativelyEqual(columnProduct, determinant) && (!relativelyEqual(columnSquaredX, columnSquaredY) || !relativelyEqual(columnSquaredY, columnSquaredZ)))
         {
             return ScaleType::NonUniformRight;
         }
@@ -949,7 +949,7 @@ Matrix4D::Matrix4D(double a11, double a12, double a13, double a14,
         std::array<Vector3d, 3> directions       = {Vector3d(1.0, 0.0, 0.0), Vector3d(0.0, 1.0, 0.0), Vector3d(0.0, 0.0, 1.0)};
         for (int index = 0; index < 3; ++index)
         {
-            if (residualMatrix.getCol(index).IsNull())
+            if (residualMatrix.getCol(index).isNull())
             {
                 // 该列退化为零向量，不能作为基向量
                 continue;
@@ -957,28 +957,28 @@ Matrix4D::Matrix4D(double a11, double a12, double a13, double a14,
             if (primaryDirection < 0)
             {
                 directions[index] = residualMatrix.getCol(index);
-                directions[index].Normalize();
+                directions[index].normalize();
                 primaryDirection = index;
                 continue;
             }
 
-            Vector3d crossProduct = directions[primaryDirection].Cross(residualMatrix.getCol(index));
-            if (crossProduct.IsNull())
+            Vector3d crossProduct = directions[primaryDirection].cross(residualMatrix.getCol(index));
+            if (crossProduct.isNull())
             {
                 // 与主方向平行，换下一列再试
                 continue;
             }
-            crossProduct.Normalize();
+            crossProduct.normalize();
             const int lastDirection = 3 - index - primaryDirection;
             // 依据两列的前后次序确定第三列的正负，保持右手系
             if (index - primaryDirection == 1)
             {
                 directions[lastDirection] = crossProduct;
-                directions[index]         = crossProduct.Cross(directions[primaryDirection]);
+                directions[index]         = crossProduct.cross(directions[primaryDirection]);
             } else
             {
                 directions[lastDirection] = -crossProduct;
-                directions[index]         = directions[primaryDirection].Cross(-crossProduct);
+                directions[index]         = directions[primaryDirection].cross(-crossProduct);
             }
             primaryDirection = -2; // 三个方向已全部确定
             break;
@@ -986,13 +986,13 @@ Matrix4D::Matrix4D(double a11, double a12, double a13, double a14,
         if (primaryDirection >= 0)
         {
             // 只有一个有效方向：用坐标轴叉积补齐另外两个方向
-            Vector3d crossProduct = directions[primaryDirection].Cross(Vector3d(0.0, 0.0, 1.0));
-            if (crossProduct.IsNull())
+            Vector3d crossProduct = directions[primaryDirection].cross(Vector3d(0.0, 0.0, 1.0));
+            if (crossProduct.isNull())
             {
-                crossProduct = directions[primaryDirection].Cross(Vector3d(0.0, 1.0, 0.0));
+                crossProduct = directions[primaryDirection].cross(Vector3d(0.0, 1.0, 0.0));
             }
             directions[(primaryDirection + 1) % 3] = crossProduct;
-            directions[(primaryDirection + 2) % 3] = directions[primaryDirection].Cross(crossProduct);
+            directions[(primaryDirection + 2) % 3] = directions[primaryDirection].cross(crossProduct);
         }
         rotationMatrix.setCol(0, directions[0]);
         rotationMatrix.setCol(1, directions[1]);
@@ -1003,8 +1003,8 @@ Matrix4D::Matrix4D(double a11, double a12, double a13, double a14,
         // 行列式为负说明含镜像：绕 Z 轴转 180 度把符号并入旋转，保证三个缩放因子同号
         if (residualMatrix.determinant() < 0)
         {
-            rotationMatrix.rotZ(std::numbers::pi);
-            residualMatrix.rotZ(std::numbers::pi);
+            rotationMatrix.rotateZ(std::numbers::pi);
+            residualMatrix.rotateZ(std::numbers::pi);
         }
         rotationMatrix.inverseGauss();
 

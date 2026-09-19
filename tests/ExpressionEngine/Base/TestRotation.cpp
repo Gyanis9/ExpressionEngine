@@ -39,7 +39,7 @@ TEST(RotationTest, DefaultConstructorIsIdentity)
     EXPECT_FALSE(rotation.isNull());
 
     const Vector3d point(1.0, 2.0, 3.0);
-    EXPECT_TRUE(rotation.multVec(point).IsEqual(point, Tolerance));
+    EXPECT_TRUE(rotation.multiplyVector(point).isEqual(point, Tolerance));
 }
 
 /**
@@ -57,24 +57,24 @@ TEST(RotationTest, AxisAngleAndQuaternionRoundTrip)
     EXPECT_NEAR(values[3], std::cos(quarterTurn / 2.0), Tolerance);
 
     // 绕 Z 轴转 90°：X 轴应落到 Y 轴上
-    EXPECT_TRUE(rotation.multVec(Vector3d(1.0, 0.0, 0.0)).IsEqual(Vector3d(0.0, 1.0, 0.0), Tolerance));
+    EXPECT_TRUE(rotation.multiplyVector(Vector3d(1.0, 0.0, 0.0)).isEqual(Vector3d(0.0, 1.0, 0.0), Tolerance));
 
     Vector3d axis;
     double   angle = 0.0;
     rotation.getValue(axis, angle);
-    EXPECT_TRUE(axis.IsEqual(Vector3d(0.0, 0.0, 1.0), Tolerance));
+    EXPECT_TRUE(axis.isEqual(Vector3d(0.0, 0.0, 1.0), Tolerance));
     EXPECT_DOUBLE_EQ(angle, quarterTurn);
 
     // getRawValue 不归一化轴：轴未缩放时两者结果一致
     rotation.getRawValue(axis, angle);
-    EXPECT_TRUE(axis.IsEqual(Vector3d(0.0, 0.0, 1.0), Tolerance));
+    EXPECT_TRUE(axis.isEqual(Vector3d(0.0, 0.0, 1.0), Tolerance));
     EXPECT_DOUBLE_EQ(angle, quarterTurn);
 
     // 零向量轴回退为 Z 轴，退化输入不应产生 NaN
     const Rotation fallback(Vector3d(0.0, 0.0, 0.0), quarterTurn);
     fallback.getValue(axis, angle);
     EXPECT_FALSE(std::isnan(axis.x) || std::isnan(axis.y) || std::isnan(axis.z));
-    EXPECT_TRUE(axis.IsEqual(Vector3d(0.0, 0.0, 1.0), Tolerance));
+    EXPECT_TRUE(axis.isEqual(Vector3d(0.0, 0.0, 1.0), Tolerance));
 }
 
 /**
@@ -85,7 +85,7 @@ TEST(RotationTest, NonUnitQuaternionIsNormalized)
     // (0, 0, 2, 0) 是绕 Z 轴 180° 的四元数放大两倍
     const Rotation scaled(0.0, 0.0, 2.0, 0.0);
     EXPECT_FALSE(scaled.isNull());
-    EXPECT_TRUE(scaled.multVec(Vector3d(1.0, 0.0, 0.0)).IsEqual(Vector3d(-1.0, 0.0, 0.0), Tolerance));
+    EXPECT_TRUE(scaled.multiplyVector(Vector3d(1.0, 0.0, 0.0)).isEqual(Vector3d(-1.0, 0.0, 0.0), Tolerance));
 
     const double *values = scaled.getValue();
     EXPECT_NEAR(values[2], 1.0, Tolerance);
@@ -112,37 +112,37 @@ TEST(RotationTest, NullQuaternionIsDetectableButHasNoUsableAxis)
     double   angle = 0.0;
     nullRotation.getValue(axis, angle);
     // 零轴表示没有可信方向，绝不能伪造出一个轴向
-    EXPECT_DOUBLE_EQ(axis.Length(), 0.0);
+    EXPECT_DOUBLE_EQ(axis.length(), 0.0);
     EXPECT_FALSE(std::isnan(axis.x) || std::isnan(axis.y) || std::isnan(axis.z));
     EXPECT_FALSE(std::isnan(angle));
 }
 
 /**
  * @brief 钉住：复合是四元数右乘（右操作数先施加），两次 90° 复合等于 180°，
- *        且 multLeft 与 multRight 的作用顺序相反
+ *        且 multiplyLeft 与 multiplyRight 的作用顺序相反
  */
 TEST(RotationTest, CompositionFollowsQuaternionMultiplication)
 {
     const double   quarterTurn = std::numbers::pi / 2.0;
-    const Rotation rotZ90(Vector3d(0.0, 0.0, 1.0), quarterTurn);
-    const Rotation rotX90(Vector3d(1.0, 0.0, 0.0), quarterTurn);
+    const Rotation rotationZ90(Vector3d(0.0, 0.0, 1.0), quarterTurn);
+    const Rotation rotationX90(Vector3d(1.0, 0.0, 0.0), quarterTurn);
     const Vector3d point(1.0, 0.0, 0.0);
 
-    // composed == rotZ90 ∘ rotX90：先 X 后 Z
-    const Rotation composed   = rotZ90 * rotX90;
-    const Vector3d sequential = rotZ90.multVec(rotX90.multVec(point));
-    EXPECT_TRUE(composed.multVec(point).IsEqual(sequential, Tolerance));
+    // composed == rotationZ90 ∘ rotationX90：先 X 后 Z
+    const Rotation composed   = rotationZ90 * rotationX90;
+    const Vector3d sequential = rotationZ90.multiplyVector(rotationX90.multiplyVector(point));
+    EXPECT_TRUE(composed.multiplyVector(point).isEqual(sequential, Tolerance));
 
-    const Rotation doubled = rotZ90 * rotZ90;
+    const Rotation doubled = rotationZ90 * rotationZ90;
     EXPECT_TRUE(doubled.isSame(Rotation(Vector3d(0.0, 0.0, 1.0), std::numbers::pi), Tolerance));
 
-    Rotation leftProduct = rotZ90;
-    leftProduct.multLeft(rotX90);
-    EXPECT_TRUE(leftProduct.isSame(rotX90 * rotZ90, Tolerance));
+    Rotation leftProduct = rotationZ90;
+    leftProduct.multiplyLeft(rotationX90);
+    EXPECT_TRUE(leftProduct.isSame(rotationX90 * rotationZ90, Tolerance));
 
-    Rotation rightProduct = rotZ90;
-    rightProduct.multRight(rotX90);
-    EXPECT_TRUE(rightProduct.isSame(rotZ90 * rotX90, Tolerance));
+    Rotation rightProduct = rotationZ90;
+    rightProduct.multiplyRight(rotationX90);
+    EXPECT_TRUE(rightProduct.isSame(rotationZ90 * rotationX90, Tolerance));
 }
 
 /**
@@ -159,8 +159,8 @@ TEST(RotationTest, InverseUndoesRotation)
 
     // 逆旋转把像点送回原点
     const Vector3d point(0.5, -1.0, 2.0);
-    const Vector3d rotated = rotation.multVec(point);
-    EXPECT_TRUE(rotation.inverse().multVec(rotated).IsEqual(point, 1e-12));
+    const Vector3d rotated = rotation.multiplyVector(point);
+    EXPECT_TRUE(rotation.inverse().multiplyVector(rotated).isEqual(point, 1e-12));
 }
 
 /**
@@ -255,7 +255,7 @@ TEST(RotationTest, MakeRotationByAxesMapsLocalAxesAndRejectsBadInput)
 
     // 只给出 zDirection（优先级最高的 Z）时，局部 Z 轴应对准它
     const Rotation aligned = Rotation::makeRotationByAxes(Vector3d(), Vector3d(), Vector3d(1.0, 0.0, 0.0));
-    EXPECT_TRUE(aligned.multVec(Vector3d(0.0, 0.0, 1.0)).IsEqual(Vector3d(1.0, 0.0, 0.0), 1e-12));
+    EXPECT_TRUE(aligned.multiplyVector(Vector3d(0.0, 0.0, 1.0)).isEqual(Vector3d(1.0, 0.0, 0.0), 1e-12));
 
     // 拒绝面：长度不为 3、含小写、轴重复、三方向全零
     EXPECT_THROW(Rotation::makeRotationByAxes(Vector3d(1.0, 0.0, 0.0), Vector3d(), Vector3d(), "ZX"), ValueError);
@@ -275,11 +275,11 @@ TEST(RotationTest, RotateFromToHandlesParallelAndAntiparallelVectors)
 
     // 反向：必然存在 180° 旋转把起点方向翻到终点方向
     const Rotation flip(Vector3d(1.0, 0.0, 0.0), Vector3d(-1.0, 0.0, 0.0));
-    EXPECT_TRUE(flip.multVec(Vector3d(1.0, 0.0, 0.0)).IsEqual(Vector3d(-1.0, 0.0, 0.0), 1e-12));
+    EXPECT_TRUE(flip.multiplyVector(Vector3d(1.0, 0.0, 0.0)).isEqual(Vector3d(-1.0, 0.0, 0.0), 1e-12));
 
     // 一般情形：终点方向可作为旋转轴外的验证点
     const Rotation rotate(Vector3d(1.0, 0.0, 0.0), Vector3d(0.0, 1.0, 0.0));
-    EXPECT_TRUE(rotate.multVec(Vector3d(1.0, 0.0, 0.0)).IsEqual(Vector3d(0.0, 1.0, 0.0), 1e-12));
+    EXPECT_TRUE(rotate.multiplyVector(Vector3d(1.0, 0.0, 0.0)).isEqual(Vector3d(0.0, 1.0, 0.0), 1e-12));
 }
 
 /**
@@ -296,19 +296,19 @@ TEST(RotationTest, MatrixRoundTripKeepsRotation)
 
     // 矩阵路径与四元数直接变换必须给出同一个像点
     const Vector3d point(0.5, -1.5, 2.5);
-    EXPECT_TRUE((matrix * point).IsEqual(original.multVec(point), 1e-9));
+    EXPECT_TRUE((matrix * point).isEqual(original.multiplyVector(point), 1e-9));
 }
 
 /**
- * @brief 钉住：单精度变换与双精度变换在单精度容差内一致（multVec 的 float 重载）
+ * @brief 钉住：单精度变换与双精度变换在单精度容差内一致（multiplyVector 的 float 重载）
  */
 TEST(RotationTest, FloatVectorOverloadMatchesDoublePath)
 {
     const Rotation rotation(Vector3d(0.0, 1.0, 0.0), 0.6);
     const Vector3f source(1.0F, 2.0F, 3.0F);
 
-    const Vector3f floatResult  = rotation.multVec(source);
-    const Vector3d doubleResult = rotation.multVec(Vector3d(1.0, 2.0, 3.0));
+    const Vector3f floatResult  = rotation.multiplyVector(source);
+    const Vector3d doubleResult = rotation.multiplyVector(Vector3d(1.0, 2.0, 3.0));
 
     EXPECT_NEAR(floatResult.x, doubleResult.x, 1e-5);
     EXPECT_NEAR(floatResult.y, doubleResult.y, 1e-5);

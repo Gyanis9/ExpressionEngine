@@ -698,7 +698,8 @@ inline const UnitsSchemaSpecification imperialCivilSchema
     // clang-format on
     // NOLINTEND
     /// 内置方案列表：按编号排列，供 UnitsSchemas 按序号或名字查找
-    inline const std::vector schemaSpecifications{internalSchema, mksSchema, centimeterSchema, femSchema, imperialSchema, imperialBuildingSchema, imperialCivilSchema, mmMinSchema, meterDecimalSchema, imperialDecimalSchema};
+    inline const std::vector schemaSpecifications{internalSchema,         mksSchema,           centimeterSchema, femSchema,          imperialSchema,
+                                                  imperialBuildingSchema, imperialCivilSchema, mmMinSchema,      meterDecimalSchema, imperialDecimalSchema};
 
     /**
      * 特殊换算函数
@@ -781,7 +782,7 @@ inline const UnitsSchemaSpecification imperialCivilSchema
      * @param value 十进制度数
      * @return 如 12°30′45″ 的文本，分秒为零时省略对应部分
      */
-    inline std::string toDms(const double value)
+    inline std::string toDegreesMinutesSeconds(const double value)
     {
         constexpr auto degreeMinuteSecondRatio{60.0};
 
@@ -818,7 +819,7 @@ inline const std::map<std::string, std::function<std::string(double, std::size_t
                               double& factor, std::string& unitString) {
             factor = 1.0;
             unitString = "deg";
-            return toDms(value);
+            return toDegreesMinutesSeconds(value);
         }},
         { "toFractional" , [](const double value, [[maybe_unused]] const std::size_t precision, const std::size_t denominator,
                               double& factor, std::string& unitString) {

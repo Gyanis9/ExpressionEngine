@@ -48,7 +48,7 @@ namespace ExpressionEngine::Expression
         /// 真值判定：与 FreeCAD 一致，|值| 达到重合精度即视为真
         bool asBoolean(const double value)
         {
-            return std::fabs(value) >= Base::Precision::Confusion();
+            return std::fabs(value) >= Base::Precision::confusion();
         }
 
         /**
@@ -1015,7 +1015,7 @@ namespace ExpressionEngine::Expression
         return evaluateNode();
     }
 
-    ExpressionPtr Expression::eval() const
+    ExpressionPtr Expression::evaluateToConstantNode() const
     {
         return makeValueExpression(m_resolver, evaluate());
     }
@@ -1023,7 +1023,7 @@ namespace ExpressionEngine::Expression
     std::vector<VariableReference> Expression::collectReferences() const
     {
         std::vector<VariableReference> references;
-        _collectReferences(references);
+        collectReferencesInto(references);
 
         // 同一引用可能沿多条路径出现（如 Box.Length + Box.Length）；按首次出现顺序去重，
         // 宿主建立依赖时不必自己再排一遍
@@ -1052,11 +1052,11 @@ namespace ExpressionEngine::Expression
     {
         if (expression != nullptr)
         {
-            expression->_collectReferences(collectedReferences);
+            expression->collectReferencesInto(collectedReferences);
         }
     }
 
-    void Expression::_collectReferences(std::vector<VariableReference> &) const
+    void Expression::collectReferencesInto(std::vector<VariableReference> &) const
     {
         // 基类不知道子节点结构：默认不收集，复合节点覆写后递归子表达式
     }
@@ -1440,7 +1440,7 @@ namespace ExpressionEngine::Expression
         {
             if (left->isConstantNumeric())
             {
-                return eval();
+                return evaluateToConstantNode();
             }
             return std::make_unique<OperatorExpression>(resolver(), std::move(left), m_operator, nullptr);
         }
@@ -1449,7 +1449,7 @@ namespace ExpressionEngine::Expression
         if (left->isConstantNumeric() && right->isConstantNumeric())
         {
             // 两侧都是常量，结果必然也是常量，直接折叠
-            return eval();
+            return evaluateToConstantNode();
         }
         return std::make_unique<OperatorExpression>(resolver(), std::move(left), m_operator, std::move(right));
     }
@@ -1838,7 +1838,7 @@ namespace ExpressionEngine::Expression
                 throw EvaluationError("条件表达式 (?:) 的条件不是数值；请改用比较运算得到布尔条件");
             }
             // 与 FreeCAD 一致：条件绝对值达到重合精度即取真分支
-            if (std::fabs(magnitude) >= Base::Precision::Confusion())
+            if (std::fabs(magnitude) >= Base::Precision::confusion())
             {
                 return m_trueExpression->simplify();
             }
@@ -1950,7 +1950,7 @@ namespace ExpressionEngine::Expression
         if (numericCount == m_arguments.size())
         {
             // 全部实参都是常量，函数结果必然也是常量，直接折叠
-            return eval();
+            return evaluateToConstantNode();
         }
         return std::make_unique<FunctionExpression>(resolver(), m_function, m_name, std::move(simplifiedArguments));
     }
@@ -2281,7 +2281,7 @@ namespace ExpressionEngine::Expression
                 {
                     case Function::VectorNormalize:
                     {
-                        const double length = firstVector.Length();
+                        const double length = firstVector.length();
                         if (length == 0.0)
                         {
                             // 零向量没有方向，归一化没有定义，报错好过产出 NaN
@@ -2290,16 +2290,16 @@ namespace ExpressionEngine::Expression
                         return firstVector / length;
                     }
                     case Function::VectorScale:
-                        firstVector.Scale(lengthArgument(arguments, 1, label), lengthArgument(arguments, 2, label), lengthArgument(arguments, 3, label));
+                        firstVector.scale(lengthArgument(arguments, 1, label), lengthArgument(arguments, 2, label), lengthArgument(arguments, 3, label));
                         return firstVector;
                     case Function::VectorScaleX:
-                        firstVector.ScaleX(lengthArgument(arguments, 1, label));
+                        firstVector.scaleX(lengthArgument(arguments, 1, label));
                         return firstVector;
                     case Function::VectorScaleY:
-                        firstVector.ScaleY(lengthArgument(arguments, 1, label));
+                        firstVector.scaleY(lengthArgument(arguments, 1, label));
                         return firstVector;
                     case Function::VectorScaleZ:
-                        firstVector.ScaleZ(lengthArgument(arguments, 1, label));
+                        firstVector.scaleZ(lengthArgument(arguments, 1, label));
                         return firstVector;
                     default:
                         break;
@@ -2309,12 +2309,12 @@ namespace ExpressionEngine::Expression
                 switch (function)
                 {
                     case Function::VectorAngle:
-                        return Units::Quantity(toDegrees(firstVector.GetAngle(secondVector)), Units::Unit::Angle);
+                        return Units::Quantity(toDegrees(firstVector.getAngle(secondVector)), Units::Unit::Angle);
                     case Function::VectorCross:
-                        return firstVector.Cross(secondVector);
+                        return firstVector.cross(secondVector);
                     case Function::VectorDot:
                         // 点积是无量纲的纯数，与 FreeCAD 返回 Python 浮点一致
-                        return firstVector.Dot(secondVector);
+                        return firstVector.dot(secondVector);
                     default:
                         break;
                 }
@@ -2323,21 +2323,21 @@ namespace ExpressionEngine::Expression
                 switch (function)
                 {
                     case Function::VectorLineDistance:
-                        return Units::Quantity(firstVector.DistanceToLine(secondVector, thirdVector), Units::Unit::Length);
+                        return Units::Quantity(firstVector.distanceToLine(secondVector, thirdVector), Units::Unit::Length);
                     case Function::VectorLineSegmentDistance:
-                        return firstVector.DistanceToLineSegment(secondVector, thirdVector);
+                        return firstVector.distanceToLineSegment(secondVector, thirdVector);
                     case Function::VectorLineProjection:
                         // 垂足 = 直线上一点 + 位移在直线方向上的分量。
-                        // 不用 Vector3d::ProjectToLine：该函数的公式不读取自身，结果与待投影的点无关。
+                        // 不用 Vector3d::projectToLine：该函数的公式不读取自身，结果与待投影的点无关。
                         if (thirdVector.squaredLength() == 0.0)
                         {
                             throw Base::ValueError("vlineproj() 的直线方向是零向量，无法确定直线；请给出非零方向");
                         }
                         return secondVector + (((firstVector - secondVector) * thirdVector) / thirdVector.squaredLength()) * thirdVector;
                     case Function::VectorPlaneDistance:
-                        return Units::Quantity(firstVector.DistanceToPlane(secondVector, thirdVector), Units::Unit::Length);
+                        return Units::Quantity(firstVector.distanceToPlane(secondVector, thirdVector), Units::Unit::Length);
                     case Function::VectorPlaneProjection:
-                        firstVector.ProjectToPlane(secondVector, thirdVector);
+                        firstVector.projectToPlane(secondVector, thirdVector);
                         return firstVector;
                     default:
                         break;
@@ -3179,20 +3179,20 @@ namespace ExpressionEngine::Expression
     // 依赖收集：各节点把子树里的变量引用追加到同一列表，去重由 collectReferences() 统一完成
     //
 
-    void OperatorExpression::_collectReferences(std::vector<VariableReference> &collectedReferences) const
+    void OperatorExpression::collectReferencesInto(std::vector<VariableReference> &collectedReferences) const
     {
         collectReferencesFrom(m_left.get(), collectedReferences);
         collectReferencesFrom(m_right.get(), collectedReferences);
     }
 
-    void ConditionalExpression::_collectReferences(std::vector<VariableReference> &collectedReferences) const
+    void ConditionalExpression::collectReferencesInto(std::vector<VariableReference> &collectedReferences) const
     {
         collectReferencesFrom(m_condition.get(), collectedReferences);
         collectReferencesFrom(m_trueExpression.get(), collectedReferences);
         collectReferencesFrom(m_falseExpression.get(), collectedReferences);
     }
 
-    void FunctionExpression::_collectReferences(std::vector<VariableReference> &collectedReferences) const
+    void FunctionExpression::collectReferencesInto(std::vector<VariableReference> &collectedReferences) const
     {
         for (const auto &argument: m_arguments)
         {
@@ -3200,7 +3200,7 @@ namespace ExpressionEngine::Expression
         }
     }
 
-    void VariableExpression::_collectReferences(std::vector<VariableReference> &collectedReferences) const
+    void VariableExpression::collectReferencesInto(std::vector<VariableReference> &collectedReferences) const
     {
         collectedReferences.push_back(m_reference);
     }

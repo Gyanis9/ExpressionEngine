@@ -27,7 +27,7 @@ namespace ExpressionEngine::Base
          * @brief 角度相等判定的推荐精度
          * @return 1e-12（弧度）
          */
-        static double Angular()
+        static double angular()
         {
             return s_angular;
         }
@@ -36,36 +36,36 @@ namespace ExpressionEngine::Base
          * @brief 两点重合判定的推荐精度
          * @return 1e-7
          */
-        static double Confusion()
+        static double confusion()
         {
             return s_confusion;
         }
 
         /**
          * @brief 重合精度的平方
-         * @return Confusion() 的平方，比较距离平方时用它可省去开方
+         * @return confusion() 的平方，比较距离平方时用它可省去开方
          */
-        static double SquareConfusion()
+        static double squareConfusion()
         {
-            return Confusion() * Confusion();
+            return confusion() * confusion();
         }
 
         /**
          * @brief 求交算法的推荐精度
-         * @return Confusion() * 0.01，比重合判定更严格
+         * @return confusion() * 0.01，比重合判定更严格
          */
-        static double Intersection()
+        static double intersection()
         {
-            return Confusion() * s_intersectionScale;
+            return confusion() * s_intersectionScale;
         }
 
         /**
          * @brief 逼近算法的推荐精度
-         * @return Confusion() * 10，比重合判定更宽松
+         * @return confusion() * 10，比重合判定更宽松
          */
-        static double Approximation()
+        static double approximation()
         {
-            return Confusion() * s_approximationScale;
+            return confusion() * s_approximationScale;
         }
 
         /**
@@ -75,7 +75,7 @@ namespace ExpressionEngine::Base
          * @return realPrecision / parameterRange
          * @throws ValueError 参数区间长度为零时抛出，避免返回 inf 掩盖退化曲线
          */
-        static double Parametric(const double realPrecision, const double parameterRange)
+        static double parametric(const double realPrecision, const double parameterRange)
         {
             if (parameterRange == 0.0)
             {
@@ -89,49 +89,49 @@ namespace ExpressionEngine::Base
         /**
          * @brief 取指定参数区间长度下的参数空间重合精度
          * @param parameterRange 参数区间长度，必须非零
-         * @return 按 parameterRange 换算的 Confusion()
+         * @return 按 parameterRange 换算的 confusion()
          */
-        static double PConfusion(const double parameterRange)
+        static double parametricConfusion(const double parameterRange)
         {
-            return Parametric(Confusion(), parameterRange);
+            return parametric(confusion(), parameterRange);
         }
 
         /**
          * @brief 取默认曲线上的参数空间重合精度
-         * @return 以默认参数区间长度换算的 Confusion()
+         * @return 以默认参数区间长度换算的 confusion()
          */
-        static double PConfusion()
+        static double parametricConfusion()
         {
-            return Parametric(Confusion());
+            return parametric(confusion());
         }
 
         /**
          * @brief 参数空间重合精度的平方
-         * @return PConfusion() 的平方
+         * @return parametricConfusion() 的平方
          */
-        static double SquarePConfusion()
+        static double squareParametricConfusion()
         {
-            return PConfusion() * PConfusion();
+            return parametricConfusion() * parametricConfusion();
         }
 
         /**
          * @brief 取指定参数区间长度下的参数空间求交精度
          * @param parameterRange 参数区间长度，必须非零
-         * @return 按 parameterRange 换算的 Intersection()
+         * @return 按 parameterRange 换算的 intersection()
          */
-        static double PIntersection(const double parameterRange)
+        static double parametricIntersection(const double parameterRange)
         {
-            return Parametric(Intersection(), parameterRange);
+            return parametric(intersection(), parameterRange);
         }
 
         /**
          * @brief 取指定参数区间长度下的参数空间逼近精度
          * @param parameterRange 参数区间长度，必须非零
-         * @return 按 parameterRange 换算的 Approximation()
+         * @return 按 parameterRange 换算的 approximation()
          */
-        static double PApproximation(const double parameterRange)
+        static double parametricApproximation(const double parameterRange)
         {
-            return Parametric(Approximation(), parameterRange);
+            return parametric(approximation(), parameterRange);
         }
 
         /**
@@ -139,64 +139,64 @@ namespace ExpressionEngine::Base
          * @param realPrecision 实空间精度
          * @return 以默认参数区间长度换算的结果
          */
-        static double Parametric(const double realPrecision)
+        static double parametric(const double realPrecision)
         {
-            return Parametric(realPrecision, s_defaultParameterRange);
+            return parametric(realPrecision, s_defaultParameterRange);
         }
 
         /**
          * @brief 取默认曲线上的参数空间求交精度
-         * @return 以默认参数区间长度换算的 Intersection()
+         * @return 以默认参数区间长度换算的 intersection()
          */
-        static double PIntersection()
+        static double parametricIntersection()
         {
-            return Parametric(Intersection());
+            return parametric(intersection());
         }
 
         /**
          * @brief 取默认曲线上的参数空间逼近精度
-         * @return 以默认参数区间长度换算的 Approximation()
+         * @return 以默认参数区间长度换算的 approximation()
          */
-        static double PApproximation()
+        static double parametricApproximation()
         {
-            return Parametric(Approximation());
+            return parametric(approximation());
         }
 
         /**
          * @brief 判断数值是否可视为无穷大
          * @param value 待判定数值
-         * @return 绝对值不小于 Infinite() 的一半时返回 true
+         * @return 绝对值不小于 infinite() 的一半时返回 true
          */
-        static bool IsInfinite(const double value)
+        static bool isInfinite(const double value)
         {
-            return std::abs(value) >= (0.5 * Infinite());
+            return std::abs(value) >= (0.5 * infinite());
         }
 
         /**
          * @brief 判断数值是否可视为正无穷大
          * @param value 待判定数值
-         * @return 不小于 Infinite() 的一半时返回 true
+         * @return 不小于 infinite() 的一半时返回 true
          */
-        static bool IsPositiveInfinite(const double value)
+        static bool isPositiveInfinite(const double value)
         {
-            return value >= (0.5 * Infinite());
+            return value >= (0.5 * infinite());
         }
 
         /**
          * @brief 判断数值是否可视为负无穷大
          * @param value 待判定数值
-         * @return 不大于 -Infinite() 的一半时返回 true
+         * @return 不大于 -infinite() 的一半时返回 true
          */
-        static bool IsNegativeInfinite(const double value)
+        static bool isNegativeInfinite(const double value)
         {
-            return value <= -(0.5 * Infinite());
+            return value <= -(0.5 * infinite());
         }
 
         /**
          * @brief 取可视为无穷大的临界量
          * @return 2e100，取负即负无穷大的临界量
          */
-        static double Infinite()
+        static double infinite()
         {
             return s_infinite;
         }

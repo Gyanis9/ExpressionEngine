@@ -265,7 +265,7 @@ namespace ExpressionEngine::Base
          * @param other 另一向量
          * @return 点积结果
          */
-        [[nodiscard]] FloatingType Dot(const Vector3<FloatingType> &other) const;
+        [[nodiscard]] FloatingType dot(const Vector3<FloatingType> &other) const;
 
         /**
          * @brief 叉积（向量积）
@@ -279,7 +279,7 @@ namespace ExpressionEngine::Base
          * @param other 另一向量
          * @return 同时垂直于两向量的新向量
          */
-        [[nodiscard]] Vector3 Cross(const Vector3<FloatingType> &other) const;
+        [[nodiscard]] Vector3 cross(const Vector3<FloatingType> &other) const;
 
         /**
          * @brief 按容差比较不等
@@ -301,25 +301,25 @@ namespace ExpressionEngine::Base
          * @param endPoint 线段终点
          * @return 与线段共线且投影落在线段范围内时返回 true
          */
-        [[nodiscard]] bool IsOnLineSegment(const Vector3<FloatingType> &startPoint, const Vector3<FloatingType> &endPoint) const;
+        [[nodiscard]] bool isOnLineSegment(const Vector3<FloatingType> &startPoint, const Vector3<FloatingType> &endPoint) const;
 
         /**
          * @brief 就地缩放 X 分量
          * @param factor 缩放因子
          */
-        void ScaleX(FloatingType factor);
+        void scaleX(FloatingType factor);
 
         /**
          * @brief 就地缩放 Y 分量
          * @param factor 缩放因子
          */
-        void ScaleY(FloatingType factor);
+        void scaleY(FloatingType factor);
 
         /**
          * @brief 就地缩放 Z 分量
          * @param factor 缩放因子
          */
-        void ScaleZ(FloatingType factor);
+        void scaleZ(FloatingType factor);
 
         /**
          * @brief 三分量分别就地缩放
@@ -327,25 +327,25 @@ namespace ExpressionEngine::Base
          * @param yFactor Y 分量缩放因子
          * @param zFactor Z 分量缩放因子
          */
-        void Scale(FloatingType xFactor, FloatingType yFactor, FloatingType zFactor);
+        void scale(FloatingType xFactor, FloatingType yFactor, FloatingType zFactor);
 
         /**
          * @brief 就地平移 X 分量
          * @param offset 偏移量
          */
-        void MoveX(FloatingType offset);
+        void moveX(FloatingType offset);
 
         /**
          * @brief 就地平移 Y 分量
          * @param offset 偏移量
          */
-        void MoveY(FloatingType offset);
+        void moveY(FloatingType offset);
 
         /**
          * @brief 就地平移 Z 分量
          * @param offset 偏移量
          */
-        void MoveZ(FloatingType offset);
+        void moveZ(FloatingType offset);
 
         /**
          * @brief 三分量分别就地平移
@@ -353,25 +353,25 @@ namespace ExpressionEngine::Base
          * @param yOffset Y 分量偏移
          * @param zOffset Z 分量偏移
          */
-        void Move(FloatingType xOffset, FloatingType yOffset, FloatingType zOffset);
+        void move(FloatingType xOffset, FloatingType yOffset, FloatingType zOffset);
 
         /**
          * @brief 绕 X 轴就地旋转
          * @param angle 旋转角（弧度）
          */
-        void RotateX(FloatingType angle);
+        void rotateX(FloatingType angle);
 
         /**
          * @brief 绕 Y 轴就地旋转
          * @param angle 旋转角（弧度）
          */
-        void RotateY(FloatingType angle);
+        void rotateY(FloatingType angle);
 
         /**
          * @brief 绕 Z 轴就地旋转
          * @param angle 旋转角（弧度）
          */
-        void RotateZ(FloatingType angle);
+        void rotateZ(FloatingType angle);
 
         /**
          * @brief 一次性重设三分量
@@ -379,17 +379,17 @@ namespace ExpressionEngine::Base
          * @param yValue y 分量
          * @param zValue z 分量
          */
-        void Set(FloatingType xValue, FloatingType yValue, FloatingType zValue);
+        void set(FloatingType xValue, FloatingType yValue, FloatingType zValue);
 
         /**
          * @brief 取向量长度
          * @return 欧几里得范数
          */
-        [[nodiscard]] FloatingType Length() const;
+        [[nodiscard]] FloatingType length() const;
 
         /**
          * @brief 取长度平方
-         * @return 三分量平方和，比 Length() 少一次开方
+         * @return 三分量平方和，比 length() 少一次开方
          */
         [[nodiscard]] FloatingType squaredLength() const;
 
@@ -398,27 +398,27 @@ namespace ExpressionEngine::Base
          * @return 自身引用
          * @throws ValueError 向量长度为零时抛出，因为零向量没有方向，静默返回会掩盖调用错误
          */
-        Vector3 &Normalize();
+        Vector3 &normalize();
 
         /**
          * @brief 取归一化后的副本
          * @return 单位向量副本
          * @throws ValueError 向量长度为零时抛出
          */
-        Vector3 Normalized() const;
+        Vector3 normalized() const;
 
         /**
          * @brief 判断是否为零向量
          * @return 三分量都精确等于 0 时返回 true
          */
-        [[nodiscard]] bool IsNull() const;
+        [[nodiscard]] bool isNull() const;
 
         /**
          * @brief 取两向量夹角
          * @param other 另一向量
          * @return 夹角弧度，落在 [0, pi]；任一方为零向量时返回 NaN（无法定义夹角）
          */
-        [[nodiscard]] FloatingType GetAngle(const Vector3 &other) const;
+        [[nodiscard]] FloatingType getAngle(const Vector3 &other) const;
 
         /**
          * @brief 取带符号夹角
@@ -426,7 +426,7 @@ namespace ExpressionEngine::Base
          * @param normal 用于确定旋向的参考法向
          * @return 夹角弧度，落在 [0, 2*pi]
          */
-        [[nodiscard]] FloatingType GetAngleOriented(const Vector3 &other, const Vector3 &normal) const;
+        [[nodiscard]] FloatingType getAngleOriented(const Vector3 &other, const Vector3 &normal) const;
 
         /**
          * @brief 把本点变换到给定坐标系
@@ -435,7 +435,7 @@ namespace ExpressionEngine::Base
          * @param yDirection 目标坐标系 Y 方向，必须与 xDirection 垂直
          * @throws ValueError xDirection 与 yDirection 平行导致叉积为零向量时抛出
          */
-        void TransformToCoordinateSystem(const Vector3 &base, const Vector3 &xDirection, const Vector3 &yDirection);
+        void transformToCoordinateSystem(const Vector3 &base, const Vector3 &xDirection, const Vector3 &yDirection);
 
         /**
          * @brief 按距离容差判断两点是否重合
@@ -443,7 +443,7 @@ namespace ExpressionEngine::Base
          * @param tolerance 容差
          * @return 两点距离不超过容差时返回 true
          */
-        [[nodiscard]] bool IsEqual(const Vector3 &point, FloatingType tolerance) const;
+        [[nodiscard]] bool isEqual(const Vector3 &point, FloatingType tolerance) const;
 
         /**
          * @brief 判断两向量是否平行
@@ -451,7 +451,7 @@ namespace ExpressionEngine::Base
          * @param tolerance 角度容差（弧度）
          * @return 夹角接近 0 或 pi 时返回 true；任一方为零向量时返回 false
          */
-        [[nodiscard]] bool IsParallel(const Vector3 &direction, FloatingType tolerance) const;
+        [[nodiscard]] bool isParallel(const Vector3 &direction, FloatingType tolerance) const;
 
         /**
          * @brief 判断两向量是否垂直
@@ -459,7 +459,7 @@ namespace ExpressionEngine::Base
          * @param tolerance 角度容差（弧度）
          * @return 夹角接近 pi/2 时返回 true；任一方为零向量时返回 false
          */
-        [[nodiscard]] bool IsNormal(const Vector3 &direction, FloatingType tolerance) const;
+        [[nodiscard]] bool isNormal(const Vector3 &direction, FloatingType tolerance) const;
 
         /**
          * @brief 就地把点投影到平面
@@ -467,7 +467,7 @@ namespace ExpressionEngine::Base
          * @param normal 平面法向
          * @return 自身引用
          */
-        Vector3 &ProjectToPlane(const Vector3 &base, const Vector3 &normal);
+        Vector3 &projectToPlane(const Vector3 &base, const Vector3 &normal);
 
         /**
          * @brief 把点投影到平面并存入输出参数
@@ -475,7 +475,7 @@ namespace ExpressionEngine::Base
          * @param normal 平面法向
          * @param projection 输出：投影结果
          */
-        void ProjectToPlane(const Vector3 &base, const Vector3 &normal, Vector3 &projection) const;
+        void projectToPlane(const Vector3 &base, const Vector3 &normal, Vector3 &projection) const;
 
         /**
          * @brief 就地把点投影到直线
@@ -484,7 +484,7 @@ namespace ExpressionEngine::Base
          * @param line 直线方向
          * @return 自身引用
          */
-        Vector3 &ProjectToLine(const Vector3 &point, const Vector3 &line);
+        Vector3 &projectToLine(const Vector3 &point, const Vector3 &line);
 
         /**
          * @brief 求本点到直线的垂足
@@ -492,7 +492,7 @@ namespace ExpressionEngine::Base
          * @param direction 直线方向
          * @return 垂足坐标
          */
-        [[nodiscard]] Vector3 Perpendicular(const Vector3 &base, const Vector3 &direction) const;
+        [[nodiscard]] Vector3 perpendicular(const Vector3 &base, const Vector3 &direction) const;
 
         /**
          * @brief 求点到平面的带符号距离
@@ -500,7 +500,7 @@ namespace ExpressionEngine::Base
          * @param normal 平面法向
          * @return 与法向同侧为正、异侧为负的距离
          */
-        [[nodiscard]] FloatingType DistanceToPlane(const Vector3 &base, const Vector3 &normal) const;
+        [[nodiscard]] FloatingType distanceToPlane(const Vector3 &base, const Vector3 &normal) const;
 
         /**
          * @brief 求点到直线的距离
@@ -508,7 +508,7 @@ namespace ExpressionEngine::Base
          * @param direction 直线方向
          * @return 垂直距离
          */
-        [[nodiscard]] FloatingType DistanceToLine(const Vector3 &base, const Vector3 &direction) const;
+        [[nodiscard]] FloatingType distanceToLine(const Vector3 &base, const Vector3 &direction) const;
 
         /**
          * @brief 求点到线段的最短位移向量
@@ -517,7 +517,7 @@ namespace ExpressionEngine::Base
          * @param secondPoint 线段终点
          * @return 从本点指向线段最近点的向量
          */
-        [[nodiscard]] Vector3 DistanceToLineSegment(const Vector3 &firstPoint, const Vector3 &secondPoint) const;
+        [[nodiscard]] Vector3 distanceToLineSegment(const Vector3 &firstPoint, const Vector3 &secondPoint) const;
     };
 
     template<class FloatingType>
@@ -534,7 +534,7 @@ namespace ExpressionEngine::Base
      * @return 欧几里得距离
      */
     template<class FloatingType>
-    [[nodiscard]] inline FloatingType Distance(const Vector3<FloatingType> &first, const Vector3<FloatingType> &second)
+    [[nodiscard]] inline FloatingType distance(const Vector3<FloatingType> &first, const Vector3<FloatingType> &second)
     {
         const FloatingType deltaX = first.x - second.x;
         const FloatingType deltaY = first.y - second.y;
@@ -549,7 +549,7 @@ namespace ExpressionEngine::Base
      * @return 距离的平方，比较远近时用它可省去开方
      */
     template<class FloatingType>
-    [[nodiscard]] inline FloatingType DistanceP2(const Vector3<FloatingType> &first, const Vector3<FloatingType> &second)
+    [[nodiscard]] inline FloatingType squaredDistance(const Vector3<FloatingType> &first, const Vector3<FloatingType> &second)
     {
         const FloatingType deltaX = first.x - second.x;
         const FloatingType deltaY = first.y - second.y;

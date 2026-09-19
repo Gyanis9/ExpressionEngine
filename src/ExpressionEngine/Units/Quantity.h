@@ -529,11 +529,11 @@ namespace ExpressionEngine::Units
         static const Quantity KMH; ///< 千米每小时
         static const Quantity MPH; ///< 英里每小时
 
-        static const Quantity Degree;    ///< 度
-        static const Quantity Radian;    ///< 弧度
-        static const Quantity Gon;       ///< 百分度，整圆为 400 度
-        static const Quantity AngMinute; ///< 角分
-        static const Quantity AngSecond; ///< 角秒
+        static const Quantity Degree;      ///< 度
+        static const Quantity Radian;      ///< 弧度
+        static const Quantity Gon;         ///< 百分度，整圆为 400 度
+        static const Quantity AngleMinute; ///< 角分
+        static const Quantity AngleSecond; ///< 角秒
         //@}
 
     private:

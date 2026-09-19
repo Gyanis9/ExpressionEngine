@@ -1,5 +1,5 @@
-#include <ExpressionEngine/Units/QuantityParser.h>
 #include <ExpressionEngine/Base/FirstByteDispatch.h>
+#include <ExpressionEngine/Units/QuantityParser.h>
 
 #include <algorithm>
 #include <array>
@@ -209,8 +209,8 @@ constexpr std::array unitTokenSpecifications {
 
     UnitTokenSpecification { "°"   , &Quantity::Degree       }, UnitTokenSpecification { "deg"  , &Quantity::Degree      },
     UnitTokenSpecification { "rad" , &Quantity::Radian       }, UnitTokenSpecification { "gon"  , &Quantity::Gon         },
-    UnitTokenSpecification { "M"   , &Quantity::AngMinute    }, UnitTokenSpecification { "′"    , &Quantity::AngMinute   },
-    UnitTokenSpecification { "AS"  , &Quantity::AngSecond    }, UnitTokenSpecification { "″"    , &Quantity::AngSecond   },
+    UnitTokenSpecification { "M"   , &Quantity::AngleMinute  }, UnitTokenSpecification { "′"    , &Quantity::AngleMinute  },
+    UnitTokenSpecification { "AS"  , &Quantity::AngleSecond  }, UnitTokenSpecification { "″"    , &Quantity::AngleSecond  },
 };
         // clang-format on
 
@@ -237,16 +237,12 @@ constexpr std::array unitTokenSpecifications {
         }
 
         /// 编译期建好的单位符号分派表：查找时先按首字节把候选缩到一组；静态存储期，无运行时初始化与堆分配
-        constexpr Base::FirstByteDispatch<UnitTokenSpecification, unitTokenSpecifications.size()> unitSpecificationDispatch = Base::buildFirstByteDispatch(
-            unitTokenSpecifications,
-            [](const UnitTokenSpecification &specification) { return firstByteOf(specification.symbol); }
-        );
+        constexpr Base::FirstByteDispatch<UnitTokenSpecification, unitTokenSpecifications.size()> unitSpecificationDispatch =
+                Base::buildFirstByteDispatch(unitTokenSpecifications, [](const UnitTokenSpecification &specification) { return firstByteOf(specification.symbol); });
 
         /// 编译期建好的标量函数名分派表
-        constexpr Base::FirstByteDispatch<FunctionTokenSpecification, functionTokenSpecifications.size()> functionSpecificationDispatch = Base::buildFirstByteDispatch(
-            functionTokenSpecifications,
-            [](const FunctionTokenSpecification &specification) { return firstByteOf(specification.name); }
-        );
+        constexpr Base::FirstByteDispatch<FunctionTokenSpecification, functionTokenSpecifications.size()> functionSpecificationDispatch =
+                Base::buildFirstByteDispatch(functionTokenSpecifications, [](const FunctionTokenSpecification &specification) { return firstByteOf(specification.name); });
 
         /// 单位符号的最长匹配结果
         struct UnitMatch
@@ -260,7 +256,7 @@ constexpr std::array unitTokenSpecifications {
         [[nodiscard]] UnitMatch matchUnitSymbol(const std::string_view text)
         {
             const Base::FirstByteBucket bucket = unitSpecificationDispatch.buckets[firstByteOf(text)];
-            UnitMatch             best;
+            UnitMatch                   best;
             for (std::size_t index = 0; index < bucket.count; ++index)
             {
                 const UnitTokenSpecification *specification = unitSpecificationDispatch.entries[bucket.begin + index];
@@ -283,7 +279,7 @@ constexpr std::array unitTokenSpecifications {
         [[nodiscard]] FunctionMatch matchFunctionName(const std::string_view text)
         {
             const Base::FirstByteBucket bucket = functionSpecificationDispatch.buckets[firstByteOf(text)];
-            FunctionMatch         best;
+            FunctionMatch               best;
             for (std::size_t index = 0; index < bucket.count; ++index)
             {
                 const FunctionTokenSpecification *specification = functionSpecificationDispatch.entries[bucket.begin + index];
@@ -937,8 +933,7 @@ constexpr std::array unitTokenSpecifications {
         try
         {
             return parse(text);
-        }
-        catch (const Base::ParserError &error)
+        } catch (const Base::ParserError &error)
         {
             // 输入非法属可恢复错误：转成值返回，文案与异常通道逐字一致
             return std::unexpected(Base::ParseFailure{error.message()});

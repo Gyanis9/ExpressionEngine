@@ -203,7 +203,7 @@ namespace ExpressionEngine::Base
     Rotation::Rotation(const Vector3d &axis, const double angle) : Rotation()
     {
         // 先把轴定为 Z：传入零向量时 setValue() 会沿用这个保底方向，避免出现 NaN
-        m_axis.Set(0.0, 0.0, 1.0);
+        m_axis.set(0.0, 0.0, 1.0);
         this->setValue(axis, angle);
     }
 
@@ -262,7 +262,7 @@ namespace ExpressionEngine::Base
             double rotationAngle = std::acos(m_quaternion[3]) * 2.0;
             double scale         = std::sin(rotationAngle / 2.0);
             // 轴长可能来自用户传入的非单位轴向，先取回其长度，零长按 1 处理以免除零
-            double length = m_axis.Length();
+            double length = m_axis.length();
             if (length < Vector3d::epsilon())
             {
                 length = 1.0;
@@ -275,7 +275,7 @@ namespace ExpressionEngine::Base
         } else
         {
             // |w| == 1：旋转角为 0，轴角退回 Z 轴 + 0 度
-            m_axis.Set(0.0, 0.0, 1.0);
+            m_axis.set(0.0, 0.0, 1.0);
             m_angle = 0.0;
         }
     }
@@ -298,9 +298,9 @@ namespace ExpressionEngine::Base
         axis.z = m_axis.z;
         // setValue(axis, angle) 可能保存的是未归一化的轴，对外一律给出单位轴；
         // 零四元数没有可用的轴，此时保留零向量返回，由调用方用 isNull() 判定
-        if (!axis.IsNull())
+        if (!axis.isNull())
         {
-            axis.Normalize();
+            axis.normalize();
         }
     }
 
@@ -412,10 +412,10 @@ namespace ExpressionEngine::Base
         Vector3d normalizedAxis = axis;
         // 零向量没有方向，不能直接归一化：只在长度非零时归一化，再按归一化结果决定是否沿用既有轴
         double normalizedLength = 0.0;
-        if (normalizedAxis.Length() > 0.0)
+        if (normalizedAxis.length() > 0.0)
         {
-            normalizedAxis.Normalize();
-            normalizedLength = normalizedAxis.Length();
+            normalizedAxis.normalize();
+            normalizedLength = normalizedAxis.length();
         }
         if (std::isfinite(normalizedLength) && normalizedLength > 0.5)
         {
@@ -423,7 +423,7 @@ namespace ExpressionEngine::Base
         } else
         {
             normalizedAxis = m_axis;
-            normalizedAxis.Normalize();
+            normalizedAxis.normalize();
         }
 
         const double scale = std::sin(normalizedAngle / 2.0);
@@ -435,21 +435,21 @@ namespace ExpressionEngine::Base
     void Rotation::setValue(const Vector3d &rotateFrom, const Vector3d &rotateTo)
     {
         // 方向向量为零时旋转无从定义，报错而不是给出无意义的四元数
-        if (rotateFrom.IsNull() || rotateTo.IsNull())
+        if (rotateFrom.isNull() || rotateTo.isNull())
         {
             throw ValueError("setValue(rotateFrom, rotateTo) 需要两个非零方向向量：零向量没有方向，"
                              "请先给向量赋值，或改用 setValue(axis, angle) 直接给出转轴与转角。");
         }
 
         Vector3d normalizedSource = rotateFrom;
-        normalizedSource.Normalize();
+        normalizedSource.normalize();
         Vector3d normalizedTarget = rotateTo;
-        normalizedTarget.Normalize();
+        normalizedTarget.normalize();
 
         // 两个方向的叉积是旋转轴：它是 (0, normalizedSource, normalizedTarget) 三点所定平面的法向
         const double   dot        = normalizedSource * normalizedTarget;
         const Vector3d axis       = normalizedSource % normalizedTarget;
-        const double   axisLength = axis.Length();
+        const double   axisLength = axis.length();
 
         if (axisLength == 0.0)
         {
@@ -462,7 +462,7 @@ namespace ExpressionEngine::Base
             {
                 // 反向：任一垂直于 normalizedSource 的轴都可作 180° 旋转轴，优先取与 X 轴的叉积
                 Vector3d perpendicular = normalizedSource % Vector3d(1.0, 0.0, 0.0);
-                if (perpendicular.Length() < Vector3d::epsilon())
+                if (perpendicular.length() < Vector3d::epsilon())
                 {
                     // normalizedSource 与 X 轴平行时叉积退化，改与 Y 轴叉乘
                     perpendicular = normalizedSource % Vector3d(0.0, 1.0, 0.0);
@@ -524,7 +524,7 @@ namespace ExpressionEngine::Base
 
     Rotation &Rotation::operator*=(const Rotation &other)
     {
-        return multRight(other);
+        return multiplyRight(other);
     }
 
     Rotation Rotation::operator*(const Rotation &other) const
@@ -534,7 +534,7 @@ namespace ExpressionEngine::Base
         return result;
     }
 
-    Rotation &Rotation::multRight(const Rotation &other)
+    Rotation &Rotation::multiplyRight(const Rotation &other)
     {
         // 四元数乘法 (leftX,leftY,leftZ,leftW) ⊗ (rightX,rightY,rightZ,rightW)，右乘表示先施加 other
         double leftX{};
@@ -549,11 +549,12 @@ namespace ExpressionEngine::Base
         double rightW{};
         other.getValue(rightX, rightY, rightZ, rightW);
 
-        this->setValue(leftW * rightX + leftX * rightW + leftY * rightZ - leftZ * rightY, leftW * rightY - leftX * rightZ + leftY * rightW + leftZ * rightX, leftW * rightZ + leftX * rightY - leftY * rightX + leftZ * rightW, leftW * rightW - leftX * rightX - leftY * rightY - leftZ * rightZ);
+        this->setValue(leftW * rightX + leftX * rightW + leftY * rightZ - leftZ * rightY, leftW * rightY - leftX * rightZ + leftY * rightW + leftZ * rightX,
+                       leftW * rightZ + leftX * rightY - leftY * rightX + leftZ * rightW, leftW * rightW - leftX * rightX - leftY * rightY - leftZ * rightZ);
         return *this;
     }
 
-    Rotation &Rotation::multLeft(const Rotation &other)
+    Rotation &Rotation::multiplyLeft(const Rotation &other)
     {
         // 与右乘同一公式，但操作数角色互换，等价于 other ⊗ this
         double leftX{};
@@ -568,7 +569,8 @@ namespace ExpressionEngine::Base
         double rightW{};
         this->getValue(rightX, rightY, rightZ, rightW);
 
-        this->setValue(leftW * rightX + leftX * rightW + leftY * rightZ - leftZ * rightY, leftW * rightY - leftX * rightZ + leftY * rightW + leftZ * rightX, leftW * rightZ + leftX * rightY - leftY * rightX + leftZ * rightW, leftW * rightW - leftX * rightX - leftY * rightY - leftZ * rightZ);
+        this->setValue(leftW * rightX + leftX * rightW + leftY * rightZ - leftZ * rightY, leftW * rightY - leftX * rightZ + leftY * rightW + leftZ * rightX,
+                       leftW * rightZ + leftX * rightY - leftY * rightX + leftZ * rightW, leftW * rightW - leftX * rightX - leftY * rightY - leftZ * rightZ);
         return *this;
     }
 
@@ -582,20 +584,20 @@ namespace ExpressionEngine::Base
         return !(*this == other);
     }
 
-    Vector3d Rotation::multVec(const Vector3d &source) const
+    Vector3d Rotation::multiplyVector(const Vector3d &source) const
     {
         Vector3d destination;
-        multVec(source, destination);
+        multiplyVector(source, destination);
         return destination;
     }
 
-    void Rotation::multVec(const Vector3d &source, Vector3d &destination) const
+    void Rotation::multiplyVector(const Vector3d &source, Vector3d &destination) const
     {
         // 直接把旋转矩阵的元素展开成坐标式，省去构造 Matrix4D 的开销
-        const double x  = m_quaternion[0];
-        const double y  = m_quaternion[1];
-        const double z  = m_quaternion[2];
-        const double w  = m_quaternion[3];
+        const double x        = m_quaternion[0];
+        const double y        = m_quaternion[1];
+        const double z        = m_quaternion[2];
+        const double w        = m_quaternion[3];
         const double xSquared = x * x;
         const double ySquared = y * y;
         const double zSquared = z * z;
@@ -609,18 +611,18 @@ namespace ExpressionEngine::Base
         destination.z        = resultZ;
     }
 
-    void Rotation::multVec(const Vector3f &source, Vector3f &destination) const
+    void Rotation::multiplyVector(const Vector3f &source, Vector3f &destination) const
     {
         // 借双精度路径做变换：单精度入参的量化误差已远大于这步提升带来的收益
         Vector3d sourceDouble = toVector<double>(source);
-        multVec(sourceDouble, sourceDouble);
+        multiplyVector(sourceDouble, sourceDouble);
         destination = toVector<float>(sourceDouble);
     }
 
-    Vector3f Rotation::multVec(const Vector3f &source) const
+    Vector3f Rotation::multiplyVector(const Vector3f &source) const
     {
         Vector3f destination;
-        multVec(source, destination);
+        multiplyVector(source, destination);
         return destination;
     }
 
@@ -693,7 +695,7 @@ namespace ExpressionEngine::Base
         constexpr int ZAxis = 2;
 
         // 与 FreeCAD 一致地采用 OCC 的重合容差：方向长度低于该值即视为未提供
-        const double ConfusionTolerance = Precision::Confusion();
+        const double confusionTolerance = Precision::confusion();
 
         if (priorityOrder == nullptr)
         {
@@ -752,7 +754,7 @@ namespace ExpressionEngine::Base
         for (int attempt = 0; attempt < 3; ++attempt)
         {
             mainDirection = *directions[static_cast<std::size_t>(order[0])];
-            if (mainDirection.Length() > ConfusionTolerance)
+            if (mainDirection.length() > confusionTolerance)
             {
                 break;
             }
@@ -765,14 +767,14 @@ namespace ExpressionEngine::Base
                                  "请至少给出一个非零方向");
             }
         }
-        mainDirection.Normalize();
+        mainDirection.normalize();
 
         // 取次优先级方向作提示方向：它与主轴必须不平行，否则无法定出旋转平面
         Vector3d hintDirection;
         for (int attempt = 0; attempt < 2; ++attempt)
         {
             hintDirection = *directions[static_cast<std::size_t>(order[1])];
-            if ((hintDirection.Cross(mainDirection)).Length() > ConfusionTolerance)
+            if ((hintDirection.cross(mainDirection)).length() > confusionTolerance)
             {
                 break;
             }
@@ -785,7 +787,7 @@ namespace ExpressionEngine::Base
                 hintDirection = Vector3d();
             }
         }
-        if (hintDirection.Length() == 0.0)
+        if (hintDirection.length() == 0.0)
         {
             // 按主轴选择最贴近的全局轴作提示方向，并同步改写剩余优先级顺序
             switch (order[0])
@@ -796,7 +798,7 @@ namespace ExpressionEngine::Base
                     order[1]      = ZAxis;
                     order[2]      = YAxis;
                     hintDirection = Vector3d(0.0, 0.0, 1.0);
-                    if ((hintDirection.Cross(mainDirection)).Length() <= ConfusionTolerance)
+                    if ((hintDirection.cross(mainDirection)).length() <= confusionTolerance)
                     {
                         // 主轴本身沿 Z，改把 Y 方向对齐到全局 Y
                         hintDirection = Vector3d(0.0, 1.0, 0.0);
@@ -810,8 +812,8 @@ namespace ExpressionEngine::Base
                     // 主轴是 Y：优先把 Z 方向对齐到全局 Z，符号跟随主轴
                     order[1]      = ZAxis;
                     order[2]      = XAxis;
-                    hintDirection = mainDirection.z > -ConfusionTolerance ? Vector3d(0.0, 0.0, 1.0) : Vector3d(0.0, 0.0, -1.0);
-                    if ((hintDirection.Cross(mainDirection)).Length() <= ConfusionTolerance)
+                    hintDirection = mainDirection.z > -confusionTolerance ? Vector3d(0.0, 0.0, 1.0) : Vector3d(0.0, 0.0, -1.0);
+                    if ((hintDirection.cross(mainDirection)).length() <= confusionTolerance)
                     {
                         // 主轴本身沿 Z，改把 X 方向对齐到全局 X
                         hintDirection = Vector3d(1.0, 0.0, 0.0);
@@ -826,7 +828,7 @@ namespace ExpressionEngine::Base
                     order[1]      = YAxis;
                     order[2]      = XAxis;
                     hintDirection = Vector3d(0.0, 0.0, 1.0);
-                    if ((hintDirection.Cross(mainDirection)).Length() <= ConfusionTolerance)
+                    if ((hintDirection.cross(mainDirection)).length() <= confusionTolerance)
                     {
                         // 主轴本身沿 Z，改把 X 方向对齐到全局 X
                         hintDirection = Vector3d(1.0, 0.0, 0.0);
@@ -845,12 +847,12 @@ namespace ExpressionEngine::Base
         assert(order[1] != order[2]);
         assert(order[2] != order[0]);
 
-        hintDirection.Normalize();
+        hintDirection.normalize();
         // 先叉乘得到第三个轴方向，再回转一次叉乘把提示方向校正到与主轴垂直
-        Vector3d lastDirection = mainDirection.Cross(hintDirection);
-        lastDirection.Normalize();
-        hintDirection = lastDirection.Cross(mainDirection);
-        hintDirection.Normalize();
+        Vector3d lastDirection = mainDirection.cross(hintDirection);
+        lastDirection.normalize();
+        hintDirection = lastDirection.cross(mainDirection);
+        hintDirection.normalize();
 
         std::array<Vector3d, 3> finalDirections;
         finalDirections[static_cast<std::size_t>(order[0])] = mainDirection;
@@ -858,7 +860,7 @@ namespace ExpressionEngine::Base
         finalDirections[static_cast<std::size_t>(order[2])] = lastDirection;
 
         // 修正手性：三个轴必须构成右手系，否则翻转最不重要的那个轴
-        if (finalDirections[static_cast<std::size_t>(XAxis)].Cross(finalDirections[static_cast<std::size_t>(YAxis)]) * finalDirections[static_cast<std::size_t>(ZAxis)] < 0.0)
+        if (finalDirections[static_cast<std::size_t>(XAxis)].cross(finalDirections[static_cast<std::size_t>(YAxis)]) * finalDirections[static_cast<std::size_t>(ZAxis)] < 0.0)
         {
             finalDirections[static_cast<std::size_t>(order[2])] = finalDirections[static_cast<std::size_t>(order[2])] * (-1.0);
         }
@@ -884,14 +886,17 @@ namespace ExpressionEngine::Base
         pitch = radiansFromDegrees(pitch);
         roll  = radiansFromDegrees(roll);
 
-        const double cosineYawHalf = std::cos(yaw / 2.0);
-        const double sineYawHalf = std::sin(yaw / 2.0);
+        const double cosineYawHalf   = std::cos(yaw / 2.0);
+        const double sineYawHalf     = std::sin(yaw / 2.0);
         const double cosinePitchHalf = std::cos(pitch / 2.0);
-        const double sinePitchHalf = std::sin(pitch / 2.0);
-        const double cosineRollHalf = std::cos(roll / 2.0);
-        const double sineRollHalf = std::sin(roll / 2.0);
+        const double sinePitchHalf   = std::sin(pitch / 2.0);
+        const double cosineRollHalf  = std::cos(roll / 2.0);
+        const double sineRollHalf    = std::sin(roll / 2.0);
 
-        this->setValue(cosineYawHalf * cosinePitchHalf * sineRollHalf - sineYawHalf * sinePitchHalf * cosineRollHalf, cosineYawHalf * sinePitchHalf * cosineRollHalf + sineYawHalf * cosinePitchHalf * sineRollHalf, sineYawHalf * cosinePitchHalf * cosineRollHalf - cosineYawHalf * sinePitchHalf * sineRollHalf, cosineYawHalf * cosinePitchHalf * cosineRollHalf + sineYawHalf * sinePitchHalf * sineRollHalf);
+        this->setValue(cosineYawHalf * cosinePitchHalf * sineRollHalf - sineYawHalf * sinePitchHalf * cosineRollHalf,
+                       cosineYawHalf * sinePitchHalf * cosineRollHalf + sineYawHalf * cosinePitchHalf * sineRollHalf,
+                       sineYawHalf * cosinePitchHalf * cosineRollHalf - cosineYawHalf * sinePitchHalf * sineRollHalf,
+                       cosineYawHalf * cosinePitchHalf * cosineRollHalf + sineYawHalf * sinePitchHalf * sineRollHalf);
     }
 
     void Rotation::getYawPitchRoll(double &yaw, double &pitch, double &roll) const
