@@ -70,3 +70,13 @@ jobs:
           name: ctest-logs
           path: build/debug/Testing/Temporary/LastTest.log
           if-no-files-found: ignore
+
+      # 基准默认不开（EXPRESSIONENGINE_BUILD_BENCHMARKS=OFF），没有任何构建会碰
+      # benchmarks/ 下的代码。这里单独配置一个 Release 构建目录（基准只在 Release
+      # 下有意义，见 benchmarks/CMakeLists.txt）并只编译不运行——跑数字要同源语料
+      # 对照，不适合放进 CI；这一步只保证它随主库一起仍能编过。
+      - name: 配置基准构建（Release，不构建用例）
+        run: cmake --preset release -DEXPRESSIONENGINE_BUILD_TESTS=OFF -DEXPRESSIONENGINE_BUILD_BENCHMARKS=ON
+
+      - name: 编译基准
+        run: cmake --build build/release --target ParserBenchmark
