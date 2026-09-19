@@ -394,7 +394,7 @@ namespace ExpressionEngine::Expression
          * @param quantity 数量
          * @param unitText 单位原文，用于回写表达式；空表示按数值排版
          */
-        explicit UnitExpression(IObjectResolver *resolver = nullptr, const Units::Quantity &quantity = Units::Quantity(), const std::string &unitText = std::string());
+        explicit UnitExpression(IObjectResolver *resolver = nullptr, const Units::Quantity &quantity = Units::Quantity(), std::string unitText = std::string());
 
         ~UnitExpression() override;
 
@@ -712,7 +712,7 @@ namespace ExpressionEngine::Expression
          * @brief 运算是否左结合
          * @return 左结合时为 true
          */
-        [[nodiscard]] bool isLeftAssociative() const;
+        static [[nodiscard]] bool isLeftAssociative() ;
 
         /**
          * @brief 运算是否右结合
@@ -805,8 +805,8 @@ namespace ExpressionEngine::Expression
          * @param trueExpression 条件为真时取值的分支
          * @param falseExpression 条件为假时取值的分支
          */
-        explicit ConditionalExpression(IObjectResolver *resolver = nullptr, ExpressionPtr condition = nullptr, ExpressionPtr trueExpression = nullptr,
-                                       ExpressionPtr falseExpression = nullptr);
+        explicit ConditionalExpression(IObjectResolver *resolver        = nullptr, ExpressionPtr condition = nullptr, ExpressionPtr trueExpression = nullptr,
+                                       ExpressionPtr    falseExpression = nullptr);
 
         ~ConditionalExpression() override;
 
@@ -1006,7 +1006,7 @@ namespace ExpressionEngine::Expression
          * @throws EvaluationError 参数个数与该函数的要求不符
          * @throws Base::ParserError 函数是哨兵值，或函数需要宿主对象工厂
          */
-        explicit FunctionExpression(IObjectResolver *resolver = nullptr, Function function = Function::None, std::string name = std::string(),
+        explicit FunctionExpression(IObjectResolver *          resolver  = nullptr, Function function = Function::None, std::string name = std::string(),
                                     std::vector<ExpressionPtr> arguments = std::vector<ExpressionPtr>());
 
         ~FunctionExpression() override;
@@ -1178,7 +1178,7 @@ namespace ExpressionEngine::Expression
          * @throws Base::AttributeError 属性只读
          * @throws Base::ValueError 属性拒绝该取值
          */
-        void assignValue(const Value &newValue);
+        void assignValue(const Value &newValue) const;
 
         /**
          * @brief 化简本节点

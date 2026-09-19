@@ -59,7 +59,8 @@ namespace ExpressionEngine::Units
          * @throws OverflowError 任一指数达到上限
          * @throws UnderflowError 任一指数低于下限
          */
-        explicit constexpr Unit(const UnitExponents exponents, const std::string_view name = "") : m_exponents{exponents}, m_name{name}
+        explicit constexpr Unit(const UnitExponents exponents, const std::string_view name = "") :
+            m_exponents{exponents}, m_name{name}
         {
             checkRange();
         }
@@ -76,8 +77,8 @@ namespace ExpressionEngine::Units
          * @param luminousIntensity 发光强度指数
          * @param angle 角度指数
          */
-        explicit Unit(const int length, const int mass = 0, const int time = 0, const int electricCurrent = 0, const int thermodynamicTemperature = 0,
-                      const int amountOfSubstance = 0, const int luminousIntensity = 0, const int angle = 0);
+        explicit Unit(int length, int mass  = 0, int time              = 0, int electricCurrent = 0, int thermodynamicTemperature = 0,
+                      int amountOfSubstance = 0, int luminousIntensity = 0, int angle           = 0);
 
         /**
          * @brief 判断各量纲指数是否全等，不比较比例
@@ -132,7 +133,7 @@ namespace ExpressionEngine::Units
          * @throws UnitsMismatchError 指数使某个量纲出现分数次幂
          * @throws OverflowError/UnderflowError 结果指数越界
          */
-        [[nodiscard]] Unit pow(const double exponent) const;
+        [[nodiscard]] Unit pow( double exponent) const;
 
         /**
          * @brief 求单位的整数次根
@@ -141,7 +142,7 @@ namespace ExpressionEngine::Units
          * @throws UnitsMismatchError rootDegree 等于 0，或某个量纲指数不能被 rootDegree 整除
          * @throws OverflowError/UnderflowError 结果指数越界
          */
-        [[nodiscard]] Unit root(const uint8_t rootDegree) const;
+        [[nodiscard]] Unit root( uint8_t rootDegree) const;
 
         /// 取各量纲指数
         [[nodiscard]] UnitExponents exponents() const;
@@ -159,13 +160,13 @@ namespace ExpressionEngine::Units
         [[nodiscard]] std::string representation() const;
 
         /// 取平方根，等价于 root(2)
-        Unit sqrt() const
+        [[nodiscard]] Unit sqrt() const
         {
             return root(2);
         }
 
         /// 取立方根，等价于 root(3)
-        Unit cbrt() const
+        [[nodiscard]] Unit cbrt() const
         {
             return root(3);
         }
@@ -175,7 +176,7 @@ namespace ExpressionEngine::Units
         std::string_view m_name;        ///< 类型名；为空时由指数反查
 
         /// 校验各指数都落在 [−limit, limit) 之内
-        constexpr void checkRange()
+        constexpr void checkRange() const
         {
             for (const auto exponent: m_exponents)
             {
@@ -192,7 +193,7 @@ namespace ExpressionEngine::Units
         }
 
         /// 分别返回指数为正与为负的分量下标
-        std::pair<std::vector<std::size_t>, std::vector<std::size_t>> nonZeroValueIndexes() const;
+        [[nodiscard]] std::pair<std::vector<std::size_t>, std::vector<std::size_t> > nonZeroValueIndexes() const;
 
     public:
         static const Unit Acceleration;

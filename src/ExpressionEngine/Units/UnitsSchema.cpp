@@ -1,7 +1,6 @@
 #include <ExpressionEngine/Units/UnitsSchema.h>
 
 #include <algorithm>
-#include <cmath>
 #include <format>
 #include <utility>
 

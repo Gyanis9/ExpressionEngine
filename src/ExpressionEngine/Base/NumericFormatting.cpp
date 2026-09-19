@@ -36,48 +36,48 @@ namespace ExpressionEngine::Base
                 {.localeKey = "en_US", .decimalSeparator = ".", .groupingSeparator = ",", .primaryGroupingSize = defaultGroupingSize, .secondaryGroupingSize = defaultGroupingSize},
                 {.localeKey = "en_GB", .decimalSeparator = ".", .groupingSeparator = ",", .primaryGroupingSize = defaultGroupingSize, .secondaryGroupingSize = defaultGroupingSize},
                 {.localeKey = "de_DE", .decimalSeparator = ",", .groupingSeparator = ".", .primaryGroupingSize = defaultGroupingSize, .secondaryGroupingSize = defaultGroupingSize},
-                {.localeKey             = "fr_FR",
-                 .decimalSeparator      = ",",
-                 .groupingSeparator     = "\u202F",
-                 .primaryGroupingSize   = defaultGroupingSize,
+                {.localeKey = "fr_FR",
+                 .decimalSeparator = ",",
+                 .groupingSeparator = "\u202F",
+                 .primaryGroupingSize = defaultGroupingSize,
                  .secondaryGroupingSize = defaultGroupingSize},
                 {.localeKey = "es_ES", .decimalSeparator = ",", .groupingSeparator = ".", .primaryGroupingSize = defaultGroupingSize, .secondaryGroupingSize = defaultGroupingSize},
                 {.localeKey = "it_IT", .decimalSeparator = ",", .groupingSeparator = ".", .primaryGroupingSize = defaultGroupingSize, .secondaryGroupingSize = defaultGroupingSize},
                 {.localeKey = "pt_BR", .decimalSeparator = ",", .groupingSeparator = ".", .primaryGroupingSize = defaultGroupingSize, .secondaryGroupingSize = defaultGroupingSize},
-                {.localeKey             = "ru_RU",
-                 .decimalSeparator      = ",",
-                 .groupingSeparator     = "\u00A0",
-                 .primaryGroupingSize   = defaultGroupingSize,
+                {.localeKey = "ru_RU",
+                 .decimalSeparator = ",",
+                 .groupingSeparator = "\u00A0",
+                 .primaryGroupingSize = defaultGroupingSize,
                  .secondaryGroupingSize = defaultGroupingSize},
                 {.localeKey = "zh_CN", .decimalSeparator = ".", .groupingSeparator = ",", .primaryGroupingSize = defaultGroupingSize, .secondaryGroupingSize = defaultGroupingSize},
                 {.localeKey = "ja_JP", .decimalSeparator = ".", .groupingSeparator = ",", .primaryGroupingSize = defaultGroupingSize, .secondaryGroupingSize = defaultGroupingSize},
                 {.localeKey = "ko_KR", .decimalSeparator = ".", .groupingSeparator = ",", .primaryGroupingSize = defaultGroupingSize, .secondaryGroupingSize = defaultGroupingSize},
-                {.localeKey             = "pl_PL",
-                 .decimalSeparator      = ",",
-                 .groupingSeparator     = "\u00A0",
-                 .primaryGroupingSize   = defaultGroupingSize,
+                {.localeKey = "pl_PL",
+                 .decimalSeparator = ",",
+                 .groupingSeparator = "\u00A0",
+                 .primaryGroupingSize = defaultGroupingSize,
                  .secondaryGroupingSize = defaultGroupingSize},
                 {.localeKey = "nl_NL", .decimalSeparator = ",", .groupingSeparator = ".", .primaryGroupingSize = defaultGroupingSize, .secondaryGroupingSize = defaultGroupingSize},
                 {.localeKey = "tr_TR", .decimalSeparator = ",", .groupingSeparator = ".", .primaryGroupingSize = defaultGroupingSize, .secondaryGroupingSize = defaultGroupingSize},
-                {.localeKey             = "cs_CZ",
-                 .decimalSeparator      = ",",
-                 .groupingSeparator     = "\u00A0",
-                 .primaryGroupingSize   = defaultGroupingSize,
+                {.localeKey = "cs_CZ",
+                 .decimalSeparator = ",",
+                 .groupingSeparator = "\u00A0",
+                 .primaryGroupingSize = defaultGroupingSize,
                  .secondaryGroupingSize = defaultGroupingSize},
-                {.localeKey             = "hu_HU",
-                 .decimalSeparator      = ",",
-                 .groupingSeparator     = "\u00A0",
-                 .primaryGroupingSize   = defaultGroupingSize,
+                {.localeKey = "hu_HU",
+                 .decimalSeparator = ",",
+                 .groupingSeparator = "\u00A0",
+                 .primaryGroupingSize = defaultGroupingSize,
                  .secondaryGroupingSize = defaultGroupingSize},
-                {.localeKey             = "sv_SE",
-                 .decimalSeparator      = ",",
-                 .groupingSeparator     = "\u00A0",
-                 .primaryGroupingSize   = defaultGroupingSize,
+                {.localeKey = "sv_SE",
+                 .decimalSeparator = ",",
+                 .groupingSeparator = "\u00A0",
+                 .primaryGroupingSize = defaultGroupingSize,
                  .secondaryGroupingSize = defaultGroupingSize},
-                {.localeKey             = "uk_UA",
-                 .decimalSeparator      = ",",
-                 .groupingSeparator     = "\u00A0",
-                 .primaryGroupingSize   = defaultGroupingSize,
+                {.localeKey = "uk_UA",
+                 .decimalSeparator = ",",
+                 .groupingSeparator = "\u00A0",
+                 .primaryGroupingSize = defaultGroupingSize,
                  .secondaryGroupingSize = defaultGroupingSize},
         }};
 
@@ -87,7 +87,7 @@ namespace ExpressionEngine::Base
         /// 懒初始化默认值，避开静态初始化顺序问题（cLocaleContext 也是本翻译单元的函数）
         std::shared_ptr<const NumericLocaleContext> &publishedLocaleStorage()
         {
-            static std::shared_ptr<const NumericLocaleContext> state = std::make_shared<const NumericLocaleContext>(cLocaleContext());
+            static auto state = std::make_shared<const NumericLocaleContext>(cLocaleContext());
             return state;
         }
 
@@ -169,7 +169,10 @@ namespace ExpressionEngine::Base
         /// 解码 UTF-8 的首个码点；非法序列返回 false 且不写输出
         bool decodeUtf8CodePoint(const std::string_view text, std::size_t &consumedBytes, char32_t &codePoint) noexcept
         {
-            const auto byteAt = [&text](const std::size_t index) { return static_cast<unsigned char>(text[index]); };
+            const auto byteAt = [&text](const std::size_t index)
+            {
+                return static_cast<unsigned char>(text[index]);
+            };
 
             const unsigned char leadByte       = byteAt(0);
             std::size_t         sequenceLength = 0;
@@ -273,7 +276,7 @@ namespace ExpressionEngine::Base
                 // 除缓冲区不足外只有「标准库未实现该记数法」会失败：GCC 11 之前的 libstdc++ 缺浮点
                 // to_chars，属于构建环境问题，调用方换标准库或改用 Default 记数法即可
                 throw std::invalid_argument("std::to_chars 无法把数值转成文本：请确认标准库实现了浮点 to_chars（GCC 11 起、"
-                                            "MSVC 2019 起），或改用 Default 记数法。");
+                        "MSVC 2019 起），或改用 Default 记数法。");
             }
         }
 
@@ -282,7 +285,10 @@ namespace ExpressionEngine::Base
         {
             const int  primary          = formatting.primaryGroupingSize;
             const bool groupingPossible = groupingAllowed && primary > 0 && !formatting.groupingSeparator.empty();
-            const bool allAsciiDigits   = !integerDigits.empty() && std::ranges::all_of(integerDigits, [](const char byte) { return byte >= '0' && byte <= '9'; });
+            const bool allAsciiDigits   = !integerDigits.empty() && std::ranges::all_of(integerDigits, [](const char byte)
+            {
+                return byte >= '0' && byte <= '9';
+            });
             // 条件不足或整数部分是 inf/nan 之类内容时原样返回：分组只对纯数字串有意义
             if (!groupingPossible || !allAsciiDigits)
             {
@@ -346,14 +352,14 @@ namespace ExpressionEngine::Base
     {
         // C/POSIX 区域不看小数点以外的任何区域数据：无分组、ASCII 字形
         return NumericLocaleContext{
-                .localeId              = "C",
-                .decimalSeparator      = ".",
-                .groupingSeparator     = "",
-                .positiveSign          = "+",
-                .negativeSign          = "-",
-                .primaryGroupingSize   = 0,
+                .localeId = "C",
+                .decimalSeparator = ".",
+                .groupingSeparator = "",
+                .positiveSign = "+",
+                .negativeSign = "-",
+                .primaryGroupingSize = 0,
                 .secondaryGroupingSize = 0,
-                .zeroDigit             = "0",
+                .zeroDigit = "0",
         };
     }
 
@@ -363,8 +369,8 @@ namespace ExpressionEngine::Base
         {
             // 空串无法判定区域，且静默当成 C 区域会让「用户配置为空」这种配置错误悄悄生效
             return std::unexpected(NumericLocaleError{
-                    NumericLocaleErrorCode::InvalidIdentifier,
-                    "区域标识符为空：请传入 \"C\"、\"POSIX\" 或 \"语言_国家\" 形式的标识符（如 "
+                    .code = NumericLocaleErrorCode::InvalidIdentifier,
+                    .message = "区域标识符为空：请传入 \"C\"、\"POSIX\" 或 \"语言_国家\" 形式的标识符（如 "
                     "\"de_DE\"）。",
             });
         }
@@ -375,10 +381,10 @@ namespace ExpressionEngine::Base
             if (!isIdentifierByte(byte))
             {
                 return std::unexpected(NumericLocaleError{
-                        NumericLocaleErrorCode::InvalidIdentifier,
-                        std::format("区域标识符 \"{}\" 含非法字符 \"{}\"：只允许字母、数字、下划线、连字符与点"
-                                    "（如 \"de_DE\"、\"de-DE.UTF-8\"）。",
-                                    localeId, byte),
+                        .code = NumericLocaleErrorCode::InvalidIdentifier,
+                        .message = std::format("区域标识符 \"{}\" 含非法字符 \"{}\"：只允许字母、数字、下划线、连字符与点"
+                                               "（如 \"de_DE\"、\"de-DE.UTF-8\"）。",
+                                               localeId, byte),
                 });
             }
         }
@@ -393,8 +399,8 @@ namespace ExpressionEngine::Base
         {
             // 只有分隔符或以分隔符开头（如 "-"、".UTF-8"）时没有语言段，任何区域表都匹配不上
             return std::unexpected(NumericLocaleError{
-                    NumericLocaleErrorCode::InvalidIdentifier,
-                    std::format("区域标识符 \"{}\" 缺少语言段：请写成 \"语言_国家\"（如 \"de_DE\"）或 \"C\"。", localeId),
+                    .code = NumericLocaleErrorCode::InvalidIdentifier,
+                    .message = std::format("区域标识符 \"{}\" 缺少语言段：请写成 \"语言_国家\"（如 \"de_DE\"）或 \"C\"。", localeId),
             });
         }
 
@@ -403,21 +409,21 @@ namespace ExpressionEngine::Base
         {
             // 表外区域明确报错而不是退回 C 区域：否则用户以为生效的区域设置会静默失效
             return std::unexpected(NumericLocaleError{
-                    NumericLocaleErrorCode::UnsupportedLocale,
-                    std::format("区域 \"{}\"（规范化后为 \"{}\"）没有内置分隔符数据：可改用受支持的区域（如 "
-                                "\"de_DE\"、\"en_US\"、\"zh_CN\"），或自行构造 NumericLocaleContext 填入小数点与"
-                                "分组分隔符后发布。",
-                                localeId, key),
+                    .code = NumericLocaleErrorCode::UnsupportedLocale,
+                    .message = std::format("区域 \"{}\"（规范化后为 \"{}\"）没有内置分隔符数据：可改用受支持的区域（如 "
+                                           "\"de_DE\"、\"en_US\"、\"zh_CN\"），或自行构造 NumericLocaleContext 填入小数点与"
+                                           "分组分隔符后发布。",
+                                           localeId, key),
             });
         }
 
         return NumericLocaleContext{
-                .localeId              = std::string{entry->localeKey},
-                .decimalSeparator      = std::string{entry->decimalSeparator},
-                .groupingSeparator     = std::string{entry->groupingSeparator},
-                .positiveSign          = "+",
-                .negativeSign          = "-",
-                .primaryGroupingSize   = entry->primaryGroupingSize,
+                .localeId = std::string{entry->localeKey},
+                .decimalSeparator = std::string{entry->decimalSeparator},
+                .groupingSeparator = std::string{entry->groupingSeparator},
+                .positiveSign = "+",
+                .negativeSign = "-",
+                .primaryGroupingSize = entry->primaryGroupingSize,
                 .secondaryGroupingSize = entry->secondaryGroupingSize,
                 // 内置表的区域都用 ASCII 数字：非 ASCII 零字形可由宿主自行构造快照提供
                 .zeroDigit = "0",

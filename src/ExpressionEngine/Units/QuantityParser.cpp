@@ -5,7 +5,6 @@
 #include <array>
 #include <charconv>
 #include <cmath>
-#include <cstddef>
 #include <cstdint>
 #include <format>
 #include <limits>
@@ -103,116 +102,114 @@ namespace ExpressionEngine::Units
         struct UnitTokenSpecification
         {
             std::string_view symbol;   ///< 单位符号原文，如 "mm"、"µm"
-            const Quantity  *quantity; ///< 该符号对应的预定义量（静态存储期，不持所有权）
+            const Quantity * quantity; ///< 该符号对应的预定义量（静态存储期，不持所有权）
         };
 
         /// 单位符号对照表；等长符号之间的先后决定匹配优先级，由 longestMatch 取最长匹配
-        // clang-format off
-constexpr std::array unitTokenSpecifications {
-    UnitTokenSpecification { "nm"  , &Quantity::NanoMetre    }, UnitTokenSpecification { "um"   , &Quantity::MicroMetre   },
-    UnitTokenSpecification { "µm"  , &Quantity::MicroMetre   }, UnitTokenSpecification { "mm"   , &Quantity::MilliMetre   },
-    UnitTokenSpecification { "cm"  , &Quantity::CentiMetre   }, UnitTokenSpecification { "dm"   , &Quantity::DeciMetre    },
-    UnitTokenSpecification { "m"   , &Quantity::Metre        }, UnitTokenSpecification { "km"   , &Quantity::KiloMetre    },
+        constexpr std::array unitTokenSpecifications{
+                UnitTokenSpecification{.symbol = "nm", .quantity = &Quantity::NanoMetre}, UnitTokenSpecification{.symbol = "um", .quantity = &Quantity::MicroMetre},
+                UnitTokenSpecification{.symbol = "µm", .quantity = &Quantity::MicroMetre}, UnitTokenSpecification{.symbol = "mm", .quantity = &Quantity::MilliMetre},
+                UnitTokenSpecification{.symbol = "cm", .quantity = &Quantity::CentiMetre}, UnitTokenSpecification{.symbol = "dm", .quantity = &Quantity::DeciMetre},
+                UnitTokenSpecification{.symbol = "m", .quantity = &Quantity::Metre}, UnitTokenSpecification{.symbol = "km", .quantity = &Quantity::KiloMetre},
 
-    UnitTokenSpecification { "l"   , &Quantity::Liter        }, UnitTokenSpecification { "ml"   , &Quantity::MilliLiter   },
+                UnitTokenSpecification{.symbol = "l", .quantity = &Quantity::Liter}, UnitTokenSpecification{.symbol = "ml", .quantity = &Quantity::MilliLiter},
 
-    UnitTokenSpecification { "Hz"  , &Quantity::Hertz        }, UnitTokenSpecification { "kHz"  , &Quantity::KiloHertz    },
-    UnitTokenSpecification { "MHz" , &Quantity::MegaHertz    }, UnitTokenSpecification { "GHz"  , &Quantity::GigaHertz    },
-    UnitTokenSpecification { "THz" , &Quantity::TeraHertz    },
+                UnitTokenSpecification{.symbol = "Hz", .quantity = &Quantity::Hertz}, UnitTokenSpecification{.symbol = "kHz", .quantity = &Quantity::KiloHertz},
+                UnitTokenSpecification{.symbol = "MHz", .quantity = &Quantity::MegaHertz}, UnitTokenSpecification{.symbol = "GHz", .quantity = &Quantity::GigaHertz},
+                UnitTokenSpecification{.symbol = "THz", .quantity = &Quantity::TeraHertz},
 
-    UnitTokenSpecification { "ug"  , &Quantity::MicroGram    }, UnitTokenSpecification { "µg"   , &Quantity::MicroGram    },
-    UnitTokenSpecification { "mg"  , &Quantity::MilliGram    }, UnitTokenSpecification { "g"    , &Quantity::Gram         },
-    UnitTokenSpecification { "kg"  , &Quantity::KiloGram     }, UnitTokenSpecification { "t"    , &Quantity::Ton          },
+                UnitTokenSpecification{.symbol = "ug", .quantity = &Quantity::MicroGram}, UnitTokenSpecification{.symbol = "µg", .quantity = &Quantity::MicroGram},
+                UnitTokenSpecification{.symbol = "mg", .quantity = &Quantity::MilliGram}, UnitTokenSpecification{.symbol = "g", .quantity = &Quantity::Gram},
+                UnitTokenSpecification{.symbol = "kg", .quantity = &Quantity::KiloGram}, UnitTokenSpecification{.symbol = "t", .quantity = &Quantity::Ton},
 
-    UnitTokenSpecification { "s"   , &Quantity::Second       }, UnitTokenSpecification { "min"  , &Quantity::Minute       },
-    UnitTokenSpecification { "h"   , &Quantity::Hour         },
+                UnitTokenSpecification{.symbol = "s", .quantity = &Quantity::Second}, UnitTokenSpecification{.symbol = "min", .quantity = &Quantity::Minute},
+                UnitTokenSpecification{.symbol = "h", .quantity = &Quantity::Hour},
 
-    UnitTokenSpecification { "A"   , &Quantity::Ampere       }, UnitTokenSpecification { "nA"   , &Quantity::NanoAmpere   },
-    UnitTokenSpecification { "uA"  , &Quantity::MicroAmpere  }, UnitTokenSpecification { "µA"   , &Quantity::MicroAmpere  },
-    UnitTokenSpecification { "mA"  , &Quantity::MilliAmpere  }, UnitTokenSpecification { "kA"   , &Quantity::KiloAmpere   },
-    UnitTokenSpecification { "MA"  , &Quantity::MegaAmpere   },
+                UnitTokenSpecification{.symbol = "A", .quantity = &Quantity::Ampere}, UnitTokenSpecification{.symbol = "nA", .quantity = &Quantity::NanoAmpere},
+                UnitTokenSpecification{.symbol = "uA", .quantity = &Quantity::MicroAmpere}, UnitTokenSpecification{.symbol = "µA", .quantity = &Quantity::MicroAmpere},
+                UnitTokenSpecification{.symbol = "mA", .quantity = &Quantity::MilliAmpere}, UnitTokenSpecification{.symbol = "kA", .quantity = &Quantity::KiloAmpere},
+                UnitTokenSpecification{.symbol = "MA", .quantity = &Quantity::MegaAmpere},
 
-    UnitTokenSpecification { "K"   , &Quantity::Kelvin       }, UnitTokenSpecification { "mK"   , &Quantity::MilliKelvin  },
-    UnitTokenSpecification { "uK"  , &Quantity::MicroKelvin  }, UnitTokenSpecification { "µK"   , &Quantity::MicroKelvin  },
+                UnitTokenSpecification{.symbol = "K", .quantity = &Quantity::Kelvin}, UnitTokenSpecification{.symbol = "mK", .quantity = &Quantity::MilliKelvin},
+                UnitTokenSpecification{.symbol = "uK", .quantity = &Quantity::MicroKelvin}, UnitTokenSpecification{.symbol = "µK", .quantity = &Quantity::MicroKelvin},
 
-    UnitTokenSpecification { "mol" , &Quantity::Mole         }, UnitTokenSpecification { "nmol" , &Quantity::NanoMole     },
-    UnitTokenSpecification { "umol", &Quantity::MicroMole    }, UnitTokenSpecification { "µmol" , &Quantity::MicroMole    },
-    UnitTokenSpecification { "mmol", &Quantity::MilliMole    },
+                UnitTokenSpecification{.symbol = "mol", .quantity = &Quantity::Mole}, UnitTokenSpecification{.symbol = "nmol", .quantity = &Quantity::NanoMole},
+                UnitTokenSpecification{.symbol = "umol", .quantity = &Quantity::MicroMole}, UnitTokenSpecification{.symbol = "µmol", .quantity = &Quantity::MicroMole},
+                UnitTokenSpecification{.symbol = "mmol", .quantity = &Quantity::MilliMole},
 
-    UnitTokenSpecification { "cd"  , &Quantity::Candela      },
+                UnitTokenSpecification{.symbol = "cd", .quantity = &Quantity::Candela},
 
-    UnitTokenSpecification { "in"  , &Quantity::Inch         }, UnitTokenSpecification { "\"",    &Quantity::Inch        },
-    UnitTokenSpecification { "ft"  , &Quantity::Foot         }, UnitTokenSpecification { "'",     &Quantity::Foot        },
-    UnitTokenSpecification { "thou", &Quantity::Thou         }, UnitTokenSpecification { "mil"  , &Quantity::Thou        },
-    UnitTokenSpecification { "yd"  , &Quantity::Yard         }, UnitTokenSpecification { "mi"   , &Quantity::Mile        },
+                UnitTokenSpecification{.symbol = "in", .quantity = &Quantity::Inch}, UnitTokenSpecification{.symbol = "\"", .quantity = &Quantity::Inch},
+                UnitTokenSpecification{.symbol = "ft", .quantity = &Quantity::Foot}, UnitTokenSpecification{.symbol = "'", .quantity = &Quantity::Foot},
+                UnitTokenSpecification{.symbol = "thou", .quantity = &Quantity::Thou}, UnitTokenSpecification{.symbol = "mil", .quantity = &Quantity::Thou},
+                UnitTokenSpecification{.symbol = "yd", .quantity = &Quantity::Yard}, UnitTokenSpecification{.symbol = "mi", .quantity = &Quantity::Mile},
 
-    UnitTokenSpecification { "mph" , &Quantity::MilePerHour  }, UnitTokenSpecification { "sqft" , &Quantity::SquareFoot  },
-    UnitTokenSpecification { "cft" , &Quantity::CubicFoot    },
+                UnitTokenSpecification{.symbol = "mph", .quantity = &Quantity::MilePerHour}, UnitTokenSpecification{.symbol = "sqft", .quantity = &Quantity::SquareFoot},
+                UnitTokenSpecification{.symbol = "cft", .quantity = &Quantity::CubicFoot},
 
-    UnitTokenSpecification { "lb"  , &Quantity::Pound        }, UnitTokenSpecification { "lbm"  , &Quantity::Pound       },
-    UnitTokenSpecification { "oz"  , &Quantity::Ounce        }, UnitTokenSpecification { "st"   , &Quantity::Stone       },
-    UnitTokenSpecification { "cwt" , &Quantity::Hundredweights },
+                UnitTokenSpecification{.symbol = "lb", .quantity = &Quantity::Pound}, UnitTokenSpecification{.symbol = "lbm", .quantity = &Quantity::Pound},
+                UnitTokenSpecification{.symbol = "oz", .quantity = &Quantity::Ounce}, UnitTokenSpecification{.symbol = "st", .quantity = &Quantity::Stone},
+                UnitTokenSpecification{.symbol = "cwt", .quantity = &Quantity::Hundredweights},
 
-    UnitTokenSpecification { "lbf" , &Quantity::PoundForce   },
+                UnitTokenSpecification{.symbol = "lbf", .quantity = &Quantity::PoundForce},
 
-    UnitTokenSpecification { "N"   , &Quantity::Newton       }, UnitTokenSpecification { "mN"   , &Quantity::MilliNewton },
-    UnitTokenSpecification { "kN"  , &Quantity::KiloNewton   }, UnitTokenSpecification { "MN"   , &Quantity::MegaNewton  },
+                UnitTokenSpecification{.symbol = "N", .quantity = &Quantity::Newton}, UnitTokenSpecification{.symbol = "mN", .quantity = &Quantity::MilliNewton},
+                UnitTokenSpecification{.symbol = "kN", .quantity = &Quantity::KiloNewton}, UnitTokenSpecification{.symbol = "MN", .quantity = &Quantity::MegaNewton},
 
-    UnitTokenSpecification { "Pa"  , &Quantity::Pascal       }, UnitTokenSpecification { "kPa"  , &Quantity::KiloPascal  },
-    UnitTokenSpecification { "MPa" , &Quantity::MegaPascal   }, UnitTokenSpecification { "GPa"  , &Quantity::GigaPascal  },
+                UnitTokenSpecification{.symbol = "Pa", .quantity = &Quantity::Pascal}, UnitTokenSpecification{.symbol = "kPa", .quantity = &Quantity::KiloPascal},
+                UnitTokenSpecification{.symbol = "MPa", .quantity = &Quantity::MegaPascal}, UnitTokenSpecification{.symbol = "GPa", .quantity = &Quantity::GigaPascal},
 
-    UnitTokenSpecification { "bar" , &Quantity::Bar          }, UnitTokenSpecification { "mbar" , &Quantity::MilliBar    },
+                UnitTokenSpecification{.symbol = "bar", .quantity = &Quantity::Bar}, UnitTokenSpecification{.symbol = "mbar", .quantity = &Quantity::MilliBar},
 
-    UnitTokenSpecification { "Torr", &Quantity::Torr         }, UnitTokenSpecification { "mTorr", &Quantity::mTorr       },
-    UnitTokenSpecification { "uTorr", &Quantity::yTorr       }, UnitTokenSpecification { "µTorr", &Quantity::yTorr       },
+                UnitTokenSpecification{.symbol = "Torr", .quantity = &Quantity::Torr}, UnitTokenSpecification{.symbol = "mTorr", .quantity = &Quantity::mTorr},
+                UnitTokenSpecification{.symbol = "uTorr", .quantity = &Quantity::yTorr}, UnitTokenSpecification{.symbol = "µTorr", .quantity = &Quantity::yTorr},
 
-    UnitTokenSpecification { "psi" , &Quantity::PSI          }, UnitTokenSpecification { "ksi"  , &Quantity::KSI         },
-    UnitTokenSpecification { "Mpsi", &Quantity::MPSI         },
+                UnitTokenSpecification{.symbol = "psi", .quantity = &Quantity::PSI}, UnitTokenSpecification{.symbol = "ksi", .quantity = &Quantity::KSI},
+                UnitTokenSpecification{.symbol = "Mpsi", .quantity = &Quantity::MPSI},
 
-    UnitTokenSpecification { "W"   , &Quantity::Watt         }, UnitTokenSpecification { "nW"   , &Quantity::NanoWatt    },
-    UnitTokenSpecification { "uW"  , &Quantity::MicroWatt    }, UnitTokenSpecification { "µW"   , &Quantity::MicroWatt   },
-    UnitTokenSpecification { "mW"  , &Quantity::MilliWatt    }, UnitTokenSpecification { "kW"   , &Quantity::KiloWatt    },
-    UnitTokenSpecification { "VA"  , &Quantity::VoltAmpere   },
+                UnitTokenSpecification{.symbol = "W", .quantity = &Quantity::Watt}, UnitTokenSpecification{.symbol = "nW", .quantity = &Quantity::NanoWatt},
+                UnitTokenSpecification{.symbol = "uW", .quantity = &Quantity::MicroWatt}, UnitTokenSpecification{.symbol = "µW", .quantity = &Quantity::MicroWatt},
+                UnitTokenSpecification{.symbol = "mW", .quantity = &Quantity::MilliWatt}, UnitTokenSpecification{.symbol = "kW", .quantity = &Quantity::KiloWatt},
+                UnitTokenSpecification{.symbol = "VA", .quantity = &Quantity::VoltAmpere},
 
-    UnitTokenSpecification { "V"   , &Quantity::Volt         }, UnitTokenSpecification { "kV"   , &Quantity::KiloVolt    },
-    UnitTokenSpecification { "mV"  , &Quantity::MilliVolt    },
+                UnitTokenSpecification{.symbol = "V", .quantity = &Quantity::Volt}, UnitTokenSpecification{.symbol = "kV", .quantity = &Quantity::KiloVolt},
+                UnitTokenSpecification{.symbol = "mV", .quantity = &Quantity::MilliVolt},
 
-    UnitTokenSpecification { "MS"  , &Quantity::MegaSiemens  }, UnitTokenSpecification { "kS"   , &Quantity::KiloSiemens },
-    UnitTokenSpecification { "S"   , &Quantity::Siemens      }, UnitTokenSpecification { "mS"   , &Quantity::MilliSiemens },
-    UnitTokenSpecification { "uS"  , &Quantity::MicroSiemens }, UnitTokenSpecification { "µS"   , &Quantity::MicroSiemens },
+                UnitTokenSpecification{.symbol = "MS", .quantity = &Quantity::MegaSiemens}, UnitTokenSpecification{.symbol = "kS", .quantity = &Quantity::KiloSiemens},
+                UnitTokenSpecification{.symbol = "S", .quantity = &Quantity::Siemens}, UnitTokenSpecification{.symbol = "mS", .quantity = &Quantity::MilliSiemens},
+                UnitTokenSpecification{.symbol = "uS", .quantity = &Quantity::MicroSiemens}, UnitTokenSpecification{.symbol = "µS", .quantity = &Quantity::MicroSiemens},
 
-    UnitTokenSpecification { "Ohm" , &Quantity::Ohm          }, UnitTokenSpecification { "kOhm" , &Quantity::KiloOhm     },
-    UnitTokenSpecification { "MOhm", &Quantity::MegaOhm      },
+                UnitTokenSpecification{.symbol = "Ohm", .quantity = &Quantity::Ohm}, UnitTokenSpecification{.symbol = "kOhm", .quantity = &Quantity::KiloOhm},
+                UnitTokenSpecification{.symbol = "MOhm", .quantity = &Quantity::MegaOhm},
 
-    UnitTokenSpecification { "C"   , &Quantity::Coulomb      },
+                UnitTokenSpecification{.symbol = "C", .quantity = &Quantity::Coulomb},
 
-    UnitTokenSpecification { "T"   , &Quantity::Tesla        }, UnitTokenSpecification { "mT"   , &Quantity::MilliTesla  },
-    UnitTokenSpecification { "G"   , &Quantity::Gauss        },
+                UnitTokenSpecification{.symbol = "T", .quantity = &Quantity::Tesla}, UnitTokenSpecification{.symbol = "mT", .quantity = &Quantity::MilliTesla},
+                UnitTokenSpecification{.symbol = "G", .quantity = &Quantity::Gauss},
 
-    UnitTokenSpecification { "Wb"  , &Quantity::Weber        },
+                UnitTokenSpecification{.symbol = "Wb", .quantity = &Quantity::Weber},
 
-    UnitTokenSpecification { "F"   , &Quantity::Farad        }, UnitTokenSpecification { "mF"   , &Quantity::MilliFarad  },
-    UnitTokenSpecification { "uF"  , &Quantity::MicroFarad   }, UnitTokenSpecification { "µF"   , &Quantity::MicroFarad  },
-    UnitTokenSpecification { "nF"  , &Quantity::NanoFarad    }, UnitTokenSpecification { "pF"   , &Quantity::PicoFarad   },
+                UnitTokenSpecification{.symbol = "F", .quantity = &Quantity::Farad}, UnitTokenSpecification{.symbol = "mF", .quantity = &Quantity::MilliFarad},
+                UnitTokenSpecification{.symbol = "uF", .quantity = &Quantity::MicroFarad}, UnitTokenSpecification{.symbol = "µF", .quantity = &Quantity::MicroFarad},
+                UnitTokenSpecification{.symbol = "nF", .quantity = &Quantity::NanoFarad}, UnitTokenSpecification{.symbol = "pF", .quantity = &Quantity::PicoFarad},
 
-    UnitTokenSpecification { "H"   , &Quantity::Henry        }, UnitTokenSpecification { "mH"   , &Quantity::MilliHenry  },
-    UnitTokenSpecification { "uH"  , &Quantity::MicroHenry   }, UnitTokenSpecification { "µH"   , &Quantity::MicroHenry  },
-    UnitTokenSpecification { "nH"  , &Quantity::NanoHenry    },
+                UnitTokenSpecification{.symbol = "H", .quantity = &Quantity::Henry}, UnitTokenSpecification{.symbol = "mH", .quantity = &Quantity::MilliHenry},
+                UnitTokenSpecification{.symbol = "uH", .quantity = &Quantity::MicroHenry}, UnitTokenSpecification{.symbol = "µH", .quantity = &Quantity::MicroHenry},
+                UnitTokenSpecification{.symbol = "nH", .quantity = &Quantity::NanoHenry},
 
-    UnitTokenSpecification { "J"   , &Quantity::Joule        }, UnitTokenSpecification { "mJ"   , &Quantity::MilliJoule  },
-    UnitTokenSpecification { "kJ"  , &Quantity::KiloJoule    }, UnitTokenSpecification { "Nm"   , &Quantity::NewtonMeter },
-    UnitTokenSpecification { "VAs" , &Quantity::VoltAmpereSecond }, UnitTokenSpecification { "CV" , &Quantity::WattSecond },
-    UnitTokenSpecification { "Ws"  , &Quantity::WattSecond   }, UnitTokenSpecification { "kWh"  , &Quantity::KiloWattHour },
-    UnitTokenSpecification { "eV"  , &Quantity::ElectronVolt }, UnitTokenSpecification { "keV"  , &Quantity::KiloElectronVolt },
-    UnitTokenSpecification { "MeV" , &Quantity::MegaElectronVolt }, UnitTokenSpecification { "cal", &Quantity::Calorie    },
-    UnitTokenSpecification { "kcal", &Quantity::KiloCalorie  },
+                UnitTokenSpecification{.symbol = "J", .quantity = &Quantity::Joule}, UnitTokenSpecification{.symbol = "mJ", .quantity = &Quantity::MilliJoule},
+                UnitTokenSpecification{.symbol = "kJ", .quantity = &Quantity::KiloJoule}, UnitTokenSpecification{.symbol = "Nm", .quantity = &Quantity::NewtonMeter},
+                UnitTokenSpecification{.symbol = "VAs", .quantity = &Quantity::VoltAmpereSecond}, UnitTokenSpecification{.symbol = "CV", .quantity = &Quantity::WattSecond},
+                UnitTokenSpecification{.symbol = "Ws", .quantity = &Quantity::WattSecond}, UnitTokenSpecification{.symbol = "kWh", .quantity = &Quantity::KiloWattHour},
+                UnitTokenSpecification{.symbol = "eV", .quantity = &Quantity::ElectronVolt}, UnitTokenSpecification{.symbol = "keV", .quantity = &Quantity::KiloElectronVolt},
+                UnitTokenSpecification{.symbol = "MeV", .quantity = &Quantity::MegaElectronVolt}, UnitTokenSpecification{.symbol = "cal", .quantity = &Quantity::Calorie},
+                UnitTokenSpecification{.symbol = "kcal", .quantity = &Quantity::KiloCalorie},
 
-    UnitTokenSpecification { "°"   , &Quantity::Degree       }, UnitTokenSpecification { "deg"  , &Quantity::Degree      },
-    UnitTokenSpecification { "rad" , &Quantity::Radian       }, UnitTokenSpecification { "gon"  , &Quantity::Gon         },
-    UnitTokenSpecification { "M"   , &Quantity::AngleMinute  }, UnitTokenSpecification { "′"    , &Quantity::AngleMinute  },
-    UnitTokenSpecification { "AS"  , &Quantity::AngleSecond  }, UnitTokenSpecification { "″"    , &Quantity::AngleSecond  },
-};
-        // clang-format on
+                UnitTokenSpecification{.symbol = "°", .quantity = &Quantity::Degree}, UnitTokenSpecification{.symbol = "deg", .quantity = &Quantity::Degree},
+                UnitTokenSpecification{.symbol = "rad", .quantity = &Quantity::Radian}, UnitTokenSpecification{.symbol = "gon", .quantity = &Quantity::Gon},
+                UnitTokenSpecification{.symbol = "M", .quantity = &Quantity::AngleMinute}, UnitTokenSpecification{.symbol = "′", .quantity = &Quantity::AngleMinute},
+                UnitTokenSpecification{.symbol = "AS", .quantity = &Quantity::AngleSecond}, UnitTokenSpecification{.symbol = "″", .quantity = &Quantity::AngleSecond},
+        };
 
         /// 函数名到函数标识的对照
         struct FunctionTokenSpecification
@@ -223,11 +220,11 @@ constexpr std::array unitTokenSpecifications {
 
         /// 标量函数的名字对照表：走最长匹配，使 log10 胜过 log
         constexpr std::array functionTokenSpecifications{
-                FunctionTokenSpecification{"acos", FunctionId::Acos}, FunctionTokenSpecification{"asin", FunctionId::Asin},   FunctionTokenSpecification{"atan", FunctionId::Atan},
-                FunctionTokenSpecification{"cos", FunctionId::Cos},   FunctionTokenSpecification{"exp", FunctionId::Exp},     FunctionTokenSpecification{"abs", FunctionId::Abs},
-                FunctionTokenSpecification{"log", FunctionId::Log},   FunctionTokenSpecification{"log10", FunctionId::Log10}, FunctionTokenSpecification{"sin", FunctionId::Sin},
-                FunctionTokenSpecification{"sinh", FunctionId::Sinh}, FunctionTokenSpecification{"tan", FunctionId::Tan},     FunctionTokenSpecification{"tanh", FunctionId::Tanh},
-                FunctionTokenSpecification{"sqrt", FunctionId::Sqrt},
+                FunctionTokenSpecification{.name = "acos", .function = FunctionId::Acos}, FunctionTokenSpecification{"asin", FunctionId::Asin}, FunctionTokenSpecification{"atan", FunctionId::Atan},
+                FunctionTokenSpecification{.name = "cos", .function = FunctionId::Cos}, FunctionTokenSpecification{"exp", FunctionId::Exp}, FunctionTokenSpecification{"abs", FunctionId::Abs},
+                FunctionTokenSpecification{.name = "log", .function = FunctionId::Log}, FunctionTokenSpecification{"log10", FunctionId::Log10}, FunctionTokenSpecification{"sin", FunctionId::Sin},
+                FunctionTokenSpecification{.name = "sinh", .function = FunctionId::Sinh}, FunctionTokenSpecification{"tan", FunctionId::Tan}, FunctionTokenSpecification{"tanh", FunctionId::Tanh},
+                FunctionTokenSpecification{.name = "sqrt", .function = FunctionId::Sqrt},
         };
 
         /// 取候选原文的首字节值，用作分派表的索引
@@ -238,11 +235,17 @@ constexpr std::array unitTokenSpecifications {
 
         /// 编译期建好的单位符号分派表：查找时先按首字节把候选缩到一组；静态存储期，无运行时初始化与堆分配
         constexpr Base::FirstByteDispatch<UnitTokenSpecification, unitTokenSpecifications.size()> unitSpecificationDispatch =
-                Base::buildFirstByteDispatch(unitTokenSpecifications, [](const UnitTokenSpecification &specification) { return firstByteOf(specification.symbol); });
+                Base::buildFirstByteDispatch(unitTokenSpecifications, [](const UnitTokenSpecification &specification)
+                {
+                    return firstByteOf(specification.symbol);
+                });
 
         /// 编译期建好的标量函数名分派表
         constexpr Base::FirstByteDispatch<FunctionTokenSpecification, functionTokenSpecifications.size()> functionSpecificationDispatch =
-                Base::buildFirstByteDispatch(functionTokenSpecifications, [](const FunctionTokenSpecification &specification) { return firstByteOf(specification.name); });
+                Base::buildFirstByteDispatch(functionTokenSpecifications, [](const FunctionTokenSpecification &specification)
+                {
+                    return firstByteOf(specification.name);
+                });
 
         /// 单位符号的最长匹配结果
         struct UnitMatch
@@ -285,7 +288,7 @@ constexpr std::array unitTokenSpecifications {
                 const FunctionTokenSpecification *specification = functionSpecificationDispatch.entries[bucket.begin + index];
                 if (specification->name.size() > best.length && text.starts_with(specification->name))
                 {
-                    best = {specification, specification->name.size()};
+                    best = {.specification = specification, .length = specification->name.size()};
                 }
             }
             return best;
@@ -402,11 +405,11 @@ constexpr std::array unitTokenSpecifications {
                     return scan;
                 }
                 scan.decimalSeparator = text[cursor];
-                cursor += 1 + matchDigits(text, cursor + 1);
+                cursor                += 1 + matchDigits(text, cursor + 1);
             } else if (cursor < size && (text[cursor] == '.' || text[cursor] == ','))
             {
                 scan.decimalSeparator = text[cursor];
-                cursor += 1 + matchDigits(text, cursor + 1);
+                cursor                += 1 + matchDigits(text, cursor + 1);
             } else if (digitCount <= exactIntegerDigitLimit)
             {
                 // 位数不超上限时逐位累加是精确的，数值现成可用，省掉一次文本转换
@@ -418,7 +421,7 @@ constexpr std::array unitTokenSpecifications {
             if (exponentLength != 0)
             {
                 scan.isPureInteger = false;
-                cursor += exponentLength;
+                cursor             += exponentLength;
             }
 
             scan.length = cursor - position;
@@ -478,7 +481,8 @@ constexpr std::array unitTokenSpecifications {
         class QuantityLexer
         {
         public:
-            explicit QuantityLexer(const std::string_view text) : m_text(text)
+            explicit QuantityLexer(const std::string_view text) :
+                m_text(text)
             {
             }
 
@@ -573,7 +577,7 @@ constexpr std::array unitTokenSpecifications {
             {
                 token.kind        = TokenKind::Number;
                 token.numberValue = numberScan.isPureInteger ? numberScan.integerValue : convertNumberText(remaining.substr(0, numberScan.length), numberScan.decimalSeparator);
-                m_position += numberScan.length;
+                m_position        += numberScan.length;
                 return token;
             }
 
@@ -626,7 +630,8 @@ constexpr std::array unitTokenSpecifications {
         class QuantityParserImplementation
         {
         public:
-            explicit QuantityParserImplementation(const std::string_view text) : m_lexer(text)
+            explicit QuantityParserImplementation(const std::string_view text) :
+                m_lexer(text)
             {
                 advance();
                 advance();
@@ -659,7 +664,7 @@ constexpr std::array unitTokenSpecifications {
 
             [[nodiscard]] Quantity parseUnitAtom();
 
-            void expect(const TokenKind kind, const std::string_view description);
+            void expect(TokenKind kind, std::string_view description);
 
             void expectEnd();
 

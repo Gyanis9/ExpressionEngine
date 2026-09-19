@@ -9,7 +9,6 @@
 
 #pragma once
 
-#include <cstddef>
 #include <string>
 #include <string_view>
 
@@ -56,9 +55,8 @@ namespace ExpressionEngine::Expression
     struct ExpressionToken
     {
         ExpressionTokenKind kind{ExpressionTokenKind::End}; ///< 记号类别
-        /// 原文：标识符、单元格地址、单位符号与运算符原样；字符串为去定界与转义后的内容；
-        /// 函数名与常量为规范名（sin( 得到 sin、true 得到 True），与 Expression.l 的语义值一致
-        std::string text;
+
+        std::string text;            ///<去定界与转义后的内容
         double      numberValue{0};  ///< Number/Integer/Constant 的数值
         int         integerValue{0}; ///< Integer 的整数值；数值超出 int 时以 numberValue 为准
         std::size_t offset{0};       ///< 在输入中的字节偏移，供报错定位
@@ -92,6 +90,7 @@ namespace ExpressionEngine::Expression
     private:
         /// 跳过空白：空格、制表符、回车与换行；换行把列号重置为 1
         void skipWhitespace();
+
         /// 取出从当前偏移起 byteCount 个字节的原文并前进，同时按码点推进列号
         [[nodiscard]] std::string_view takeRawText(std::size_t byteCount);
 

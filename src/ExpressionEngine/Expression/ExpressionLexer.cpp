@@ -1,11 +1,9 @@
 #include <ExpressionEngine/Expression/ExpressionLexer.h>
-
 #include <ExpressionEngine/Base/FirstByteDispatch.h>
 
 #include <algorithm>
 #include <array>
 #include <charconv>
-#include <cstddef>
 #include <cstdint>
 #include <format>
 #include <iterator>
@@ -114,8 +112,8 @@ namespace ExpressionEngine::Expression
         /// 取 offset 处的整个 UTF-8 字符，用于把非法字符原样写进报错文案
         std::string_view currentCharacterView(std::string_view text, const std::size_t offset)
         {
-            const unsigned char leadByte = static_cast<unsigned char>(text[offset]);
-            std::size_t         length   = 1;
+            const auto  leadByte = static_cast<unsigned char>(text[offset]);
+            std::size_t length   = 1;
             if ((leadByte & 0xE0) == 0xC0)
             {
                 length = 2;
@@ -130,41 +128,38 @@ namespace ExpressionEngine::Expression
         }
 
         // —— 单位符号表 ——
-
-        // clang-format off
-/// 国际单位符号表：逐条对应 Expression.l 的单位规则；顺序即规则顺序，等长匹配时靠前者胜出
-constexpr std::string_view unitSymbols[]{
-    "nm"  , "um"  , "µm"  , "mm"  , "cm"  , "dm"  , "m"   , "km"  ,
-    "l"   , "ml"  ,
-    "Hz"  , "kHz" , "MHz" , "GHz" , "THz" ,
-    "ug"  , "µg"  , "mg"  , "g"   , "kg"  , "t"   ,
-    "s"   , "min" , "h"   ,
-    "A"   , "nA"  , "uA"  , "µA"  , "mA"  , "kA"  , "MA"  ,
-    "K"   , "mK"  , "µK"  , "uK"  ,
-    "mol" , "nmol", "µmol", "umol", "mmol",
-    "cd"  ,
-    "in"  , "ft"  , "thou", "mil" , "yd"  , "mi"  ,
-    "mph" , "sqft", "cft" ,
-    "lb"  , "lbm" , "oz"  , "st"  , "cwt" ,
-    "lbf" ,
-    "N"   , "mN"  , "kN"  , "MN"  ,
-    "Pa"  , "kPa" , "MPa" , "GPa" ,
-    "bar" , "mbar",
-    "Torr", "mTorr", "uTorr", "µTorr",
-    "psi" , "ksi" , "Mpsi",
-    "W"   , "nW"  , "uW"  , "µW"  , "mW"  , "kW"  , "VA"  ,
-    "V"   , "kV"  , "mV"  ,
-    "MS"  , "kS"  , "S"   , "mS"  , "uS"  , "µS"  ,
-    "Ohm" , "kOhm", "MOhm",
-    "C"   ,
-    "T"   , "mT"  , "G"   ,
-    "Wb"  ,
-    "F"   , "mF"  , "µF"  , "uF"  , "nF"  , "pF"  ,
-    "H"   , "mH"  , "µH"  , "uH"  , "nH"  ,
-    "J"   , "mJ"  , "kJ"  , "Nm"  , "VAs" , "CV"  , "Ws"  , "kWh" , "eV"  , "keV" , "MeV" , "cal" , "kcal",
-    "°"   , "deg" , "rad" , "gon" , "M"   , "′"   , "AS"  , "″"   ,
-};
-        // clang-format on
+        /// 国际单位符号表：逐条对应 Expression.l 的单位规则；顺序即规则顺序，等长匹配时靠前者胜出
+        constexpr std::string_view unitSymbols[]{
+                "nm", "um", "µm", "mm", "cm", "dm", "m", "km",
+                "l", "ml",
+                "Hz", "kHz", "MHz", "GHz", "THz",
+                "ug", "µg", "mg", "g", "kg", "t",
+                "s", "min", "h",
+                "A", "nA", "uA", "µA", "mA", "kA", "MA",
+                "K", "mK", "µK", "uK",
+                "mol", "nmol", "µmol", "umol", "mmol",
+                "cd",
+                "in", "ft", "thou", "mil", "yd", "mi",
+                "mph", "sqft", "cft",
+                "lb", "lbm", "oz", "st", "cwt",
+                "lbf",
+                "N", "mN", "kN", "MN",
+                "Pa", "kPa", "MPa", "GPa",
+                "bar", "mbar",
+                "Torr", "mTorr", "uTorr", "µTorr",
+                "psi", "ksi", "Mpsi",
+                "W", "nW", "uW", "µW", "mW", "kW", "VA",
+                "V", "kV", "mV",
+                "MS", "kS", "S", "mS", "uS", "µS",
+                "Ohm", "kOhm", "MOhm",
+                "C",
+                "T", "mT", "G",
+                "Wb",
+                "F", "mF", "µF", "uF", "nF", "pF",
+                "H", "mH", "µH", "uH", "nH",
+                "J", "mJ", "kJ", "Nm", "VAs", "CV", "Ws", "kWh", "eV", "keV", "MeV", "cal", "kcal",
+                "°", "deg", "rad", "gon", "M", "′", "AS", "″",
+        };
 
         /// 英制建筑单位符号：`"` 英寸、`'` 英尺（Expression.l 里返回 USUNIT 的两条规则）
         constexpr std::string_view usUnitSymbols[]{"\"", "'"};
@@ -181,24 +176,27 @@ constexpr std::string_view unitSymbols[]{
         buildUnitSymbolEntries()
         {
             std::array<UnitSymbolEntry, std::size(unitSymbols) + std::size(usUnitSymbols)> entries{};
-            std::size_t                                                        index = 0;
+            std::size_t                                                                    index = 0;
             for (const std::string_view symbol: unitSymbols)
             {
-                entries[index++] = {symbol, ExpressionTokenKind::Unit};
+                entries[index++] = {.symbol = symbol, .kind = ExpressionTokenKind::Unit};
             }
             for (const std::string_view symbol: usUnitSymbols)
             {
-                entries[index++] = {symbol, ExpressionTokenKind::UsUnit};
+                entries[index++] = {.symbol = symbol, .kind = ExpressionTokenKind::UsUnit};
             }
             return entries;
         }
 
         /// 候选总表与它的首字节分派表；静态存储期、编译期建好，无运行时初始化与堆分配
-        constexpr auto unitSymbolEntries = buildUnitSymbolEntries();
+        constexpr auto                                                               unitSymbolEntries  = buildUnitSymbolEntries();
         constexpr Base::FirstByteDispatch<UnitSymbolEntry, unitSymbolEntries.size()> unitSymbolDispatch = Base::buildFirstByteDispatch(
-            unitSymbolEntries,
-            [](const UnitSymbolEntry &entry) { return static_cast<std::size_t>(static_cast<unsigned char>(entry.symbol.front())); }
-        );
+                unitSymbolEntries,
+                [](const UnitSymbolEntry &entry)
+                {
+                    return static_cast<std::size_t>(static_cast<unsigned char>(entry.symbol.front()));
+                }
+                );
 
         /// 单位符号匹配结果
         struct UnitMatch
@@ -209,17 +207,17 @@ constexpr std::string_view unitSymbols[]{
 
         /// 在 offset 处做单位符号的最长匹配：先按首字节把候选缩到一组，再在组内挑最长；
         /// 只在严格更长时替换，因此等长时保留表里靠前的符号
-        UnitMatch matchUnitSymbol(std::string_view text, const std::size_t offset)
+        UnitMatch matchUnitSymbol(const std::string_view text, const std::size_t offset)
         {
             const Base::FirstByteBucket bucket    = unitSymbolDispatch.buckets[static_cast<unsigned char>(text[offset])];
-            const std::string_view remainder = text.substr(offset);
-            UnitMatch              best;
+            const std::string_view      remainder = text.substr(offset);
+            UnitMatch                   best;
             for (std::size_t index = 0; index < bucket.count; ++index)
             {
                 const UnitSymbolEntry &entry = *unitSymbolDispatch.entries[bucket.begin + index];
                 if (entry.symbol.size() > best.length && remainder.starts_with(entry.symbol))
                 {
-                    best = {entry.symbol.size(), entry.kind};
+                    best = {.length = entry.symbol.size(), .kind = entry.kind};
                 }
             }
             return best;
@@ -235,7 +233,7 @@ constexpr std::string_view unitSymbols[]{
         };
 
         /// 扫描 {EXPO} = [eE][-+]?[0-9]+，返回其字节数；不构成指数时返回 0
-        std::size_t scanExponent(std::string_view text, const std::size_t offset)
+        std::size_t scanExponent(const std::string_view text, const std::size_t offset)
         {
             if (offset >= text.size() || (text[offset] != 'e' && text[offset] != 'E'))
             {
@@ -255,17 +253,16 @@ constexpr std::string_view unitSymbols[]{
         }
 
         /// 按 Expression.l 的四条数字规则求最长匹配
-        NumberMatch matchNumber(std::string_view text, const std::size_t offset)
+        NumberMatch matchNumber(const std::string_view text, const std::size_t offset)
         {
             NumberMatch       best;
             const std::size_t integerDigits = scanDecimalDigits(text, offset);
             if (integerDigits > 0)
             {
-                best                       = {integerDigits, ExpressionTokenKind::Integer};
-                const std::size_t exponent = scanExponent(text, offset + integerDigits);
-                if (exponent > 0)
+                best = {.length = integerDigits, .kind = ExpressionTokenKind::Integer};
+                if (const std::size_t exponent = scanExponent(text, offset + integerDigits); exponent > 0)
                 {
-                    best = {integerDigits + exponent, ExpressionTokenKind::Number}; // {DIGIT}+{EXPO}
+                    best = {.length = integerDigits + exponent, .kind = ExpressionTokenKind::Number}; // {DIGIT}+{EXPO}
                 }
             }
             // {DIGIT}* ("." | ",") {DIGIT}+ {EXPO}?：逗号在 FreeCAD 表达式里也当小数点用
@@ -279,7 +276,7 @@ constexpr std::string_view unitSymbols[]{
                     const std::size_t length   = integerDigits + 1 + fractionDigits + exponent;
                     if (length > best.length)
                     {
-                        best = {length, ExpressionTokenKind::Number};
+                        best = {.length = length, .kind = ExpressionTokenKind::Number};
                     }
                 }
             }
@@ -356,16 +353,21 @@ constexpr std::string_view unitSymbols[]{
                 double           value;
             };
             static constexpr ConstantSpecification constantSpecifications[]{
-                    {"pi", "pi", std::numbers::pi}, {"e", "e", std::numbers::e}, {"None", "None", 0}, {"True", "True", 1}, {"true", "True", 1},
-                    {"False", "False", 0},          {"false", "False", 0},
+                    {.literal = "pi", .canonicalName = "pi", .value = std::numbers::pi},
+                    {.literal = "e", .canonicalName = "e", .value = std::numbers::e},
+                    {.literal = "None", .canonicalName = "None", .value = 0},
+                    {.literal = "True", .canonicalName = "True", .value = 1},
+                    {.literal = "true", .canonicalName = "True", .value = 1},
+                    {.literal = "False", .canonicalName = "False", .value = 0},
+                    {.literal = "false", .canonicalName = "False", .value = 0},
             };
             ConstantMatch best;
-            for (const ConstantSpecification &specification: constantSpecifications)
+            for (const auto &[literal, canonicalName, value]: constantSpecifications)
             {
-                if (specification.literal.size() > best.length && text.size() - offset >= specification.literal.size() &&
-                    text.compare(offset, specification.literal.size(), specification.literal) == 0)
+                if (literal.size() > best.length && text.size() - offset >= literal.size() &&
+                    text.compare(offset, literal.size(), literal) == 0)
                 {
-                    best = {specification.literal.size(), specification.canonicalName, specification.value};
+                    best = {.length = literal.size(), .canonicalName = canonicalName, .value = value};
                 }
             }
             return best;
@@ -414,7 +416,7 @@ constexpr std::string_view unitSymbols[]{
         }
 
         /// 匹配 <<...>>；<< 之后找不到配对的 >> 时直接报错，避免退化成一串 '<' 记号
-        StringMatch matchString(std::string_view text, const std::size_t offset, const int column)
+        StringMatch matchString(const std::string_view text, const std::size_t offset, const int column)
         {
             if (text.size() - offset < 2 || text.compare(offset, 2, "<<") != 0)
             {
@@ -435,7 +437,7 @@ constexpr std::string_view unitSymbols[]{
                     {
                         const std::string_view rawBody           = text.substr(offset + 2, position - offset - 2);
                         const bool             documentReference = rawBody.find('#') != std::string_view::npos;
-                        return {position + 2 - offset, documentReference, unescapeStringBody(rawBody)};
+                        return {.length = position + 2 - offset, .documentReference = documentReference, .content = unescapeStringBody(rawBody)};
                     }
                     break; // 内容里不允许单个 '>'，它不可能是结束符的一部分
                 }
@@ -451,7 +453,7 @@ constexpr std::string_view unitSymbols[]{
         // —— 单元格地址、函数名、标识符、运算符 ——
 
         /// 匹配单元格地址（$A$1、A1、$A1）；不是地址时返回 0
-        std::size_t matchCellAddress(std::string_view text, const std::size_t offset)
+        std::size_t matchCellAddress(const std::string_view text, const std::size_t offset)
         {
             std::size_t position       = offset;
             const bool  absoluteColumn = text[position] == '$';
@@ -511,7 +513,7 @@ constexpr std::string_view unitSymbols[]{
                 return {};
             }
             // 左括号被函数记号吃掉，与 Expression.l 一致：上层拿到的函数记号后面不再跟 '('
-            return {position + 1 - offset, name};
+            return {.length = position + 1 - offset, .name = name};
         }
 
         /// 匹配标识符（Expression.l 的 IDENTIFIER 规则），返回字节数
@@ -546,70 +548,70 @@ constexpr std::string_view unitSymbols[]{
         };
 
         /// 匹配运算符与标点；先看多字节形式，保证 ==、!=、<=、>= 与 U+2212 减号不被拆开
-        OperatorMatch matchOperator(std::string_view text, const std::size_t offset)
+        OperatorMatch matchOperator(const std::string_view text, const std::size_t offset)
         {
             if (text[offset] == unicodeMinusSignLeadByte && startsWithUnicodeMinus(text, offset))
             {
-                return {unicodeMinusSign.size(), ExpressionTokenKind::Minus};
+                return {.length = unicodeMinusSign.size(), .kind = ExpressionTokenKind::Minus};
             }
             if (text.size() - offset >= 2)
             {
                 const std::string_view pair = text.substr(offset, 2);
                 if (pair == "==")
                 {
-                    return {2, ExpressionTokenKind::Equal};
+                    return {.length = 2, .kind = ExpressionTokenKind::Equal};
                 }
                 if (pair == "!=")
                 {
-                    return {2, ExpressionTokenKind::NotEqual};
+                    return {.length = 2, .kind = ExpressionTokenKind::NotEqual};
                 }
                 if (pair == "<=")
                 {
-                    return {2, ExpressionTokenKind::LessEqual};
+                    return {.length = 2, .kind = ExpressionTokenKind::LessEqual};
                 }
                 if (pair == ">=")
                 {
-                    return {2, ExpressionTokenKind::GreaterEqual};
+                    return {.length = 2, .kind = ExpressionTokenKind::GreaterEqual};
                 }
             }
             switch (text[offset])
             {
                 case '+':
-                    return {1, ExpressionTokenKind::Plus};
+                    return {.length = 1, .kind = ExpressionTokenKind::Plus};
                 case '-':
-                    return {1, ExpressionTokenKind::Minus};
+                    return {.length = 1, .kind = ExpressionTokenKind::Minus};
                 case '*':
-                    return {1, ExpressionTokenKind::Star};
+                    return {.length = 1, .kind = ExpressionTokenKind::Star};
                 case '/':
-                    return {1, ExpressionTokenKind::Slash};
+                    return {.length = 1, .kind = ExpressionTokenKind::Slash};
                 case '%':
-                    return {1, ExpressionTokenKind::Percent};
+                    return {.length = 1, .kind = ExpressionTokenKind::Percent};
                 case '^':
-                    return {1, ExpressionTokenKind::Caret};
+                    return {.length = 1, .kind = ExpressionTokenKind::Caret};
                 case '=':
-                    return {1, ExpressionTokenKind::Equal};
+                    return {.length = 1, .kind = ExpressionTokenKind::Equal};
                 case '<':
-                    return {1, ExpressionTokenKind::Less};
+                    return {.length = 1, .kind = ExpressionTokenKind::Less};
                 case '>':
-                    return {1, ExpressionTokenKind::Greater};
+                    return {.length = 1, .kind = ExpressionTokenKind::Greater};
                 case '?':
-                    return {1, ExpressionTokenKind::Question};
+                    return {.length = 1, .kind = ExpressionTokenKind::Question};
                 case ':':
-                    return {1, ExpressionTokenKind::Colon};
+                    return {.length = 1, .kind = ExpressionTokenKind::Colon};
                 case ',':
-                    return {1, ExpressionTokenKind::Comma};
+                    return {.length = 1, .kind = ExpressionTokenKind::Comma};
                 case ';':
-                    return {1, ExpressionTokenKind::Semicolon};
+                    return {.length = 1, .kind = ExpressionTokenKind::Semicolon};
                 case '(':
-                    return {1, ExpressionTokenKind::LeftParen};
+                    return {.length = 1, .kind = ExpressionTokenKind::LeftParen};
                 case ')':
-                    return {1, ExpressionTokenKind::RightParen};
+                    return {.length = 1, .kind = ExpressionTokenKind::RightParen};
                 case '[':
-                    return {1, ExpressionTokenKind::LeftBracket};
+                    return {.length = 1, .kind = ExpressionTokenKind::LeftBracket};
                 case ']':
-                    return {1, ExpressionTokenKind::RightBracket};
+                    return {.length = 1, .kind = ExpressionTokenKind::RightBracket};
                 case '.':
-                    return {1, ExpressionTokenKind::Dot};
+                    return {.length = 1, .kind = ExpressionTokenKind::Dot};
                 default:
                     break;
             }
@@ -617,7 +619,8 @@ constexpr std::string_view unitSymbols[]{
         }
     } // namespace
 
-    ExpressionLexer::ExpressionLexer(const std::string_view text) : m_text(text)
+    ExpressionLexer::ExpressionLexer(const std::string_view text) :
+        m_text(text)
     {
     }
 
@@ -645,7 +648,7 @@ constexpr std::string_view unitSymbols[]{
     std::string_view ExpressionLexer::takeRawText(const std::size_t byteCount)
     {
         const std::string_view rawText = m_text.substr(m_offset, byteCount);
-        m_offset += byteCount;
+        m_offset                       += byteCount;
         // 列号按 UTF-8 码点推进：续字节不单独计数；换行之后从 1 重新开始
         for (const char character: rawText)
         {
@@ -736,7 +739,7 @@ constexpr std::string_view unitSymbols[]{
                 const long long value = parseIntegerValue(rawText, tokenColumn);
                 token.numberValue     = static_cast<double>(value);
                 // 记号里的整数字段是 int；更大的整数由 numberValue 携带，越界已在上面按 long long 校过
-                token.integerValue = static_cast<int>(value);
+                token.integerValue    = static_cast<int>(value);
                 break;
             }
             case ExpressionTokenKind::String:

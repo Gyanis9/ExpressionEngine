@@ -24,10 +24,10 @@ namespace ExpressionEngine::Expression
         constexpr int additiveBinding       = 3;
         constexpr int multiplicativeBinding = 4;
         /// 单位后置与乘除同级：使 "1/2 mm" 归约为 (1/2) mm，同时不会钻进乘除的右操作数
-        constexpr int unitPostfixBinding = 4;
-        constexpr int powerBinding       = 6;
+        constexpr int unitPostfixBinding    = 4;
+        constexpr int powerBinding          = 6;
         /// 一元正负比乘方结合更紧，因此 -2^2 是 (-2)^2，与 Expression.y 的优先级声明一致
-        constexpr int unaryBinding = 7;
+        constexpr int unaryBinding          = 7;
 
         /// 二元运算符的记号、运算符节点取值与结合功率
         struct BinaryOperatorInfo
@@ -47,29 +47,29 @@ namespace ExpressionEngine::Expression
             switch (kind)
             {
                 case ExpressionTokenKind::Plus:
-                    return BinaryOperatorInfo{OperatorExpression::Operator::Add, additiveBinding, additiveBinding + 1};
+                    return BinaryOperatorInfo{.operation = OperatorExpression::Operator::Add, .leftBinding = additiveBinding, .rightBinding = additiveBinding + 1};
                 case ExpressionTokenKind::Minus:
-                    return BinaryOperatorInfo{OperatorExpression::Operator::Subtract, additiveBinding, additiveBinding + 1};
+                    return BinaryOperatorInfo{.operation = OperatorExpression::Operator::Subtract, .leftBinding = additiveBinding, .rightBinding = additiveBinding + 1};
                 case ExpressionTokenKind::Star:
-                    return BinaryOperatorInfo{OperatorExpression::Operator::Multiply, multiplicativeBinding, multiplicativeBinding + 1};
+                    return BinaryOperatorInfo{.operation = OperatorExpression::Operator::Multiply, .leftBinding = multiplicativeBinding, .rightBinding = multiplicativeBinding + 1};
                 case ExpressionTokenKind::Slash:
-                    return BinaryOperatorInfo{OperatorExpression::Operator::Divide, multiplicativeBinding, multiplicativeBinding + 1};
+                    return BinaryOperatorInfo{.operation = OperatorExpression::Operator::Divide, .leftBinding = multiplicativeBinding, .rightBinding = multiplicativeBinding + 1};
                 case ExpressionTokenKind::Percent:
-                    return BinaryOperatorInfo{OperatorExpression::Operator::Modulo, multiplicativeBinding, multiplicativeBinding + 1};
+                    return BinaryOperatorInfo{.operation = OperatorExpression::Operator::Modulo, .leftBinding = multiplicativeBinding, .rightBinding = multiplicativeBinding + 1};
                 case ExpressionTokenKind::Caret:
-                    return BinaryOperatorInfo{OperatorExpression::Operator::Power, powerBinding, powerBinding};
+                    return BinaryOperatorInfo{.operation = OperatorExpression::Operator::Power, .leftBinding = powerBinding, .rightBinding = powerBinding};
                 case ExpressionTokenKind::Equal:
-                    return BinaryOperatorInfo{OperatorExpression::Operator::Equal, comparisonBinding, comparisonBinding + 1};
+                    return BinaryOperatorInfo{.operation = OperatorExpression::Operator::Equal, .leftBinding = comparisonBinding, .rightBinding = comparisonBinding + 1};
                 case ExpressionTokenKind::NotEqual:
-                    return BinaryOperatorInfo{OperatorExpression::Operator::NotEqual, comparisonBinding, comparisonBinding + 1};
+                    return BinaryOperatorInfo{.operation = OperatorExpression::Operator::NotEqual, .leftBinding = comparisonBinding, .rightBinding = comparisonBinding + 1};
                 case ExpressionTokenKind::Less:
-                    return BinaryOperatorInfo{OperatorExpression::Operator::Less, comparisonBinding, comparisonBinding + 1};
+                    return BinaryOperatorInfo{.operation = OperatorExpression::Operator::Less, .leftBinding = comparisonBinding, .rightBinding = comparisonBinding + 1};
                 case ExpressionTokenKind::Greater:
-                    return BinaryOperatorInfo{OperatorExpression::Operator::Greater, comparisonBinding, comparisonBinding + 1};
+                    return BinaryOperatorInfo{.operation = OperatorExpression::Operator::Greater, .leftBinding = comparisonBinding, .rightBinding = comparisonBinding + 1};
                 case ExpressionTokenKind::LessEqual:
-                    return BinaryOperatorInfo{OperatorExpression::Operator::LessEqual, comparisonBinding, comparisonBinding + 1};
+                    return BinaryOperatorInfo{.operation = OperatorExpression::Operator::LessEqual, .leftBinding = comparisonBinding, .rightBinding = comparisonBinding + 1};
                 case ExpressionTokenKind::GreaterEqual:
-                    return BinaryOperatorInfo{OperatorExpression::Operator::GreaterEqual, comparisonBinding, comparisonBinding + 1};
+                    return BinaryOperatorInfo{.operation = OperatorExpression::Operator::GreaterEqual, .leftBinding = comparisonBinding, .rightBinding = comparisonBinding + 1};
                 default:
                     return std::nullopt;
             }
@@ -99,7 +99,8 @@ namespace ExpressionEngine::Expression
         class ExpressionParserImplementation
         {
         public:
-            ExpressionParserImplementation(IObjectResolver *resolver, const std::string_view text) : m_resolver(resolver), m_lexer(text)
+            ExpressionParserImplementation(IObjectResolver *resolver, const std::string_view text) :
+                m_resolver(resolver), m_lexer(text)
             {
                 advance();
                 advance();
@@ -108,25 +109,38 @@ namespace ExpressionEngine::Expression
             [[nodiscard]] ExpressionPtr parseDocument();
 
         private:
-            void                      advance();
-            [[nodiscard]] bool        startsUnit() const;
-            void                      expect(const ExpressionTokenKind kind, const std::string_view description);
-            [[nodiscard]] std::string takeIdentifierLike(const std::string_view description);
+            void advance();
 
-            [[nodiscard]] ExpressionPtr         parseExpression(int minimumBinding);
-            [[nodiscard]] ExpressionPtr         parsePrefix();
-            [[nodiscard]] ExpressionPtr         parseAtom();
-            [[nodiscard]] ExpressionPtr         parseReference();
-            [[nodiscard]] ExpressionPtr         parseFunctionCall(std::string name);
-            [[nodiscard]] ExpressionPtr         parseArgument();
+            [[nodiscard]] bool startsUnit() const;
+
+            void expect(ExpressionTokenKind kind, std::string_view description);
+
+            [[nodiscard]] std::string takeIdentifierLike(std::string_view description);
+
+            [[nodiscard]] ExpressionPtr parseExpression(int minimumBinding);
+
+            [[nodiscard]] ExpressionPtr parsePrefix();
+
+            [[nodiscard]] ExpressionPtr parseAtom();
+
+            [[nodiscard]] ExpressionPtr parseReference();
+
+            [[nodiscard]] ExpressionPtr parseFunctionCall(const std::string &name);
+
+            [[nodiscard]] ExpressionPtr parseArgument();
+
             [[nodiscard]] Expression::Component parseIndexer();
 
             [[nodiscard]] ExpressionPtr parseUnitExpression();
+
             [[nodiscard]] ExpressionPtr parseUnitPower();
+
             [[nodiscard]] ExpressionPtr parseUnitAtom();
 
-            [[nodiscard]] ExpressionPtr makeNumber(const double value);
+            [[nodiscard]] ExpressionPtr makeNumber(double value);
+
             [[nodiscard]] ExpressionPtr makeBinary(OperatorExpression::Operator operation, ExpressionPtr left, ExpressionPtr right);
+
             [[nodiscard]] ExpressionPtr makeUnary(OperatorExpression::Operator operation, ExpressionPtr operand);
 
             IObjectResolver *m_resolver; ///< 对象解析器，可为空
@@ -202,9 +216,9 @@ namespace ExpressionEngine::Expression
 
         ExpressionPtr ExpressionParserImplementation::parseExpression(const int minimumBinding)
         {
-            ExpressionPtr left = parsePrefix();
+            ExpressionPtr left                      = parsePrefix();
             // 英制两段写法要求第一段带英制单位（如 5' 6"），因此单独跟踪上一次是否附着了英制单位
-            bool lastAttachmentWasImperial = false;
+            bool          lastAttachmentWasImperial = false;
 
             for (;;)
             {
@@ -285,7 +299,7 @@ namespace ExpressionEngine::Expression
                 }
                 case ExpressionTokenKind::Integer:
                 {
-                    const double value = static_cast<double>(m_current.integerValue);
+                    const auto value = static_cast<double>(m_current.integerValue);
                     advance();
                     return makeNumber(value);
                 }
@@ -469,7 +483,7 @@ namespace ExpressionEngine::Expression
             return Expression::Component::arrayIndex(std::move(begin));
         }
 
-        ExpressionPtr ExpressionParserImplementation::parseFunctionCall(std::string name)
+        ExpressionPtr ExpressionParserImplementation::parseFunctionCall(const std::string &name)
         {
             advance(); // 函数记号自带左括号
 
@@ -590,15 +604,14 @@ namespace ExpressionEngine::Expression
     }
 
     std::expected<ExpressionPtr, Base::ParseFailure> ExpressionParser::tryParse(
-        IObjectResolver *resolver,
-        const std::string_view text
-    )
+            IObjectResolver *      resolver,
+            const std::string_view text
+            )
     {
         try
         {
             return parse(resolver, text);
-        }
-        catch (const Base::ParserError &error)
+        } catch (const Base::ParserError &error)
         {
             // 输入非法属可恢复错误：转成值返回，文案与异常通道逐字一致
             return std::unexpected(Base::ParseFailure{error.message()});

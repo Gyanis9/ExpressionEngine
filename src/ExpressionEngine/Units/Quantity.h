@@ -268,7 +268,7 @@ namespace ExpressionEngine::Units
          * @return 数值与单位同时取幂的结果
          * @throws UnitsMismatchError 指数带单位，或指数使量纲出现分数次幂
          */
-        Quantity pow(const Quantity &exponent) const;
+        [[nodiscard]] Quantity pow(const Quantity &exponent) const;
 
         /**
          * @brief 幂运算
@@ -276,7 +276,7 @@ namespace ExpressionEngine::Units
          * @return 数值与单位同时取幂的结果
          * @throws UnitsMismatchError 指数使量纲出现分数次幂
          */
-        Quantity pow(double exponent) const;
+        [[nodiscard]] Quantity pow(double exponent) const;
 
         //@}
 
@@ -316,7 +316,7 @@ namespace ExpressionEngine::Units
          * @param unitString 输出参数，实际使用的单位串
          * @return 排版后的文本
          */
-        [[nodiscard]] std::string getUserString(UnitsSchema *schema, double &factor, std::string &unitString) const;
+        [[nodiscard]] std::string getUserString(const UnitsSchema *schema, double &factor, std::string &unitString) const;
 
         /// 取可安全回填的文本；用户串无法被自己解析回来时回落到基准单位写法
         [[nodiscard]] std::string getSafeUserString() const;
@@ -358,7 +358,7 @@ namespace ExpressionEngine::Units
         }
 
         /// 设置数值
-        void setValue(double value)
+        void setValue(const double value)
         {
             m_value = value;
         }

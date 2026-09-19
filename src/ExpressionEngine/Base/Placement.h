@@ -47,7 +47,7 @@ namespace ExpressionEngine::Base
          * @brief 从 4x4 矩阵构造：旋转取矩阵的旋转部分，位置取第四列
          * @param matrix 源矩阵
          */
-        Placement(const Matrix4D &matrix);
+        explicit Placement(const Matrix4D &matrix);
 
         /**
          * @brief 以位置与旋转构造
@@ -69,7 +69,7 @@ namespace ExpressionEngine::Base
          * @param dualQuaternion 对偶四元数，实部为旋转、对偶部按 0.5·t·r 编码平移
          * @return 对应位姿
          */
-        static Placement fromDualQuaternion(DualQuaternion dualQuaternion);
+        static Placement fromDualQuaternion(const DualQuaternion &dualQuaternion);
 
         /**
          * @brief 析构函数
@@ -80,7 +80,7 @@ namespace ExpressionEngine::Base
          * @brief 输出等价的 4x4 齐次变换矩阵
          * @return 旋转部分取四元数展开，第四列为位置
          */
-        Matrix4D toMatrix() const;
+        [[nodiscard]] Matrix4D toMatrix() const;
 
         /**
          * @brief 从 4x4 矩阵设置平移与旋转
@@ -92,13 +92,13 @@ namespace ExpressionEngine::Base
          * @brief 输出对偶四元数形式
          * @return 实部为旋转四元数，对偶部为 0.5·t·r
          */
-        DualQuaternion toDualQuaternion() const;
+        [[nodiscard]] DualQuaternion toDualQuaternion() const;
 
         /**
          * @brief 取位置
          * @return 位置的常量引用，随对象生命周期有效
          */
-        const Vector3d &getPosition() const
+        [[nodiscard]] const Vector3d &getPosition() const
         {
             return m_position;
         }
@@ -107,7 +107,7 @@ namespace ExpressionEngine::Base
          * @brief 取旋转
          * @return 旋转的常量引用，随对象生命周期有效
          */
-        const Rotation &getRotation() const
+        [[nodiscard]] const Rotation &getRotation() const
         {
             return m_rotation;
         }
@@ -134,14 +134,14 @@ namespace ExpressionEngine::Base
          * @brief 判断是否恰为恒等位姿（位置精确为零且旋转精确为单位旋转）
          * @return true 是恒等位姿
          */
-        bool isIdentity() const;
+        [[nodiscard]] bool isIdentity() const;
 
         /**
          * @brief 判断在容差内是否为恒等位姿
          * @param tolerance 容差，位置按欧氏距离、旋转按四元数点积判定
          * @return true 在容差内是恒等位姿
          */
-        bool isIdentity(double tolerance) const;
+        [[nodiscard]] bool isIdentity(double tolerance) const;
 
         /**
          * @brief 就地取逆
@@ -152,7 +152,7 @@ namespace ExpressionEngine::Base
          * @brief 取逆位姿
          * @return 新的位姿对象
          */
-        Placement inverse() const;
+        [[nodiscard]] Placement inverse() const;
 
         /**
          * @brief 就地累加平移量，旋转不变
@@ -165,7 +165,7 @@ namespace ExpressionEngine::Base
          * @param other 待比较的位姿
          * @return true 位置精确相等且旋转精确相同
          */
-        bool isSame(const Placement &other) const;
+        [[nodiscard]] bool isSame(const Placement &other) const;
 
         /**
          * @brief 判断在容差内是否为同一位姿
@@ -173,7 +173,7 @@ namespace ExpressionEngine::Base
          * @param tolerance 容差，位置按欧氏距离、旋转按四元数点积判定
          * @return true 位置与旋转都在容差内一致
          */
-        bool isSame(const Placement &other, double tolerance) const;
+        [[nodiscard]] bool isSame(const Placement &other, double tolerance) const;
 
         /**
          * @brief 就地右乘另一个位姿
@@ -223,7 +223,7 @@ namespace ExpressionEngine::Base
          * @param shorten 旋转角超过 180° 时是否取短弧，默认取短弧
          * @return 插值结果
          */
-        Placement pow(double t, bool shorten = true) const;
+        [[nodiscard]] Placement pow(double t, bool shorten = true) const;
 
         /**
          * @brief 就地右乘另一个位姿
@@ -276,7 +276,7 @@ namespace ExpressionEngine::Base
          * @brief 输出便于调试阅读的文本表示
          * @return 形如 "position (...), axis (...), angle ..." 的单行文本（含结尾换行）
          */
-        std::string toString() const;
+        [[nodiscard]] std::string toString() const;
 
     private:
         Vector3d m_position; ///< 平移量（全局坐标系下）

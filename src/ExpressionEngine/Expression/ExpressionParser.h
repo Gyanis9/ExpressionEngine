@@ -45,8 +45,7 @@ namespace ExpressionEngine::Expression
          * @param text 待解析文本，可为空（空文本报错：表达式不能为空）
          * @return 成功返回解析结果；失败返回 ParseFailure，其 message 为中文原因与出错列号
          */
-        [[nodiscard]] static std::expected<ExpressionPtr, Base::ParseFailure>
-        tryParse(IObjectResolver *resolver, std::string_view text);
+        [[nodiscard]] static std::expected<ExpressionPtr, Base::ParseFailure> tryParse(IObjectResolver *resolver, std::string_view text);
     };
 
 } // namespace ExpressionEngine::Expression

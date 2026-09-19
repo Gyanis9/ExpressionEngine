@@ -42,7 +42,10 @@ namespace ExpressionEngine::Base
                 return false;
             }
 
-            const auto byteAt = [&text](const std::size_t index) { return static_cast<unsigned char>(text[index]); };
+            const auto byteAt = [&text](const std::size_t index)
+            {
+                return static_cast<unsigned char>(text[index]);
+            };
 
             const unsigned char leadByte       = byteAt(position);
             std::size_t         sequenceLength = 0;
@@ -103,13 +106,13 @@ namespace ExpressionEngine::Base
 
         /// 组装未写完的结果：canonical 给出已扫部分的区域无关写法，便于调用方续写提示
         LocalizedNumberResult incomplete(const NumericDiagnosticKind kind, const std::size_t offsetBytes, const std::size_t consumed, std::string canonical,
-                                         const std::size_t lengthBytes = 1)
+                                         const std::size_t           lengthBytes = 1)
         {
             LocalizedNumberResult result;
             result.status        = LocalizedNumberResult::Status::Incomplete;
             result.consumedBytes = consumed;
             result.canonicalText = std::move(canonical);
-            result.diagnostic    = NumericDiagnostic{kind, offsetBytes, lengthBytes};
+            result.diagnostic    = NumericDiagnostic{.kind = kind, .offsetBytes = offsetBytes, .lengthBytes = lengthBytes};
             return result;
         }
 
@@ -170,8 +173,7 @@ namespace ExpressionEngine::Base
         }
 
         /// 判断 position 处是否是分组分隔符；长度写入 length
-        bool groupingAt(const std::string_view input, const std::size_t position, const NumericLocaleContext &locale, const NumericGrammarPolicy &policy, const bool alreadyGrouped,
-                        std::size_t &length)
+        bool groupingAt(const std::string_view input, const std::size_t position, const NumericLocaleContext &locale, const NumericGrammarPolicy &policy, const bool alreadyGrouped, std::size_t &length)
         {
             length = 0;
             if (!policy.allowGrouping)
@@ -279,17 +281,17 @@ namespace ExpressionEngine::Base
     {
         if (syntax != NumericSyntaxContext::FunctionArgument)
         {
-            return {locale.decimalSeparator, locale.groupingSeparator, {}, true};
+            return {.decimalSeparator = locale.decimalSeparator, .groupingSeparator = locale.groupingSeparator, .argumentSeparator = {}, .allowGrouping = true};
         }
 
         // 逗号做小数点的区域改用分号分隔实参，其余区域仍是逗号。实参分隔符与分组分隔符是同一个
         // 符号时分组必须关闭，否则「1,234」在实参位置会被误当成一个分组数字。
         const std::string_view argumentSeparator = locale.decimalSeparator == "," ? std::string_view{";"} : std::string_view{","};
         return {
-                locale.decimalSeparator,
-                locale.groupingSeparator,
-                argumentSeparator,
-                locale.groupingSeparator != argumentSeparator,
+                .decimalSeparator = locale.decimalSeparator,
+                .groupingSeparator = locale.groupingSeparator,
+                .argumentSeparator = argumentSeparator,
+                .allowGrouping = locale.groupingSeparator != argumentSeparator,
         };
     }
 
@@ -391,11 +393,11 @@ namespace ExpressionEngine::Base
                     return invalid(NumericDiagnosticKind::InvalidGrouping, position, position, separatorLength);
                 }
                 groups.push_back(digitsInGroup);
-                digitsInGroup      = 0;
-                grouped            = true;
-                lastGroupingStart  = position;
-                lastGroupingLength = separatorLength;
-                position += separatorLength;
+                digitsInGroup               = 0;
+                grouped                     = true;
+                lastGroupingStart           = position;
+                lastGroupingLength          = separatorLength;
+                position                    += separatorLength;
                 int         nextDigit       = 0;
                 std::size_t nextDigitLength = 0;
                 if (position == input.size() || !localizedDigitAt(input, position, locale, nextDigit, nextDigitLength))
@@ -417,7 +419,7 @@ namespace ExpressionEngine::Base
                 return invalid(NumericDiagnosticKind::ExpectedDigit, position, position);
             }
             canonical.push_back('.');
-            position += decimalLength;
+            position                    += decimalLength;
             int         nextDigit       = 0;
             std::size_t nextDigitLength = 0;
             if (position == input.size() || !localizedDigitAt(input, position, locale, nextDigit, nextDigitLength))
@@ -452,7 +454,7 @@ namespace ExpressionEngine::Base
             if (position < input.size() && decimalAt(input, position, policy, decimalLength))
             {
                 canonical.push_back('.');
-                position += decimalLength;
+                position                    += decimalLength;
                 int         nextDigit       = 0;
                 std::size_t nextDigitLength = 0;
                 if (position == input.size() || !localizedDigitAt(input, position, locale, nextDigit, nextDigitLength))

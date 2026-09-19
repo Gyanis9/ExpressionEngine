@@ -16,13 +16,12 @@
 
 namespace ExpressionEngine::Units
 {
-    QuantityFormat::QuantityFormat()
-        // 默认不输出也不接受分组分隔符：数值以机器可读为先
-        : option(OmitGroupSeparator | RejectGroupSeparator), format(NumberFormat::Fixed), m_precision(-1), m_denominator(-1)
+    QuantityFormat::QuantityFormat() :
+        option(OmitGroupSeparator | RejectGroupSeparator), format(NumberFormat::Fixed), m_precision(-1), m_denominator(-1)
     {
     }
 
-    QuantityFormat::QuantityFormat(QuantityFormat::NumberFormat format, int decimals) :
+    QuantityFormat::QuantityFormat(const QuantityFormat::NumberFormat format, const int decimals) :
         option(OmitGroupSeparator | RejectGroupSeparator), format(format), m_precision(decimals), m_denominator(-1)
     {
     }
@@ -37,15 +36,17 @@ namespace ExpressionEngine::Units
         return m_denominator < 0 ? UnitsApi::getDenominator() : m_denominator;
     }
 
-    Quantity::Quantity() : m_value{0.0}
+    Quantity::Quantity() :
+        m_value{0.0}
     {
     }
 
-    Quantity::Quantity(double value, const Unit &unit) : m_value{value}, m_unit{unit}
+    Quantity::Quantity(const double value, const Unit &unit) :
+        m_value{value}, m_unit{unit}
     {
     }
 
-    Quantity::Quantity(double value, const std::string &unit)
+    Quantity::Quantity(const double value, const std::string &unit)
     {
         if (unit.empty())
         {
@@ -72,55 +73,55 @@ namespace ExpressionEngine::Units
         return m_value / other.getValue();
     }
 
-    bool Quantity::operator==(const Quantity &that) const
+    bool Quantity::operator==(const Quantity &other) const
     {
-        return m_value == that.m_value && m_unit == that.m_unit;
+        return m_value == other.m_value && m_unit == other.m_unit;
     }
 
-    bool Quantity::operator!=(const Quantity &that) const
+    bool Quantity::operator!=(const Quantity &other) const
     {
-        return !(*this == that);
+        return !(*this == other);
     }
 
-    bool Quantity::operator<(const Quantity &that) const
+    bool Quantity::operator<(const Quantity &other) const
     {
         // 量纲不同时大小无意义，宁可报错也不按数值硬比
-        if (m_unit != that.m_unit)
+        if (m_unit != other.m_unit)
         {
             throw Base::UnitsMismatchError("比较两个量的大小时单位必须一致，请先换算成同一单位");
         }
 
-        return m_value < that.m_value;
+        return m_value < other.m_value;
     }
 
-    bool Quantity::operator>(const Quantity &that) const
+    bool Quantity::operator>(const Quantity &other) const
     {
-        if (m_unit != that.m_unit)
+        if (m_unit != other.m_unit)
         {
             throw Base::UnitsMismatchError("比较两个量的大小时单位必须一致，请先换算成同一单位");
         }
 
-        return m_value > that.m_value;
+        return m_value > other.m_value;
     }
 
-    bool Quantity::operator<=(const Quantity &that) const
+    bool Quantity::operator<=(const Quantity &other) const
     {
-        if (m_unit != that.m_unit)
+        if (m_unit != other.m_unit)
         {
             throw Base::UnitsMismatchError("比较两个量的大小时单位必须一致，请先换算成同一单位");
         }
 
-        return m_value <= that.m_value;
+        return m_value <= other.m_value;
     }
 
-    bool Quantity::operator>=(const Quantity &that) const
+    bool Quantity::operator>=(const Quantity &other) const
     {
-        if (m_unit != that.m_unit)
+        if (m_unit != other.m_unit)
         {
             throw Base::UnitsMismatchError("比较两个量的大小时单位必须一致，请先换算成同一单位");
         }
 
-        return m_value >= that.m_value;
+        return m_value >= other.m_value;
     }
 
     Quantity Quantity::operator*(const Quantity &other) const
@@ -128,7 +129,7 @@ namespace ExpressionEngine::Units
         return Quantity(m_value * other.m_value, m_unit * other.m_unit);
     }
 
-    Quantity Quantity::operator*(double factor) const
+    Quantity Quantity::operator*(const double factor) const
     {
         return Quantity(m_value * factor, m_unit);
     }
@@ -138,7 +139,7 @@ namespace ExpressionEngine::Units
         return Quantity(m_value / other.m_value, m_unit / other.m_unit);
     }
 
-    Quantity Quantity::operator/(double factor) const
+    Quantity Quantity::operator/(const double factor) const
     {
         return Quantity(m_value / factor, m_unit);
     }
@@ -237,7 +238,7 @@ namespace ExpressionEngine::Units
         return UnitsApi::schemaTranslate(*this, factor, unitString);
     }
 
-    std::string Quantity::getUserString(UnitsSchema *schema, double &factor, std::string &unitString) const
+    std::string Quantity::getUserString(const UnitsSchema *schema, double &factor, std::string &unitString) const
     {
         return schema->translate(*this, factor, unitString);
     }
@@ -378,7 +379,7 @@ namespace ExpressionEngine::Units
                 }
 
                 normalized += result.canonicalText;
-                position += result.consumedBytes;
+                position   += result.consumedBytes;
             }
 
             return normalized;
@@ -395,159 +396,158 @@ namespace ExpressionEngine::Units
         return QuantityParser::parse(text);
     }
 
-// === 预定义量 ==============================================================
-// clang-format off
-using namespace UnitsConvData;
+    // === 预定义量 ==============================================================
+    using namespace UnitsConvData;
 
-const Quantity Quantity::NanoMetre              ( 1.0e-6                , Unit::Length                  );
-const Quantity Quantity::MicroMetre             ( 1.0e-3                , Unit::Length                  );
-const Quantity Quantity::MilliMetre             ( 1.0                   , Unit::Length                  );
-const Quantity Quantity::CentiMetre             ( 10.0                  , Unit::Length                  );
-const Quantity Quantity::DeciMetre              ( 100.0                 , Unit::Length                  );
-const Quantity Quantity::Metre                  ( 1.0e3                 , Unit::Length                  );
-const Quantity Quantity::KiloMetre              ( 1.0e6                 , Unit::Length                  );
+    const Quantity Quantity::NanoMetre(1.0e-6, Unit::Length);
+    const Quantity Quantity::MicroMetre(1.0e-3, Unit::Length);
+    const Quantity Quantity::MilliMetre(1.0, Unit::Length);
+    const Quantity Quantity::CentiMetre(10.0, Unit::Length);
+    const Quantity Quantity::DeciMetre(100.0, Unit::Length);
+    const Quantity Quantity::Metre(1.0e3, Unit::Length);
+    const Quantity Quantity::KiloMetre(1.0e6, Unit::Length);
 
-const Quantity Quantity::MilliLiter             ( 1000.0                , Unit::Volume                  );
-const Quantity Quantity::Liter                  ( 1.0e6                 , Unit::Volume                  );
+    const Quantity Quantity::MilliLiter(1000.0, Unit::Volume);
+    const Quantity Quantity::Liter(1.0e6, Unit::Volume);
 
-const Quantity Quantity::Hertz                  ( 1.0                   , Unit::Frequency               );
-const Quantity Quantity::KiloHertz              ( 1.0e3                 , Unit::Frequency               );
-const Quantity Quantity::MegaHertz              ( 1.0e6                 , Unit::Frequency               );
-const Quantity Quantity::GigaHertz              ( 1.0e9                 , Unit::Frequency               );
-const Quantity Quantity::TeraHertz              ( 1.0e12                , Unit::Frequency               );
+    const Quantity Quantity::Hertz(1.0, Unit::Frequency);
+    const Quantity Quantity::KiloHertz(1.0e3, Unit::Frequency);
+    const Quantity Quantity::MegaHertz(1.0e6, Unit::Frequency);
+    const Quantity Quantity::GigaHertz(1.0e9, Unit::Frequency);
+    const Quantity Quantity::TeraHertz(1.0e12, Unit::Frequency);
 
-const Quantity Quantity::MicroGram              ( 1.0e-9                , Unit::Mass                    );
-const Quantity Quantity::MilliGram              ( 1.0e-6                , Unit::Mass                    );
-const Quantity Quantity::Gram                   ( 1.0e-3                , Unit::Mass                    );
-const Quantity Quantity::KiloGram               ( 1.0                   , Unit::Mass                    );
-const Quantity Quantity::Ton                    ( 1.0e3                 , Unit::Mass                    );
+    const Quantity Quantity::MicroGram(1.0e-9, Unit::Mass);
+    const Quantity Quantity::MilliGram(1.0e-6, Unit::Mass);
+    const Quantity Quantity::Gram(1.0e-3, Unit::Mass);
+    const Quantity Quantity::KiloGram(1.0, Unit::Mass);
+    const Quantity Quantity::Ton(1.0e3, Unit::Mass);
 
-const Quantity Quantity::Second                 ( 1.0                   , Unit::TimeSpan                );
-const Quantity Quantity::Minute                 ( 60.0                  , Unit::TimeSpan                );
-const Quantity Quantity::Hour                   ( 3600.0                , Unit::TimeSpan                );
+    const Quantity Quantity::Second(1.0, Unit::TimeSpan);
+    const Quantity Quantity::Minute(60.0, Unit::TimeSpan);
+    const Quantity Quantity::Hour(3600.0, Unit::TimeSpan);
 
-const Quantity Quantity::Ampere                 ( 1.0                   , Unit::ElectricCurrent         );
-const Quantity Quantity::NanoAmpere             ( 1.0e-9                , Unit::ElectricCurrent         );
-const Quantity Quantity::MicroAmpere            ( 1.0e-6                , Unit::ElectricCurrent         );
-const Quantity Quantity::MilliAmpere            ( 0.001                 , Unit::ElectricCurrent         );
-const Quantity Quantity::KiloAmpere             ( 1000.0                , Unit::ElectricCurrent         );
-const Quantity Quantity::MegaAmpere             ( 1.0e6                 , Unit::ElectricCurrent         );
+    const Quantity Quantity::Ampere(1.0, Unit::ElectricCurrent);
+    const Quantity Quantity::NanoAmpere(1.0e-9, Unit::ElectricCurrent);
+    const Quantity Quantity::MicroAmpere(1.0e-6, Unit::ElectricCurrent);
+    const Quantity Quantity::MilliAmpere(0.001, Unit::ElectricCurrent);
+    const Quantity Quantity::KiloAmpere(1000.0, Unit::ElectricCurrent);
+    const Quantity Quantity::MegaAmpere(1.0e6, Unit::ElectricCurrent);
 
-const Quantity Quantity::Kelvin                 ( 1.0                   , Unit::Temperature             );
-const Quantity Quantity::MilliKelvin            ( 0.001                 , Unit::Temperature             );
-const Quantity Quantity::MicroKelvin            ( 0.000001              , Unit::Temperature             );
+    const Quantity Quantity::Kelvin(1.0, Unit::Temperature);
+    const Quantity Quantity::MilliKelvin(0.001, Unit::Temperature);
+    const Quantity Quantity::MicroKelvin(0.000001, Unit::Temperature);
 
-const Quantity Quantity::NanoMole               ( 1e-9                  , Unit::AmountOfSubstance       );
-const Quantity Quantity::MicroMole              ( 1e-6                  , Unit::AmountOfSubstance       );
-const Quantity Quantity::MilliMole              ( 0.001                 , Unit::AmountOfSubstance       );
-const Quantity Quantity::Mole                   ( 1.0                   , Unit::AmountOfSubstance       );
+    const Quantity Quantity::NanoMole(1e-9, Unit::AmountOfSubstance);
+    const Quantity Quantity::MicroMole(1e-6, Unit::AmountOfSubstance);
+    const Quantity Quantity::MilliMole(0.001, Unit::AmountOfSubstance);
+    const Quantity Quantity::Mole(1.0, Unit::AmountOfSubstance);
 
-const Quantity Quantity::Candela                ( 1.0                   , Unit::LuminousIntensity       );
+    const Quantity Quantity::Candela(1.0, Unit::LuminousIntensity);
 
-const Quantity Quantity::Inch                   ( inch                  , Unit::Length                  );
-const Quantity Quantity::Foot                   ( foot                  , Unit::Length                  );
-const Quantity Quantity::Thou                   ( inch / 1000           , Unit::Length                  );
-const Quantity Quantity::Yard                   ( yard                  , Unit::Length                  );
-const Quantity Quantity::Mile                   ( mile                  , Unit::Length                  );
+    const Quantity Quantity::Inch(inch, Unit::Length);
+    const Quantity Quantity::Foot(foot, Unit::Length);
+    const Quantity Quantity::Thou(inch / 1000, Unit::Length);
+    const Quantity Quantity::Yard(yard, Unit::Length);
+    const Quantity Quantity::Mile(mile, Unit::Length);
 
-const Quantity Quantity::MilePerHour            ( mile / 3600           , Unit::Velocity                );
+    const Quantity Quantity::MilePerHour(mile / 3600, Unit::Velocity);
 
-const Quantity Quantity::SquareFoot             ( foot * foot           , Unit::Area                    );
-const Quantity Quantity::CubicFoot              ( foot * foot * foot    , Unit::Volume                  );
+    const Quantity Quantity::SquareFoot(foot * foot, Unit::Area);
+    const Quantity Quantity::CubicFoot(foot * foot * foot, Unit::Volume);
 
-const Quantity Quantity::Pound                  ( pound                 , Unit::Mass                    );
-const Quantity Quantity::Ounce                  ( pound / 16            , Unit::Mass                    );
-const Quantity Quantity::Stone                  ( pound * 14            , Unit::Mass                    );
-const Quantity Quantity::Hundredweights         ( pound * 112           , Unit::Mass                    );
+    const Quantity Quantity::Pound(pound, Unit::Mass);
+    const Quantity Quantity::Ounce(pound / 16, Unit::Mass);
+    const Quantity Quantity::Stone(pound * 14, Unit::Mass);
+    const Quantity Quantity::Hundredweights(pound * 112, Unit::Mass);
 
-const Quantity Quantity::PoundForce             ( 1000 * poundForce     , Unit::Force                   );
+    const Quantity Quantity::PoundForce(1000 * poundForce, Unit::Force);
 
-const Quantity Quantity::Newton                 ( 1000.0                , Unit::Force                   );
-const Quantity Quantity::MilliNewton            ( 1.0                   , Unit::Force                   );
-const Quantity Quantity::KiloNewton             ( 1e+6                  , Unit::Force                   );
-const Quantity Quantity::MegaNewton             ( 1e+9                  , Unit::Force                   );
+    const Quantity Quantity::Newton(1000.0, Unit::Force);
+    const Quantity Quantity::MilliNewton(1.0, Unit::Force);
+    const Quantity Quantity::KiloNewton(1e+6, Unit::Force);
+    const Quantity Quantity::MegaNewton(1e+9, Unit::Force);
 
-const Quantity Quantity::NewtonPerMeter         ( 1.00                  , Unit::Stiffness               );
-const Quantity Quantity::MilliNewtonPerMeter    ( 1e-3                  , Unit::Stiffness               );
-const Quantity Quantity::KiloNewtonPerMeter     ( 1e3                   , Unit::Stiffness               );
-const Quantity Quantity::MegaNewtonPerMeter     ( 1e6                   , Unit::Stiffness               );
+    const Quantity Quantity::NewtonPerMeter(1.00, Unit::Stiffness);
+    const Quantity Quantity::MilliNewtonPerMeter(1e-3, Unit::Stiffness);
+    const Quantity Quantity::KiloNewtonPerMeter(1e3, Unit::Stiffness);
+    const Quantity Quantity::MegaNewtonPerMeter(1e6, Unit::Stiffness);
 
-const Quantity Quantity::Pascal                 ( 0.001                 , Unit::Pressure                );
-const Quantity Quantity::KiloPascal             ( 1.00                  , Unit::Pressure                );
-const Quantity Quantity::MegaPascal             ( 1000.0                , Unit::Pressure                );
-const Quantity Quantity::GigaPascal             ( 1e+6                  , Unit::Pressure                );
+    const Quantity Quantity::Pascal(0.001, Unit::Pressure);
+    const Quantity Quantity::KiloPascal(1.00, Unit::Pressure);
+    const Quantity Quantity::MegaPascal(1000.0, Unit::Pressure);
+    const Quantity Quantity::GigaPascal(1e+6, Unit::Pressure);
 
-const Quantity Quantity::MilliBar               ( 0.1                   , Unit::Pressure                );
-const Quantity Quantity::Bar                    ( 100.0                 , Unit::Pressure                );
+    const Quantity Quantity::MilliBar(0.1, Unit::Pressure);
+    const Quantity Quantity::Bar(100.0, Unit::Pressure);
 
-const Quantity Quantity::Torr                   ( 101.325 / 760.0       , Unit::Pressure                );
-const Quantity Quantity::mTorr                  ( 101.325 / 760.0 / 1e3 , Unit::Pressure                );
-const Quantity Quantity::yTorr                  ( 101.325 / 760.0 / 1e6 , Unit::Pressure                );
+    const Quantity Quantity::Torr(101.325 / 760.0, Unit::Pressure);
+    const Quantity Quantity::mTorr(101.325 / 760.0 / 1e3, Unit::Pressure);
+    const Quantity Quantity::yTorr(101.325 / 760.0 / 1e6, Unit::Pressure);
 
-const Quantity Quantity::PSI                    ( psi                   , Unit::Pressure                );
-const Quantity Quantity::KSI                    ( psi * 1000            , Unit::Pressure                );
-const Quantity Quantity::MPSI                   ( psi * 1000000         , Unit::Pressure                );
+    const Quantity Quantity::PSI(psi, Unit::Pressure);
+    const Quantity Quantity::KSI(psi * 1000, Unit::Pressure);
+    const Quantity Quantity::MPSI(psi * 1000000, Unit::Pressure);
 
-const Quantity Quantity::Watt                   ( 1e+6                  , Unit::Power                   );
-const Quantity Quantity::NanoWatt               ( 1e-3                  , Unit::Power                   );
-const Quantity Quantity::MicroWatt              ( 1.0                   , Unit::Power                   );
-const Quantity Quantity::MilliWatt              ( 1e+3                  , Unit::Power                   );
-const Quantity Quantity::KiloWatt               ( 1e+9                  , Unit::Power                   );
-const Quantity Quantity::VoltAmpere             ( 1e+6                  , Unit::Power                   );
+    const Quantity Quantity::Watt(1e+6, Unit::Power);
+    const Quantity Quantity::NanoWatt(1e-3, Unit::Power);
+    const Quantity Quantity::MicroWatt(1.0, Unit::Power);
+    const Quantity Quantity::MilliWatt(1e+3, Unit::Power);
+    const Quantity Quantity::KiloWatt(1e+9, Unit::Power);
+    const Quantity Quantity::VoltAmpere(1e+6, Unit::Power);
 
-const Quantity Quantity::Volt                   ( 1e+6                  , Unit::ElectricPotential       );
-const Quantity Quantity::MilliVolt              ( 1e+3                  , Unit::ElectricPotential       );
-const Quantity Quantity::KiloVolt               ( 1e+9                  , Unit::ElectricPotential       );
+    const Quantity Quantity::Volt(1e+6, Unit::ElectricPotential);
+    const Quantity Quantity::MilliVolt(1e+3, Unit::ElectricPotential);
+    const Quantity Quantity::KiloVolt(1e+9, Unit::ElectricPotential);
 
-const Quantity Quantity::MegaSiemens            ( 1.0                   , Unit::ElectricalConductance   );
-const Quantity Quantity::KiloSiemens            ( 1e-3                  , Unit::ElectricalConductance   );
-const Quantity Quantity::Siemens                ( 1e-6                  , Unit::ElectricalConductance   );
-const Quantity Quantity::MilliSiemens           ( 1e-9                  , Unit::ElectricalConductance   );
-const Quantity Quantity::MicroSiemens           ( 1e-12                 , Unit::ElectricalConductance   );
+    const Quantity Quantity::MegaSiemens(1.0, Unit::ElectricalConductance);
+    const Quantity Quantity::KiloSiemens(1e-3, Unit::ElectricalConductance);
+    const Quantity Quantity::Siemens(1e-6, Unit::ElectricalConductance);
+    const Quantity Quantity::MilliSiemens(1e-9, Unit::ElectricalConductance);
+    const Quantity Quantity::MicroSiemens(1e-12, Unit::ElectricalConductance);
 
-const Quantity Quantity::Ohm                    ( 1e+6                  , Unit::ElectricalResistance    );
-const Quantity Quantity::KiloOhm                ( 1e+9                  , Unit::ElectricalResistance    );
-const Quantity Quantity::MegaOhm                ( 1e+12                 , Unit::ElectricalResistance    );
+    const Quantity Quantity::Ohm(1e+6, Unit::ElectricalResistance);
+    const Quantity Quantity::KiloOhm(1e+9, Unit::ElectricalResistance);
+    const Quantity Quantity::MegaOhm(1e+12, Unit::ElectricalResistance);
 
-const Quantity Quantity::Coulomb                ( 1.0                   , Unit::ElectricCharge          );
+    const Quantity Quantity::Coulomb(1.0, Unit::ElectricCharge);
 
-const Quantity Quantity::Tesla                  ( 1.0                   , Unit::MagneticFluxDensity     );
-const Quantity Quantity::MilliTesla             ( 1e-3                  , Unit::MagneticFluxDensity     );
-const Quantity Quantity::Gauss                  ( 1e-4                  , Unit::MagneticFluxDensity     );
+    const Quantity Quantity::Tesla(1.0, Unit::MagneticFluxDensity);
+    const Quantity Quantity::MilliTesla(1e-3, Unit::MagneticFluxDensity);
+    const Quantity Quantity::Gauss(1e-4, Unit::MagneticFluxDensity);
 
-const Quantity Quantity::Weber                  ( 1e6                   , Unit::MagneticFlux            );
+    const Quantity Quantity::Weber(1e6, Unit::MagneticFlux);
 
-const Quantity Quantity::PicoFarad              ( 1e-18                 , Unit::ElectricalCapacitance   );
-const Quantity Quantity::NanoFarad              ( 1e-15                 , Unit::ElectricalCapacitance   );
-const Quantity Quantity::MicroFarad             ( 1e-12                 , Unit::ElectricalCapacitance   );
-const Quantity Quantity::MilliFarad             ( 1e-9                  , Unit::ElectricalCapacitance   );
-const Quantity Quantity::Farad                  ( 1e-6                  , Unit::ElectricalCapacitance   );
+    const Quantity Quantity::PicoFarad(1e-18, Unit::ElectricalCapacitance);
+    const Quantity Quantity::NanoFarad(1e-15, Unit::ElectricalCapacitance);
+    const Quantity Quantity::MicroFarad(1e-12, Unit::ElectricalCapacitance);
+    const Quantity Quantity::MilliFarad(1e-9, Unit::ElectricalCapacitance);
+    const Quantity Quantity::Farad(1e-6, Unit::ElectricalCapacitance);
 
-const Quantity Quantity::NanoHenry              ( 1e-3                  , Unit::ElectricalInductance    );
-const Quantity Quantity::MicroHenry             ( 1.0                   , Unit::ElectricalInductance    );
-const Quantity Quantity::MilliHenry             ( 1e+3                  , Unit::ElectricalInductance    );
-const Quantity Quantity::Henry                  ( 1e+6                  , Unit::ElectricalInductance    );
+    const Quantity Quantity::NanoHenry(1e-3, Unit::ElectricalInductance);
+    const Quantity Quantity::MicroHenry(1.0, Unit::ElectricalInductance);
+    const Quantity Quantity::MilliHenry(1e+3, Unit::ElectricalInductance);
+    const Quantity Quantity::Henry(1e+6, Unit::ElectricalInductance);
 
-const Quantity Quantity::Joule                  ( 1e+6                  , Unit::Work                    );
-const Quantity Quantity::MilliJoule             ( 1e+3                  , Unit::Work                    );
-const Quantity Quantity::KiloJoule              ( 1e+9                  , Unit::Work                    );
-const Quantity Quantity::VoltAmpereSecond       ( 1e+6                  , Unit::Work                    );
-const Quantity Quantity::WattSecond             ( 1e+6                  , Unit::Work                    );
-const Quantity Quantity::KiloWattHour           ( 3.6e+12               , Unit::Work                    );
-const Quantity Quantity::ElectronVolt           ( 1.602176634e-13       , Unit::Work                    );
-const Quantity Quantity::KiloElectronVolt       ( 1.602176634e-10       , Unit::Work                    );
-const Quantity Quantity::MegaElectronVolt       ( 1.602176634e-7        , Unit::Work                    );
-const Quantity Quantity::Calorie                ( 4.1868e+6             , Unit::Work                    );
-const Quantity Quantity::KiloCalorie            ( 4.1868e+9             , Unit::Work                    );
-const Quantity Quantity::NewtonMeter            ( 1e+6                  , Unit::Moment                  );
+    const Quantity Quantity::Joule(1e+6, Unit::Work);
+    const Quantity Quantity::MilliJoule(1e+3, Unit::Work);
+    const Quantity Quantity::KiloJoule(1e+9, Unit::Work);
+    const Quantity Quantity::VoltAmpereSecond(1e+6, Unit::Work);
+    const Quantity Quantity::WattSecond(1e+6, Unit::Work);
+    const Quantity Quantity::KiloWattHour(3.6e+12, Unit::Work);
+    const Quantity Quantity::ElectronVolt(1.602176634e-13, Unit::Work);
+    const Quantity Quantity::KiloElectronVolt(1.602176634e-10, Unit::Work);
+    const Quantity Quantity::MegaElectronVolt(1.602176634e-7, Unit::Work);
+    const Quantity Quantity::Calorie(4.1868e+6, Unit::Work);
+    const Quantity Quantity::KiloCalorie(4.1868e+9, Unit::Work);
+    const Quantity Quantity::NewtonMeter(1e+6, Unit::Moment);
 
-const Quantity Quantity::KMH                    ( 1e+6 / 3600           , Unit::Velocity                );
-const Quantity Quantity::MPH                    ( mile / 3600           , Unit::Velocity                );
+    const Quantity Quantity::KMH(1e+6 / 3600, Unit::Velocity);
+    const Quantity Quantity::MPH(mile / 3600, Unit::Velocity);
 
-const Quantity Quantity::AngleMinute            ( 1.0 / 60.0            , Unit::Angle                   );
-const Quantity Quantity::AngleSecond            ( 1.0 / 3600.0          , Unit::Angle                   );
-const Quantity Quantity::Degree                 ( 1.0                   , Unit::Angle                   );
-const Quantity Quantity::Radian                 ( 180 / std::numbers::pi, Unit::Angle                   );
-const Quantity Quantity::Gon                    ( 360.0 / 400.0         , Unit::Angle                   );
+    const Quantity Quantity::AngleMinute(1.0 / 60.0, Unit::Angle);
+    const Quantity Quantity::AngleSecond(1.0 / 3600.0, Unit::Angle);
+    const Quantity Quantity::Degree(1.0, Unit::Angle);
+    const Quantity Quantity::Radian(180 / std::numbers::pi, Unit::Angle);
+    const Quantity Quantity::Gon(360.0 / 400.0, Unit::Angle);
     // clang-format on
 } // namespace ExpressionEngine::Units

@@ -1,7 +1,5 @@
 #include <ExpressionEngine/Units/UnitsApi.h>
 
-#include <utility>
-
 namespace ExpressionEngine::Units
 {
     std::vector<std::string> UnitsApi::getDescriptions()

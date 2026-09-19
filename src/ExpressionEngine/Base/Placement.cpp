@@ -1,10 +1,10 @@
 #include <ExpressionEngine/Base/Placement.h>
-
-#include <format>
-
 #include <ExpressionEngine/Base/DualQuaternion.h>
 #include <ExpressionEngine/Base/Matrix.h>
 #include <ExpressionEngine/Base/Rotation.h>
+
+#include <format>
+
 
 namespace ExpressionEngine::Base
 {
@@ -15,11 +15,13 @@ namespace ExpressionEngine::Base
         fromMatrix(matrix);
     }
 
-    Placement::Placement(const Vector3d &position, const Rotation &rotation) : m_position(position), m_rotation(rotation)
+    Placement::Placement(const Vector3d &position, const Rotation &rotation) :
+        m_position(position), m_rotation(rotation)
     {
     }
 
-    Placement::Placement(const Vector3d &position, const Rotation &rotation, const Vector3d &center) : m_rotation(rotation)
+    Placement::Placement(const Vector3d &position, const Rotation &rotation, const Vector3d &center) :
+        m_rotation(rotation)
     {
         // 绕局部点 center 旋转：把 center 的像从位置中扣除，使其在变换后落在 center + position
         Vector3d rotatedCenter = center;
@@ -27,13 +29,13 @@ namespace ExpressionEngine::Base
         m_position = position + center - rotatedCenter;
     }
 
-    Placement Placement::fromDualQuaternion(DualQuaternion dualQuaternion)
+    Placement Placement::fromDualQuaternion(const DualQuaternion &dualQuaternion)
     {
         // 实部就是旋转四元数，分量顺序为 x, y, z, w
-        const Rotation rotation(dualQuaternion.x.real, dualQuaternion.y.real, dualQuaternion.z.real, dualQuaternion.w.real);
+        const Rotation       rotation(dualQuaternion.x.real, dualQuaternion.y.real, dualQuaternion.z.real, dualQuaternion.w.real);
         // 平移按 t = 2·d·r* 还原：d 为对偶部、r* 为旋转共轭
         const DualQuaternion moveQuaternion = 2 * dualQuaternion.dual() * dualQuaternion.real().conjugate();
-        return Placement(Vector3d(moveQuaternion.x.real, moveQuaternion.y.real, moveQuaternion.z.real), rotation);
+        return {Vector3d(moveQuaternion.x.real, moveQuaternion.y.real, moveQuaternion.z.real), rotation};
     }
 
     Matrix4D Placement::toMatrix() const
@@ -73,7 +75,7 @@ namespace ExpressionEngine::Base
         return (m_position == nullVector) && m_rotation.isIdentity();
     }
 
-    bool Placement::isIdentity(double tolerance) const
+    bool Placement::isIdentity(const double tolerance) const
     {
         return isSame(Placement(), tolerance);
     }
@@ -84,7 +86,7 @@ namespace ExpressionEngine::Base
         return m_rotation.isSame(other.m_rotation) && m_position.isEqual(other.m_position, 0);
     }
 
-    bool Placement::isSame(const Placement &other, double tolerance) const
+    bool Placement::isSame(const Placement &other, const double tolerance) const
     {
         return m_rotation.isSame(other.m_rotation, tolerance) && m_position.isEqual(other.m_position, tolerance);
     }
@@ -131,7 +133,7 @@ namespace ExpressionEngine::Base
         return result;
     }
 
-    Placement Placement::pow(double t, bool shorten) const
+    Placement Placement::pow(const double t, const bool shorten) const
     {
         // 走对偶四元数的 ScLERP：平移与旋转沿同一条螺旋路径同步插值
         return Placement::fromDualQuaternion(this->toDualQuaternion().pow(t, shorten));
@@ -173,10 +175,10 @@ namespace ExpressionEngine::Base
         // 旋转走球面插值、位置走线性插值：两条轨迹各自独立，不构成螺旋运动
         const Rotation rotation = Rotation::slerp(p0.getRotation(), p1.getRotation(), t);
         const Vector3d position = p0.getPosition() * (1.0 - t) + p1.getPosition() * t;
-        return Placement(position, rotation);
+        return {position, rotation};
     }
 
-    Placement Placement::sclerp(const Placement &p0, const Placement &p1, double t, bool shorten)
+    Placement Placement::sclerp(const Placement &p0, const Placement &p1, const double t, const bool shorten)
     {
         // 先把 p1 换算到 p0 的局部系，对相对位姿做螺旋插值，再变回全局系
         const Placement transformation = p0.inverse() * p1;

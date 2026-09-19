@@ -141,13 +141,13 @@ namespace ExpressionEngine::Base
          * @brief 拷贝构造
          * @param other 被拷贝的向量
          */
-        Vector3(const Vector3<FloatingType> &other) = default;
+        Vector3(const Vector3 &other) = default;
 
         /**
          * @brief 移动构造
          * @param other 被移动的向量，移动后处于有效但未指定状态
          */
-        Vector3(Vector3<FloatingType> &&other) noexcept = default;
+        Vector3(Vector3 &&other) noexcept = default;
 
         /**
          * @brief 析构函数
@@ -175,21 +175,21 @@ namespace ExpressionEngine::Base
          * @param other 加数
          * @return 逐分量相加的新向量
          */
-        [[nodiscard]] Vector3 operator+(const Vector3<FloatingType> &other) const;
+        [[nodiscard]] Vector3 operator+(const Vector3 &other) const;
 
         /**
          * @brief 逐分量乘以另一向量各分量的绝对值
          * @param other 提供绝对值因子的向量
          * @return 结果向量
          */
-        [[nodiscard]] Vector3 operator&(const Vector3<FloatingType> &other) const;
+        [[nodiscard]] Vector3 operator&(const Vector3 &other) const;
 
         /**
          * @brief 向量减法
          * @param other 减数
          * @return 逐分量相减的新向量
          */
-        [[nodiscard]] Vector3 operator-(const Vector3<FloatingType> &other) const;
+        [[nodiscard]] Vector3 operator-(const Vector3 &other) const;
 
         /**
          * @brief 取反向量
@@ -202,14 +202,14 @@ namespace ExpressionEngine::Base
          * @param other 加数
          * @return 自身引用
          */
-        Vector3 &operator+=(const Vector3<FloatingType> &other);
+        Vector3 &operator+=(const Vector3 &other);
 
         /**
          * @brief 就地累减
          * @param other 减数
          * @return 自身引用
          */
-        Vector3 &operator-=(const Vector3<FloatingType> &other);
+        Vector3 &operator-=(const Vector3 &other);
 
         /**
          * @brief 向量缩放
@@ -244,56 +244,56 @@ namespace ExpressionEngine::Base
          * @param other 被赋值的向量
          * @return 自身引用
          */
-        Vector3 &operator=(const Vector3<FloatingType> &other) = default;
+        Vector3 &operator=(const Vector3 &other) = default;
 
         /**
          * @brief 移动赋值
          * @param other 被移动的向量，移动后处于有效但未指定状态
          * @return 自身引用
          */
-        Vector3 &operator=(Vector3<FloatingType> &&other) noexcept = default;
+        Vector3 &operator=(Vector3 &&other) noexcept = default;
 
         /**
          * @brief 点积（标量积）
          * @param other 另一向量
          * @return 点积结果
          */
-        [[nodiscard]] FloatingType operator*(const Vector3<FloatingType> &other) const;
+        [[nodiscard]] FloatingType operator*(const Vector3 &other) const;
 
         /**
          * @brief 点积（标量积）
          * @param other 另一向量
          * @return 点积结果
          */
-        [[nodiscard]] FloatingType dot(const Vector3<FloatingType> &other) const;
+        [[nodiscard]] FloatingType dot(const Vector3 &other) const;
 
         /**
          * @brief 叉积（向量积）
          * @param other 另一向量
          * @return 同时垂直于两向量的新向量
          */
-        [[nodiscard]] Vector3 operator%(const Vector3<FloatingType> &other) const;
+        [[nodiscard]] Vector3 operator%(const Vector3 &other) const;
 
         /**
          * @brief 叉积（向量积）
          * @param other 另一向量
          * @return 同时垂直于两向量的新向量
          */
-        [[nodiscard]] Vector3 cross(const Vector3<FloatingType> &other) const;
+        [[nodiscard]] Vector3 cross(const Vector3 &other) const;
 
         /**
          * @brief 按容差比较不等
          * @param other 另一向量
          * @return 任一分量差异超过机器精度时返回 true
          */
-        [[nodiscard]] bool operator!=(const Vector3<FloatingType> &other) const;
+        [[nodiscard]] bool operator!=(const Vector3 &other) const;
 
         /**
          * @brief 按容差比较相等
          * @param other 另一向量
          * @return 三分量差异都不超过机器精度时返回 true
          */
-        [[nodiscard]] bool operator==(const Vector3<FloatingType> &other) const;
+        [[nodiscard]] bool operator==(const Vector3 &other) const;
 
         /**
          * @brief 判断本点是否落在线段上
@@ -301,7 +301,7 @@ namespace ExpressionEngine::Base
          * @param endPoint 线段终点
          * @return 与线段共线且投影落在线段范围内时返回 true
          */
-        [[nodiscard]] bool isOnLineSegment(const Vector3<FloatingType> &startPoint, const Vector3<FloatingType> &endPoint) const;
+        [[nodiscard]] bool isOnLineSegment(const Vector3 &startPoint, const Vector3 &endPoint) const;
 
         /**
          * @brief 就地缩放 X 分量
@@ -549,7 +549,7 @@ namespace ExpressionEngine::Base
      * @return 距离的平方，比较远近时用它可省去开方
      */
     template<class FloatingType>
-    [[nodiscard]] inline FloatingType squaredDistance(const Vector3<FloatingType> &first, const Vector3<FloatingType> &second)
+    [[nodiscard]] FloatingType squaredDistance(const Vector3<FloatingType> &first, const Vector3<FloatingType> &second)
     {
         const FloatingType deltaX = first.x - second.x;
         const FloatingType deltaY = first.y - second.y;
@@ -564,7 +564,7 @@ namespace ExpressionEngine::Base
      * @return 缩放后的新向量
      */
     template<class FloatingType>
-    [[nodiscard]] inline Vector3<FloatingType> operator*(FloatingType factor, const Vector3<FloatingType> &vector)
+    [[nodiscard]] Vector3<FloatingType> operator*(FloatingType factor, const Vector3<FloatingType> &vector)
     {
         return Vector3<FloatingType>(vector.x * factor, vector.y * factor, vector.z * factor);
     }
@@ -577,7 +577,7 @@ namespace ExpressionEngine::Base
      * @return 转换后的新向量
      */
     template<class TargetType, class SourceType>
-    [[nodiscard]] inline Vector3<TargetType> toVector(const Vector3<SourceType> &vector)
+    [[nodiscard]] Vector3<TargetType> toVector(const Vector3<SourceType> &vector)
     {
         return Vector3<TargetType>(static_cast<TargetType>(vector.x), static_cast<TargetType>(vector.y), static_cast<TargetType>(vector.z));
     }

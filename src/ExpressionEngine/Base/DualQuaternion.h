@@ -40,7 +40,8 @@ namespace ExpressionEngine::Base
          * @param z z 分量
          * @param w w 分量
          */
-        DualQuaternion(DualNumber x, DualNumber y, DualNumber z, DualNumber w) : x(x), y(y), z(z), w(w)
+        DualQuaternion(const DualNumber x, const DualNumber y, const DualNumber z, const DualNumber w) :
+            x(x), y(y), z(z), w(w)
         {
         }
 
@@ -55,7 +56,8 @@ namespace ExpressionEngine::Base
          * @param dualZ z 分量对偶部
          * @param dualW w 分量对偶部
          */
-        DualQuaternion(double x, double y, double z, double w, double dualX, double dualY, double dualZ, double dualW) : x(x, dualX), y(y, dualY), z(z, dualZ), w(w, dualW)
+        DualQuaternion(const double x, const double y, const double z, const double w, const double dualX, const double dualY, const double dualZ, const double dualW) :
+            x(x, dualX), y(y, dualY), z(z, dualZ), w(w, dualW)
         {
         }
 
@@ -66,7 +68,8 @@ namespace ExpressionEngine::Base
          * @param z z 分量实部
          * @param w w 分量实部
          */
-        DualQuaternion(const double x, double y, double z, double w) : x(x), y(y), z(z), w(w)
+        DualQuaternion(const double x, const double y, const double z, const double w) :
+            x(x), y(y), z(z), w(w)
         {
         }
 

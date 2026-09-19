@@ -9,7 +9,8 @@
 namespace ExpressionEngine::Base
 {
     template<class FloatingType>
-    Vector3<FloatingType>::Vector3(FloatingType xValue, FloatingType yValue, FloatingType zValue) : x(xValue), y(yValue), z(zValue)
+    Vector3<FloatingType>::Vector3(FloatingType xValue, FloatingType yValue, FloatingType zValue) :
+        x(xValue), y(yValue), z(zValue)
     {
     }
 
@@ -48,32 +49,32 @@ namespace ExpressionEngine::Base
     }
 
     template<class FloatingType>
-    Vector3<FloatingType> Vector3<FloatingType>::operator+(const Vector3<FloatingType> &other) const
+    Vector3<FloatingType> Vector3<FloatingType>::operator+(const Vector3 &other) const
     {
-        return Vector3<FloatingType>(x + other.x, y + other.y, z + other.z);
+        return Vector3(x + other.x, y + other.y, z + other.z);
     }
 
     template<class FloatingType>
-    Vector3<FloatingType> Vector3<FloatingType>::operator&(const Vector3<FloatingType> &other) const
+    Vector3<FloatingType> Vector3<FloatingType>::operator&(const Vector3 &other) const
     {
         // 逐分量伸缩：另一向量的分量取绝对值后作为缩放因子，允许传带符号方向
-        return Vector3<FloatingType>(x * std::abs(other.x), y * std::abs(other.y), z * std::abs(other.z));
+        return Vector3(x * std::abs(other.x), y * std::abs(other.y), z * std::abs(other.z));
     }
 
     template<class FloatingType>
-    Vector3<FloatingType> Vector3<FloatingType>::operator-(const Vector3<FloatingType> &other) const
+    Vector3<FloatingType> Vector3<FloatingType>::operator-(const Vector3 &other) const
     {
-        return Vector3<FloatingType>(x - other.x, y - other.y, z - other.z);
+        return Vector3(x - other.x, y - other.y, z - other.z);
     }
 
     template<class FloatingType>
     Vector3<FloatingType> Vector3<FloatingType>::operator-() const
     {
-        return Vector3<FloatingType>(-x, -y, -z);
+        return Vector3(-x, -y, -z);
     }
 
     template<class FloatingType>
-    Vector3<FloatingType> &Vector3<FloatingType>::operator+=(const Vector3<FloatingType> &other)
+    Vector3<FloatingType> &Vector3<FloatingType>::operator+=(const Vector3 &other)
     {
         x += other.x;
         y += other.y;
@@ -82,7 +83,7 @@ namespace ExpressionEngine::Base
     }
 
     template<class FloatingType>
-    Vector3<FloatingType> &Vector3<FloatingType>::operator-=(const Vector3<FloatingType> &other)
+    Vector3<FloatingType> &Vector3<FloatingType>::operator-=(const Vector3 &other)
     {
         x -= other.x;
         y -= other.y;
@@ -111,46 +112,46 @@ namespace ExpressionEngine::Base
     template<class FloatingType>
     Vector3<FloatingType> Vector3<FloatingType>::operator*(FloatingType scale) const
     {
-        return Vector3<FloatingType>(x * scale, y * scale, z * scale);
+        return Vector3(x * scale, y * scale, z * scale);
     }
 
     template<class FloatingType>
     Vector3<FloatingType> Vector3<FloatingType>::operator/(FloatingType divisor) const
     {
-        return Vector3<FloatingType>(x / divisor, y / divisor, z / divisor);
+        return Vector3(x / divisor, y / divisor, z / divisor);
     }
 
     template<class FloatingType>
-    FloatingType Vector3<FloatingType>::operator*(const Vector3<FloatingType> &other) const
+    FloatingType Vector3<FloatingType>::operator*(const Vector3 &other) const
     {
         return (x * other.x) + (y * other.y) + (z * other.z);
     }
 
     template<class FloatingType>
-    FloatingType Vector3<FloatingType>::dot(const Vector3<FloatingType> &other) const
+    FloatingType Vector3<FloatingType>::dot(const Vector3 &other) const
     {
         return (x * other.x) + (y * other.y) + (z * other.z);
     }
 
     template<class FloatingType>
-    Vector3<FloatingType> Vector3<FloatingType>::operator%(const Vector3<FloatingType> &other) const
+    Vector3<FloatingType> Vector3<FloatingType>::operator%(const Vector3 &other) const
     {
-        return Vector3<FloatingType>((y * other.z) - (z * other.y), (z * other.x) - (x * other.z), (x * other.y) - (y * other.x));
+        return Vector3((y * other.z) - (z * other.y), (z * other.x) - (x * other.z), (x * other.y) - (y * other.x));
     }
 
     template<class FloatingType>
-    Vector3<FloatingType> Vector3<FloatingType>::cross(const Vector3<FloatingType> &other) const
+    Vector3<FloatingType> Vector3<FloatingType>::cross(const Vector3 &other) const
     {
-        return Vector3<FloatingType>((y * other.z) - (z * other.y), (z * other.x) - (x * other.z), (x * other.y) - (y * other.x));
+        return Vector3((y * other.z) - (z * other.y), (z * other.x) - (x * other.z), (x * other.y) - (y * other.x));
     }
 
     template<class FloatingType>
-    bool Vector3<FloatingType>::isOnLineSegment(const Vector3<FloatingType> &startPoint, const Vector3<FloatingType> &endPoint) const
+    bool Vector3<FloatingType>::isOnLineSegment(const Vector3 &startPoint, const Vector3 &endPoint) const
     {
-        const Vector3<FloatingType> segment      = endPoint - startPoint;
-        const Vector3<FloatingType> toPoint      = *this - startPoint;
-        const Vector3<FloatingType> crossProduct = segment.cross(toPoint);
-        const FloatingType          dotProduct   = segment.dot(toPoint);
+        const Vector3      segment      = endPoint - startPoint;
+        const Vector3      toPoint      = *this - startPoint;
+        const Vector3      crossProduct = segment.cross(toPoint);
+        const FloatingType dotProduct   = segment.dot(toPoint);
 
         // 叉积长度非零说明本点偏离线段所在直线
         if (crossProduct.length() > TraitsType::epsilon())
@@ -174,26 +175,26 @@ namespace ExpressionEngine::Base
     }
 
     template<class FloatingType>
-    bool Vector3<FloatingType>::operator!=(const Vector3<FloatingType> &other) const
+    bool Vector3<FloatingType>::operator!=(const Vector3 &other) const
     {
         return !((*this) == other);
     }
 
     template<class FloatingType>
-    bool Vector3<FloatingType>::operator==(const Vector3<FloatingType> &other) const
+    bool Vector3<FloatingType>::operator==(const Vector3 &other) const
     {
         // 以机器精度为容差逐分量比较：浮点运算的舍入误差不应被当成不相等
         return (std::abs(x - other.x) <= TraitsType::epsilon()) && (std::abs(y - other.y) <= TraitsType::epsilon()) && (std::abs(z - other.z) <= TraitsType::epsilon());
     }
 
     template<class FloatingType>
-    bool Vector3<FloatingType>::isEqual(const Vector3<FloatingType> &point, FloatingType tolerance) const
+    bool Vector3<FloatingType>::isEqual(const Vector3 &point, FloatingType tolerance) const
     {
         return distance(*this, point) <= tolerance;
     }
 
     template<class FloatingType>
-    bool Vector3<FloatingType>::isParallel(const Vector3<FloatingType> &direction, FloatingType tolerance) const
+    bool Vector3<FloatingType>::isParallel(const Vector3 &direction, FloatingType tolerance) const
     {
         const FloatingType angle = getAngle(direction);
         // 零向量的夹角是 NaN：无法定义「平行」，按文档返回 false
@@ -206,7 +207,7 @@ namespace ExpressionEngine::Base
     }
 
     template<class FloatingType>
-    bool Vector3<FloatingType>::isNormal(const Vector3<FloatingType> &direction, FloatingType tolerance) const
+    bool Vector3<FloatingType>::isNormal(const Vector3 &direction, FloatingType tolerance) const
     {
         const FloatingType angle = getAngle(direction);
         if (std::isnan(angle))
@@ -220,10 +221,10 @@ namespace ExpressionEngine::Base
     }
 
     template<class FloatingType>
-    Vector3<FloatingType> &Vector3<FloatingType>::projectToPlane(const Vector3<FloatingType> &base, const Vector3<FloatingType> &normal)
+    Vector3<FloatingType> &Vector3<FloatingType>::projectToPlane(const Vector3 &base, const Vector3 &normal)
     {
         // 用副本参与运算，避免中途改写入参 normal；投影 = 原点 − 法向分量
-        Vector3<FloatingType> normalCopy(normal);
+        Vector3 normalCopy(normal);
         *this = *this - (normalCopy *= ((*this - base) * normalCopy) / normalCopy.squaredLength());
         return *this;
     }
@@ -231,12 +232,12 @@ namespace ExpressionEngine::Base
     template<class FloatingType>
     void Vector3<FloatingType>::projectToPlane(const Vector3 &base, const Vector3 &normal, Vector3 &projection) const
     {
-        Vector3<FloatingType> normalCopy(normal);
+        Vector3 normalCopy(normal);
         projection = *this - (normalCopy *= ((*this - base) * normalCopy) / normalCopy.squaredLength());
     }
 
     template<class FloatingType>
-    FloatingType Vector3<FloatingType>::distanceToPlane(const Vector3<FloatingType> &base, const Vector3<FloatingType> &normal) const
+    FloatingType Vector3<FloatingType>::distanceToPlane(const Vector3 &base, const Vector3 &normal) const
     {
         // 除以法向长度，允许传入未归一化的法向
         return ((*this - base) * normal) / normal.length();
@@ -249,10 +250,10 @@ namespace ExpressionEngine::Base
     }
 
     template<class FloatingType>
-    FloatingType Vector3<FloatingType>::distanceToLine(const Vector3<FloatingType> &base, const Vector3<FloatingType> &direction) const
+    FloatingType Vector3<FloatingType>::distanceToLine(const Vector3 &base, const Vector3 &direction) const
     {
         // 叉积长度 = 底 × 高，除以方向长度即得点到直线的垂距
-        const Vector3<FloatingType> offset = *this - base;
+        const Vector3 offset = *this - base;
         return static_cast<FloatingType>(std::abs((direction % offset).length() / direction.length()));
     }
 
@@ -270,18 +271,18 @@ namespace ExpressionEngine::Base
         const Vector3<FloatingType> toPoint   = *this - firstPoint;
         const FloatingType          dot       = toPoint * fromFirst;
         // 参数 t 夹紧到 [0,1]，使投影落在线段范围内
-        const FloatingType t = std::clamp(dot / squaredLength, static_cast<FloatingType>(0), static_cast<FloatingType>(1));
+        const FloatingType          t         = std::clamp(dot / squaredLength, static_cast<FloatingType>(0), static_cast<FloatingType>(1));
         return t * fromFirst - toPoint;
     }
 
     template<class FloatingType>
-    Vector3<FloatingType> &Vector3<FloatingType>::projectToLine(const Vector3<FloatingType> &point, const Vector3<FloatingType> &line)
+    Vector3<FloatingType> &Vector3<FloatingType>::projectToLine(const Vector3 &point, const Vector3 &line)
     {
         return (*this = ((((point * line) / line.squaredLength()) * line) - point));
     }
 
     template<class FloatingType>
-    Vector3<FloatingType> Vector3<FloatingType>::perpendicular(const Vector3<FloatingType> &base, const Vector3<FloatingType> &direction) const
+    Vector3<FloatingType> Vector3<FloatingType>::perpendicular(const Vector3 &base, const Vector3 &direction) const
     {
         // 把本点到基点的位移投影到方向向量上，再加上基点得到垂足
         const FloatingType parameter = ((*this - base) * direction) / (direction * direction);
@@ -360,32 +361,32 @@ namespace ExpressionEngine::Base
         // 缓存原始分量：旋转后 y/z 互相依赖，必须基于同一份快照计算
         const Vector3<FloatingType> original(*this);
 
-        const FloatingType sinAngle = static_cast<FloatingType>(std::sin(angle));
-        const FloatingType cosAngle = static_cast<FloatingType>(std::cos(angle));
-        y                           = (original.y * cosAngle) - (original.z * sinAngle);
-        z                           = (original.y * sinAngle) + (original.z * cosAngle);
+        const auto sinAngle = static_cast<FloatingType>(std::sin(angle));
+        const auto cosAngle = static_cast<FloatingType>(std::cos(angle));
+        y                   = (original.y * cosAngle) - (original.z * sinAngle);
+        z                   = (original.y * sinAngle) + (original.z * cosAngle);
     }
 
     template<class FloatingType>
     void Vector3<FloatingType>::rotateY(FloatingType angle)
     {
-        const Vector3<FloatingType> original(*this);
+        const Vector3 original(*this);
 
-        const FloatingType sinAngle = static_cast<FloatingType>(std::sin(angle));
-        const FloatingType cosAngle = static_cast<FloatingType>(std::cos(angle));
-        x                           = (original.z * sinAngle) + (original.x * cosAngle);
-        z                           = (original.z * cosAngle) - (original.x * sinAngle);
+        const auto sinAngle = static_cast<FloatingType>(std::sin(angle));
+        const auto cosAngle = static_cast<FloatingType>(std::cos(angle));
+        x                   = (original.z * sinAngle) + (original.x * cosAngle);
+        z                   = (original.z * cosAngle) - (original.x * sinAngle);
     }
 
     template<class FloatingType>
     void Vector3<FloatingType>::rotateZ(FloatingType angle)
     {
-        const Vector3<FloatingType> original(*this);
+        const Vector3 original(*this);
 
-        const FloatingType sinAngle = static_cast<FloatingType>(std::sin(angle));
-        const FloatingType cosAngle = static_cast<FloatingType>(std::cos(angle));
-        x                           = (original.x * cosAngle) - (original.y * sinAngle);
-        y                           = (original.x * sinAngle) + (original.y * cosAngle);
+        const auto sinAngle = static_cast<FloatingType>(std::sin(angle));
+        const auto cosAngle = static_cast<FloatingType>(std::cos(angle));
+        x                   = (original.x * cosAngle) - (original.y * sinAngle);
+        y                   = (original.x * sinAngle) + (original.y * cosAngle);
     }
 
     template<class FloatingType>
@@ -397,7 +398,7 @@ namespace ExpressionEngine::Base
         {
             // 零向量没有方向：静默不做事会把调用方的错误藏起来，这里显式报错
             throw ValueError("零向量无法归一化（长度为 0，没有方向）；请先用 isNull() 判断并跳过，"
-                             "或改为先给向量赋值再归一化");
+                    "或改为先给向量赋值再归一化");
         }
 
         // 长度恰为 1 时无需除法，直接返回以省去三次除法
@@ -414,7 +415,7 @@ namespace ExpressionEngine::Base
     template<class FloatingType>
     Vector3<FloatingType> Vector3<FloatingType>::normalized() const
     {
-        Vector3<FloatingType> copy = *this;
+        Vector3 copy = *this;
         copy.normalize();
         return copy;
     }
@@ -439,6 +440,7 @@ namespace ExpressionEngine::Base
 
         // 夹角余弦 = 点积 /（两向量长度之积），逐次相除避免长度乘积溢出
         FloatingType cosAngle = dot(other);
+
         cosAngle /= lengthThis;
         cosAngle /= lengthOther;
 
@@ -460,7 +462,7 @@ namespace ExpressionEngine::Base
     {
         FloatingType angle = getAngle(other);
 
-        const Vector3<FloatingType> crossProduct = cross(other);
+        const Vector3 crossProduct = cross(other);
 
         // 叉积与参考法向的点积定出旋转方向：为负说明按顺时针取角
         const FloatingType dot = crossProduct.dot(normal);
@@ -476,18 +478,19 @@ namespace ExpressionEngine::Base
     void Vector3<FloatingType>::transformToCoordinateSystem(const Vector3 &base, const Vector3 &xDirection, const Vector3 &yDirection)
     {
         // 先归一化两个给定方向，再用叉积补出第三轴，构造正交基
-        Vector3<FloatingType> axisX = xDirection;
-        Vector3<FloatingType> axisY = yDirection;
-        Vector3<FloatingType> axisZ = xDirection % yDirection;
+        Vector3 axisX = xDirection;
+        Vector3 axisY = yDirection;
+        Vector3 axisZ = xDirection % yDirection;
         axisX.normalize();
         axisY.normalize();
         axisZ.normalize();
 
         // 新坐标 = 位移在三条基向量上的投影
-        const Vector3<FloatingType> relative = *this - base;
-        x                                    = axisX * relative;
-        y                                    = axisY * relative;
-        z                                    = axisZ * relative;
+        const Vector3 relative = *this - base;
+
+        x = axisX * relative;
+        y = axisY * relative;
+        z = axisZ * relative;
     }
 
     // 显式实例化：只支持 float 与 double，其他类型会在链接期而非头文件里报错

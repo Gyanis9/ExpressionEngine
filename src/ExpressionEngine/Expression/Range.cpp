@@ -1,15 +1,13 @@
 #include <ExpressionEngine/Expression/Range.h>
+#include <ExpressionEngine/Base/Exception.h>
 
 #include <algorithm>
 #include <charconv>
-#include <cstddef>
 #include <format>
 #include <string>
 #include <string_view>
 #include <system_error>
-#include <utility>
 
-#include <ExpressionEngine/Base/Exception.h>
 
 namespace ExpressionEngine::Expression
 {
@@ -29,7 +27,7 @@ namespace ExpressionEngine::Expression
          * @param columnText 仅含 A..Z 的非空列标
          * @return 0 起的列号
          */
-        int columnTextToNumber(std::string_view columnText)
+        int columnTextToNumber(const std::string_view columnText)
         {
             int value = 0;
             for (const char letter: columnText)
@@ -42,7 +40,8 @@ namespace ExpressionEngine::Expression
 
     } // namespace
 
-    CellAddress::CellAddress(int row, int column, bool absoluteRow, bool absoluteColumn) : m_row(-1), m_column(-1), m_absoluteRow(absoluteRow), m_absoluteColumn(absoluteColumn)
+    CellAddress::CellAddress(const int row, const int column, const bool absoluteRow, const bool absoluteColumn) :
+        m_row(-1), m_column(-1), m_absoluteRow(absoluteRow), m_absoluteColumn(absoluteColumn)
     {
         // 越界坐标一律记为无效：静默截断会让引用悄悄落到别的单元格上
         if (row >= 0 && row < s_maxRows)
@@ -55,7 +54,8 @@ namespace ExpressionEngine::Expression
         }
     }
 
-    CellAddress::CellAddress(const std::string &address) : CellAddress(stringToAddress(address))
+    CellAddress::CellAddress(const std::string &address) :
+        CellAddress(stringToAddress(address))
     {
     }
 
@@ -69,7 +69,7 @@ namespace ExpressionEngine::Expression
         return m_column;
     }
 
-    void CellAddress::setRow(int row, bool clip)
+    void CellAddress::setRow(const int row, const bool clip)
     {
         if (row < 0 || row >= s_maxRows)
         {
@@ -107,8 +107,8 @@ namespace ExpressionEngine::Expression
 
     std::string CellAddress::toString(Cell style) const
     {
-        const unsigned int flags = static_cast<unsigned int>(style);
-        std::string        text;
+        const auto  flags = static_cast<unsigned int>(style);
+        std::string text;
 
         if ((flags & static_cast<unsigned int>(Cell::ShowColumn)) != 0)
         {
@@ -123,6 +123,7 @@ namespace ExpressionEngine::Expression
             {
                 // Z 之后列标变成两个字母，AA 对应 26
                 const int offset = m_column - s_alphabetSize;
+
                 text += static_cast<char>('A' + offset / s_alphabetSize);
                 text += static_cast<char>('A' + offset % s_alphabetSize);
             }
@@ -163,8 +164,8 @@ namespace ExpressionEngine::Expression
     unsigned int CellAddress::asInteger() const noexcept
     {
         // 行号在高 16 位、列号在低 16 位；无效地址（-1）编码为全 1，排序时排最后
-        const unsigned int rowPart    = static_cast<unsigned int>(static_cast<unsigned short>(m_row));
-        const unsigned int columnPart = static_cast<unsigned int>(static_cast<unsigned short>(m_column));
+        const auto rowPart    = static_cast<unsigned int>(static_cast<unsigned short>(m_row));
+        const auto columnPart = static_cast<unsigned int>(static_cast<unsigned short>(m_column));
         return (rowPart << 16) | columnPart;
     }
 
@@ -237,7 +238,7 @@ namespace ExpressionEngine::Expression
         throw Base::IndexError(std::format("行号 '{}' 不是合法行，合法范围是 1 到 {}；请改成十进制行号，如 1、2", rowText, CellAddress::s_maxRows));
     }
 
-    bool validColumn(std::string_view columnText)
+    bool validColumn(const std::string_view columnText)
     {
         if (columnText.empty() || columnText.size() > s_maxColumnLetters)
         {
@@ -254,7 +255,7 @@ namespace ExpressionEngine::Expression
         return columnTextToNumber(columnText) < CellAddress::s_maxColumns;
     }
 
-    int validRow(std::string_view rowText)
+    int validRow(const std::string_view rowText)
     {
         if (rowText.empty() || rowText.size() > s_maxRowDigits)
         {
@@ -275,7 +276,7 @@ namespace ExpressionEngine::Expression
         return value - 1;
     }
 
-    Range::Range(std::string_view rangeText, bool normalize)
+    Range::Range(std::string_view rangeText, const bool normalize)
     {
         const std::size_t      separator = rangeText.find(':');
         const std::string_view beginText = separator == std::string_view::npos ? rangeText : rangeText.substr(0, separator);
@@ -297,7 +298,7 @@ namespace ExpressionEngine::Expression
         m_columnCurrent = m_columnBegin;
     }
 
-    Range::Range(int rowBegin, int columnBegin, int rowEnd, int columnEnd, bool normalize) :
+    Range::Range(const int rowBegin, const int columnBegin, const int rowEnd, const int columnEnd, const bool normalize) :
         m_rowCurrent(rowBegin), m_columnCurrent(columnBegin), m_rowBegin(rowBegin), m_columnBegin(columnBegin), m_rowEnd(rowEnd), m_columnEnd(columnEnd)
     {
         if (normalize)
@@ -309,7 +310,7 @@ namespace ExpressionEngine::Expression
         m_columnCurrent = m_columnBegin;
     }
 
-    Range::Range(const CellAddress &from, const CellAddress &to, bool normalize) :
+    Range::Range(const CellAddress &from, const CellAddress &to, const bool normalize) :
         m_rowCurrent(from.row()), m_columnCurrent(from.column()), m_rowBegin(from.row()), m_columnBegin(from.column()), m_rowEnd(to.row()), m_columnEnd(to.column())
     {
         if (normalize)

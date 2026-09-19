@@ -5,9 +5,7 @@
 
 namespace ExpressionEngine::Base
 {
-    Exception::Exception(std::string message, const std::source_location &location)
-        // what() 与 message() 同源：只保存一份文案，避免两处描述各自漂移
-        :
+    Exception::Exception(std::string message, const std::source_location &location) :
         std::runtime_error(message), m_message(std::move(message)), m_file(location.file_name()), m_sourceLine(static_cast<int>(location.line())),
         m_function(location.function_name())
     {

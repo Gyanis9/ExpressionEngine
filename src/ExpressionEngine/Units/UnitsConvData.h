@@ -19,4 +19,4 @@ namespace ExpressionEngine::Units::UnitsConvData
     constexpr auto pound{0.45359237};                      ///< 磅
     constexpr auto poundForce{9.80665 * pound};            ///< 磅力
     constexpr auto psi{poundForce / (inch * inch) * 1000}; ///< 磅力每平方英寸
-} // namespace ExpressionEngine::Units::UnitsConvData
+}

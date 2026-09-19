@@ -2,12 +2,10 @@
 
 #include <array>
 #include <cassert>
-#include <cmath>
 #include <format>
 #include <limits>
 #include <numbers>
 #include <string_view>
-#include <utility>
 
 #include <ExpressionEngine/Base/Exception.h>
 #include <ExpressionEngine/Base/Matrix.h>
@@ -47,7 +45,7 @@ namespace ExpressionEngine::Base
          * @param right 右操作数
          * @return true 两者除大小写外逐字节相同
          */
-        bool isAsciiCaseInsensitiveEqual(std::string_view left, std::string_view right)
+        bool isAsciiCaseInsensitiveEqual(const std::string_view left, const std::string_view right)
         {
             if (left.size() != right.size())
             {
@@ -55,8 +53,8 @@ namespace ExpressionEngine::Base
             }
             for (std::size_t index = 0; index < left.size(); ++index)
             {
-                unsigned char leftChar  = static_cast<unsigned char>(left[index]);
-                unsigned char rightChar = static_cast<unsigned char>(right[index]);
+                auto leftChar  = static_cast<unsigned char>(left[index]);
+                auto rightChar = static_cast<unsigned char>(right[index]);
                 // 仅把 ASCII 大写字母折成小写，其余字节（含非 ASCII）按原值比较
                 if (leftChar >= 'A' && leftChar <= 'Z')
                 {
@@ -91,7 +89,7 @@ namespace ExpressionEngine::Base
              * @param repeatsFirstAxis 第三轴是否与第一轴相同
              * @param usesFixedAxes 是否绕固定轴旋转
              */
-            EulerSequenceParameters(int firstAxisIndex, bool hasOddPermutation, bool repeatsFirstAxis, bool usesFixedAxes) :
+            EulerSequenceParameters(const int firstAxisIndex, const bool hasOddPermutation, const bool repeatsFirstAxis, const bool usesFixedAxes) :
                 m_firstAxis(firstAxisIndex)
                 // 轴序号按模 3 步进，奇排列时先跨一个轴
                 ,
@@ -185,8 +183,8 @@ namespace ExpressionEngine::Base
 
         /// 欧拉序列名字表，下标与枚举值相差 1
         constexpr std::array<const char *, 26> EulerSequenceNames{
-                "Euler", "YawPitchRoll", "XYZ", "XZY", "YZX", "YXZ", "ZXY", "ZYX",  "IXYZ", "IXZY", "IYZX", "IYXZ", "IZXY",
-                "IZYX",  "XYX",          "XZX", "YZY", "YXY", "ZYZ", "ZXZ", "IXYX", "IXZX", "IYZY", "IYXY", "IZXZ", "IZYZ",
+                "Euler", "YawPitchRoll", "XYZ", "XZY", "YZX", "YXZ", "ZXY", "ZYX", "IXYZ", "IXZY", "IYZX", "IYXZ", "IZXY",
+                "IZYX", "XYX", "XZX", "YZY", "YXY", "ZYZ", "ZXZ", "IXYX", "IXZX", "IYZY", "IYXY", "IZXZ", "IZYZ",
         };
 
         // 名字表必须与枚举一一对应，新增序列时漏改会在这里编不过
@@ -196,33 +194,39 @@ namespace ExpressionEngine::Base
         constexpr double NoRotationThreshold = 1e-12;
     } // namespace
 
-    Rotation::Rotation() : m_quaternion{0.0, 0.0, 0.0, 1.0}, m_axis{0.0, 0.0, 1.0}, m_angle{0.0}
+    Rotation::Rotation() :
+        m_quaternion{0.0, 0.0, 0.0, 1.0}, m_axis{0.0, 0.0, 1.0}, m_angle{0.0}
     {
     }
 
-    Rotation::Rotation(const Vector3d &axis, const double angle) : Rotation()
+    Rotation::Rotation(const Vector3d &axis, const double angle) :
+        Rotation()
     {
         // 先把轴定为 Z：传入零向量时 setValue() 会沿用这个保底方向，避免出现 NaN
         m_axis.set(0.0, 0.0, 1.0);
         this->setValue(axis, angle);
     }
 
-    Rotation::Rotation(const Matrix4D &matrix) : Rotation()
+    Rotation::Rotation(const Matrix4D &matrix) :
+        Rotation()
     {
         this->setValue(matrix);
     }
 
-    Rotation::Rotation(const double q[4]) : Rotation()
+    Rotation::Rotation(const double q[4]) :
+        Rotation()
     {
         this->setValue(q);
     }
 
-    Rotation::Rotation(double q0, double q1, double q2, double q3) : Rotation()
+    Rotation::Rotation(const double q0, const double q1, const double q2, const double q3) :
+        Rotation()
     {
         this->setValue(q0, q1, q2, q3);
     }
 
-    Rotation::Rotation(const Vector3d &rotateFrom, const Vector3d &rotateTo) : Rotation()
+    Rotation::Rotation(const Vector3d &rotateFrom, const Vector3d &rotateTo) :
+        Rotation()
     {
         this->setValue(rotateFrom, rotateTo);
     }
@@ -230,10 +234,10 @@ namespace ExpressionEngine::Base
     Rotation Rotation::fromNormalVector(const Vector3d &normal)
     {
         // 把 Z 轴转到给定法向上，即得该法向对应的姿态
-        return Rotation(Vector3d(0.0, 0.0, 1.0), normal);
+        return {Vector3d(0.0, 0.0, 1.0), normal};
     }
 
-    Rotation Rotation::fromEulerAngles(EulerSequence order, double alpha, double beta, double gamma)
+    Rotation Rotation::fromEulerAngles(const EulerSequence order, const double alpha, const double beta, const double gamma)
     {
         Rotation rotation;
         rotation.setEulerAngles(order, alpha, beta, gamma);
@@ -259,10 +263,10 @@ namespace ExpressionEngine::Base
         // 注意 w 不允许等于 ±1，那种情形下轴角无定义，走下面的兜底分支
         if ((m_quaternion[3] > -1.0) && (m_quaternion[3] < 1.0))
         {
-            double rotationAngle = std::acos(m_quaternion[3]) * 2.0;
-            double scale         = std::sin(rotationAngle / 2.0);
+            const double rotationAngle = std::acos(m_quaternion[3]) * 2.0;
+            const double scale         = std::sin(rotationAngle / 2.0);
             // 轴长可能来自用户传入的非单位轴向，先取回其长度，零长按 1 处理以免除零
-            double length = m_axis.length();
+            double       length        = m_axis.length();
             if (length < Vector3d::epsilon())
             {
                 length = 1.0;
@@ -280,7 +284,7 @@ namespace ExpressionEngine::Base
         }
     }
 
-    void Rotation::setValue(double q0, double q1, double q2, double q3)
+    void Rotation::setValue(const double q0, const double q1, const double q2, const double q3)
     {
         m_quaternion[0] = q0;
         m_quaternion[1] = q1;
@@ -386,8 +390,8 @@ namespace ExpressionEngine::Base
                 mainIndex = 2;
             }
 
-            const unsigned short nextIndex = static_cast<unsigned short>((mainIndex + 1) % 3);
-            const unsigned short lastIndex = static_cast<unsigned short>((mainIndex + 2) % 3);
+            const auto nextIndex = static_cast<unsigned short>((mainIndex + 1) % 3);
+            const auto lastIndex = static_cast<unsigned short>((mainIndex + 2) % 3);
 
             double scale            = std::sqrt((rotationMatrix[mainIndex][mainIndex] - (rotationMatrix[nextIndex][nextIndex] + rotationMatrix[lastIndex][lastIndex])) + 1.0);
             m_quaternion[mainIndex] = scale * 0.5;
@@ -401,17 +405,17 @@ namespace ExpressionEngine::Base
         this->evaluateVector();
     }
 
-    void Rotation::setValue(const Vector3d &axis, double angle)
+    void Rotation::setValue(const Vector3d &axis, const double angle)
     {
         // 保留用户给定的角度原值，getRawValue() 据此返回原始输入
-        m_angle = angle;
+        m_angle                      = angle;
         // 折算到 [0, 2π)：四元数只依赖半角，超出周期的角度会让后续 getValue() 回读不一致
         const double normalizedAngle = angle - std::floor(angle / (2.0 * std::numbers::pi)) * (2.0 * std::numbers::pi);
         m_quaternion[3]              = std::cos(normalizedAngle / 2.0);
 
-        Vector3d normalizedAxis = axis;
+        Vector3d normalizedAxis   = axis;
         // 零向量没有方向，不能直接归一化：只在长度非零时归一化，再按归一化结果决定是否沿用既有轴
-        double normalizedLength = 0.0;
+        double   normalizedLength = 0.0;
         if (normalizedAxis.length() > 0.0)
         {
             normalizedAxis.normalize();
@@ -438,7 +442,7 @@ namespace ExpressionEngine::Base
         if (rotateFrom.isNull() || rotateTo.isNull())
         {
             throw ValueError("setValue(rotateFrom, rotateTo) 需要两个非零方向向量：零向量没有方向，"
-                             "请先给向量赋值，或改用 setValue(axis, angle) 直接给出转轴与转角。");
+                    "请先给向量赋值，或改用 setValue(axis, angle) 直接给出转轴与转角。");
         }
 
         Vector3d normalizedSource = rotateFrom;
@@ -480,8 +484,7 @@ namespace ExpressionEngine::Base
 
     void Rotation::normalize()
     {
-        const double length =
-                std::sqrt(m_quaternion[0] * m_quaternion[0] + m_quaternion[1] * m_quaternion[1] + m_quaternion[2] * m_quaternion[2] + m_quaternion[3] * m_quaternion[3]);
+        const double length = std::sqrt(m_quaternion[0] * m_quaternion[0] + m_quaternion[1] * m_quaternion[1] + m_quaternion[2] * m_quaternion[2] + m_quaternion[3] * m_quaternion[3]);
         // 零四元数不做缩放：保持全零以便 isNull() 检出，若强行归一化会产生 NaN
         if (length > 0.0)
         {
@@ -649,7 +652,7 @@ namespace ExpressionEngine::Base
         double       scale0 = 1.0 - t;
         double       scale1 = t;
         const double dot    = q0.m_quaternion[0] * q1.m_quaternion[0] + q0.m_quaternion[1] * q1.m_quaternion[1] + q0.m_quaternion[2] * q1.m_quaternion[2] +
-                              q0.m_quaternion[3] * q1.m_quaternion[3];
+                           q0.m_quaternion[3] * q1.m_quaternion[3];
         // 点积为负说明两四元数分处单位球两侧，取反后走短弧，否则会绕远路
         bool   negate      = false;
         double absoluteDot = dot;
@@ -680,12 +683,12 @@ namespace ExpressionEngine::Base
         const double y = scale0 * q0.m_quaternion[1] + scale1 * q1.m_quaternion[1];
         const double z = scale0 * q0.m_quaternion[2] + scale1 * q1.m_quaternion[2];
         const double w = scale0 * q0.m_quaternion[3] + scale1 * q1.m_quaternion[3];
-        return Rotation(x, y, z, w);
+        return {x, y, z, w};
     }
 
     Rotation Rotation::identity()
     {
-        return Rotation(0.0, 0.0, 0.0, 1.0);
+        return {0.0, 0.0, 0.0, 1.0};
     }
 
     Rotation Rotation::makeRotationByAxes(Vector3d xDirection, Vector3d yDirection, Vector3d zDirection, const char *priorityOrder)
@@ -700,7 +703,7 @@ namespace ExpressionEngine::Base
         if (priorityOrder == nullptr)
         {
             throw ValueError("makeRotationByAxes：优先级串为空指针，请传入由三个大写轴字母组成的字符串，"
-                             "例如 \"ZXY\"（默认值）");
+                    "例如 \"ZXY\"（默认值）");
         }
 
         const std::string_view priorityView(priorityOrder);
@@ -724,14 +727,14 @@ namespace ExpressionEngine::Base
         if (order[0] == order[1] || order[1] == order[2] || order[2] == order[0])
         {
             throw ValueError("makeRotationByAxes：优先级串未把 X、Y、Z 各列出一次，请改成 "
-                             "\"ZXY\" 这类三轴各一次的排列");
+                    "\"ZXY\" 这类三轴各一次的排列");
         }
 
         // 三个方向按轴序号索引，便于用优先级串里的数字取用
         std::array<Vector3d *, 3> directions{&xDirection, &yDirection, &zDirection};
 
         // 把一个元素移到末尾并让其余元素前移，用于淘汰已不可用的优先级项
-        auto dropPriority = [&order](int index)
+        auto dropPriority = [&order](const int index)
         {
             int temporary{};
             if (index == 0)
@@ -764,7 +767,7 @@ namespace ExpressionEngine::Base
             if (attempt == 2)
             {
                 throw ValueError("makeRotationByAxes：三个方向向量全为零，无法确定主轴；"
-                                 "请至少给出一个非零方向");
+                        "请至少给出一个非零方向");
             }
         }
         mainDirection.normalize();
@@ -876,7 +879,7 @@ namespace ExpressionEngine::Base
             matrix[2][static_cast<unsigned int>(index)] = direction.z;
         }
 
-        return Rotation(matrix);
+        return {matrix};
     }
 
     void Rotation::setYawPitchRoll(double yaw, double pitch, double roll)
@@ -929,7 +932,7 @@ namespace ExpressionEngine::Base
             roll  = 2.0 * std::atan2(m_quaternion[0], m_quaternion[3]);
         } else
         {
-            yaw = std::atan2(2.0 * (q01 + q23), (q00 + q33) - (q11 + q22));
+            yaw   = std::atan2(2.0 * (q01 + q23), (q00 + q33) - (q11 + q22));
             // 先钳制再 asin：浮点误差可能让 pitchTerm 略微越出 [-1, 1] 而得到 NaN
             pitch = pitchTerm > 1.0 ? std::numbers::pi / 2.0 : (pitchTerm < -1.0 ? -std::numbers::pi / 2.0 : std::asin(pitchTerm));
             roll  = std::atan2(2.0 * (q12 + q03), (q22 + q33) - (q00 + q11));
@@ -1075,7 +1078,7 @@ namespace ExpressionEngine::Base
         this->evaluateVector();
     }
 
-    void Rotation::getEulerAngles(EulerSequence order, double &alpha, double &beta, double &gamma) const
+    void Rotation::getEulerAngles(const EulerSequence order, double &alpha, double &beta, double &gamma) const
     {
         // 与 setEulerAngles 保持一致：非法序列无法映射到轴三元组，直接拒绝
         if (order == Invalid || order >= EulerSequenceLast)
@@ -1090,7 +1093,10 @@ namespace ExpressionEngine::Base
         getValue(matrix);
 
         // 通用算法用 1..3 表示 X/Y/Z 轴，这里换算成矩阵的 0 基下标
-        const auto elementAt = [&matrix](int row, int column) -> double { return matrix[static_cast<unsigned int>(row - 1)][static_cast<unsigned int>(column - 1)]; };
+        const auto elementAt = [&matrix](int row, int column) -> double
+        {
+            return matrix[static_cast<unsigned int>(row - 1)][static_cast<unsigned int>(column - 1)];
+        };
 
         const EulerSequenceParameters parameters = translateEulerSequence(order);
         if (parameters.m_repeatsFirstAxis)

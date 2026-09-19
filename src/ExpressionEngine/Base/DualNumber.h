@@ -34,7 +34,8 @@ namespace ExpressionEngine::Base
          * @param reValue 实部
          * @param dualValue 对偶部，默认 0 表示纯实数
          */
-        DualNumber(const double reValue, const double dualValue = 0.0) : real(reValue), dual(dualValue)
+        DualNumber(const double reValue, const double dualValue = 0.0) :
+            real(reValue), dual(dualValue)
         {
         }
 

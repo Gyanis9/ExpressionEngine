@@ -28,7 +28,7 @@ namespace ExpressionEngine::Expression
         constexpr int s_geometryDigits = 6;
 
         /// 是否为同一个舍入量级上的相等（与 FreeCAD 的 essentiallyEqual 一致）
-        bool essentiallyEqual(double left, double right)
+        bool essentiallyEqual(const double left, const double right)
         {
             constexpr double epsilon = std::numeric_limits<double>::epsilon();
             const double     scale   = std::fabs(left) > std::fabs(right) ? std::fabs(right) : std::fabs(left);
@@ -86,7 +86,7 @@ namespace ExpressionEngine::Expression
         std::string formatPlacement(const Base::Placement &placement)
         {
             const Base::Vector3d &position   = placement.getPosition();
-            const double         *quaternion = placement.getRotation().getValue();
+            const double *        quaternion = placement.getRotation().getValue();
             return std::format("Placement [Pos=({:.{}}, {:.{}}, {:.{}}), Rot=({:.{}}, {:.{}}, {:.{}}, {:.{}})]", position.x, s_geometryDigits, position.y, s_geometryDigits,
                                position.z, s_geometryDigits, quaternion[0], s_geometryDigits, quaternion[1], s_geometryDigits, quaternion[2], s_geometryDigits, quaternion[3],
                                s_geometryDigits);
@@ -284,10 +284,10 @@ namespace ExpressionEngine::Expression
         }
 
         return std::visit(
-                [](const auto &leftValue, const auto &rightValue) -> bool
+                []<typename T0, typename T1>(const T0 &leftValue, const T1 &rightValue) -> bool
                 {
-                    using LeftType  = std::decay_t<decltype(leftValue)>;
-                    using RightType = std::decay_t<decltype(rightValue)>;
+                    using LeftType  = std::decay_t<T0>;
+                    using RightType = std::decay_t<T1>;
                     if constexpr (!std::is_same_v<LeftType, RightType>)
                     {
                         // 备选下标相同保证了不会走到这里，兜底返回不相等以免掩盖实现错误

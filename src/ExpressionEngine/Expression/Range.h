@@ -28,11 +28,11 @@ namespace ExpressionEngine::Expression
         /// 显示选项位；位值可直接相或，如 Absolute | ShowRowColumn
         enum class Cell : unsigned
         {
-            Absolute      = 1, ///< 输出 '$' 绝对引用标记
-            ShowRow       = 2, ///< 输出行号
-            ShowColumn    = 4, ///< 输出列标
+            Absolute = 1,      ///< 输出 '$' 绝对引用标记
+            ShowRow = 2,       ///< 输出行号
+            ShowColumn = 4,    ///< 输出列标
             ShowRowColumn = 6, ///< ShowRow | ShowColumn
-            ShowFull      = 7  ///< Absolute | ShowRow | ShowColumn
+            ShowFull = 7       ///< Absolute | ShowRow | ShowColumn
         };
 
         static constexpr int s_maxRows    = 16384; ///< 行号上限，从 1 起计数

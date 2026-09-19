@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
-#include <cstddef>
 #include <format>
 #include <limits>
 #include <memory>
@@ -557,7 +556,7 @@ namespace ExpressionEngine::Expression
             {
                 Collector::collect(value);
                 m_result += value;
-                m_first = false;
+                m_first  = false;
             }
         };
 
@@ -661,7 +660,7 @@ namespace ExpressionEngine::Expression
              *          只累计条目数。
              * @param value 本次收集到的量，本类不使用其取值
              */
-            void collect(const Units::Quantity &) override
+            void collect([[maybe_unused]] const Units::Quantity &value) override
             {
                 ++m_count;
                 m_first = false;
@@ -878,7 +877,8 @@ namespace ExpressionEngine::Expression
     // 分量
     //
 
-    Expression::Component::Component(std::string componentName) : kind(ComponentKind::Name), name(std::move(componentName))
+    Expression::Component::Component(std::string componentName) :
+        kind(ComponentKind::Name), name(std::move(componentName))
     {
     }
 
@@ -990,7 +990,8 @@ namespace ExpressionEngine::Expression
     // 表达式基类
     //
 
-    Expression::Expression(IObjectResolver *resolver) : m_resolver(resolver)
+    Expression::Expression(IObjectResolver *resolver) :
+        m_resolver(resolver)
     {
     }
 
@@ -1203,8 +1204,8 @@ namespace ExpressionEngine::Expression
     // 单位节点
     //
 
-    UnitExpression::UnitExpression(IObjectResolver *resolver, const Units::Quantity &quantity, const std::string &unitText) :
-        Expression(resolver), m_quantity(quantity), m_unitText(unitText)
+    UnitExpression::UnitExpression(IObjectResolver *resolver, const Units::Quantity &quantity, std::string unitText) :
+        Expression(resolver), m_quantity(quantity), m_unitText(std::move(unitText))
     {
     }
 
@@ -1258,7 +1259,7 @@ namespace ExpressionEngine::Expression
 
     Value UnitExpression::evaluateNode() const
     {
-        return Value(m_quantity);
+        return {m_quantity};
     }
 
     void UnitExpression::appendText(std::string &text, bool, int) const
@@ -1275,7 +1276,8 @@ namespace ExpressionEngine::Expression
     // 数值节点
     //
 
-    NumberExpression::NumberExpression(IObjectResolver *resolver, const Units::Quantity &quantity) : UnitExpression(resolver, quantity)
+    NumberExpression::NumberExpression(IObjectResolver *resolver, const Units::Quantity &quantity) :
+        UnitExpression(resolver, quantity)
     {
     }
 
@@ -1349,13 +1351,13 @@ namespace ExpressionEngine::Expression
     {
         if (m_name == "True")
         {
-            return Value(true);
+            return {true};
         }
         if (m_name == "False")
         {
-            return Value(false);
+            return {false};
         }
-        return Value(getQuantity());
+        return {getQuantity()};
     }
 
     void ConstantExpression::appendText(std::string &text, bool, int) const
@@ -1383,8 +1385,7 @@ namespace ExpressionEngine::Expression
         {
             throw EvaluationError("运算符节点的运算符为空；请检查表达式构造过程");
         }
-        const bool isUnary = m_operator == Operator::Negate || m_operator == Operator::Positive;
-        if (isUnary)
+        if (m_operator == Operator::Negate || m_operator == Operator::Positive)
         {
             if (m_right != nullptr)
             {
@@ -1498,7 +1499,7 @@ namespace ExpressionEngine::Expression
         }
     }
 
-    bool OperatorExpression::isLeftAssociative() const
+    bool OperatorExpression::isLeftAssociative()
     {
         return true;
     }
@@ -1636,24 +1637,24 @@ namespace ExpressionEngine::Expression
             }
             // 比较运算按「小于」与「相等」组合，NaN 参与比较时结果与 FreeCAD 一致为假
             case Operator::Equal:
-                return Value(valuesEqual(m_left->evaluate(), m_right->evaluate()));
+                return {valuesEqual(m_left->evaluate(), m_right->evaluate())};
             case Operator::NotEqual:
-                return Value(!valuesEqual(m_left->evaluate(), m_right->evaluate()));
+                return {!valuesEqual(m_left->evaluate(), m_right->evaluate())};
             case Operator::Less:
-                return Value(valueLessThan(m_left->evaluate(), m_right->evaluate()));
+                return {valueLessThan(m_left->evaluate(), m_right->evaluate())};
             case Operator::Greater:
-                return Value(valueLessThan(m_right->evaluate(), m_left->evaluate()));
+                return {valueLessThan(m_right->evaluate(), m_left->evaluate())};
             case Operator::LessEqual:
             {
                 const Value left  = m_left->evaluate();
                 const Value right = m_right->evaluate();
-                return Value(valueLessThan(left, right) || valuesEqual(left, right));
+                return {valueLessThan(left, right) || valuesEqual(left, right)};
             }
             case Operator::GreaterEqual:
             {
                 const Value left  = m_left->evaluate();
                 const Value right = m_right->evaluate();
-                return Value(valueLessThan(right, left) || valuesEqual(left, right));
+                return {valueLessThan(right, left) || valuesEqual(left, right)};
             }
             default:
                 break;
@@ -1681,7 +1682,7 @@ namespace ExpressionEngine::Expression
         }
     }
 
-    void OperatorExpression::appendText(std::string &text, bool persistent, int) const
+    void OperatorExpression::appendText(std::string &text, const bool persistent, int) const
     {
         bool needsParentheses = false;
 
@@ -1689,7 +1690,7 @@ namespace ExpressionEngine::Expression
         {
             // 一元运算直接贴在操作数前，操作数优先级更低时补括号
             needsParentheses = m_left->priority() < priority();
-            text += m_operator == Operator::Negate ? '-' : '+';
+            text             += m_operator == Operator::Negate ? '-' : '+';
             if (needsParentheses)
             {
                 text += '(';
@@ -1995,7 +1996,7 @@ namespace ExpressionEngine::Expression
                     if (std::fabs(matrix->determinant()) <= std::numeric_limits<double>::epsilon())
                     {
                         throw Base::ValueError("minvert() 的矩阵不可逆（行列式接近 0）；请检查矩阵是否退化，"
-                                               "或改用可逆的构造方式");
+                                "或改用可逆的构造方式");
                     }
                     Base::Matrix4D inverted = *matrix;
                     inverted.inverseGauss();
@@ -2067,7 +2068,7 @@ namespace ExpressionEngine::Expression
                 const Base::Rotation rotation(Base::Vector3d(function == Function::MatrixRotateX ? 1.0 : 0.0, function == Function::MatrixRotateY ? 1.0 : 0.0,
                                                              function == Function::MatrixRotateZ ? 1.0 : 0.0),
                                               angle);
-                Base::Matrix4D       rotationMatrix;
+                Base::Matrix4D rotationMatrix;
                 rotation.getValue(rotationMatrix);
                 return transformFirstArgument(arguments, rotationMatrix, label);
             }
@@ -2139,7 +2140,7 @@ namespace ExpressionEngine::Expression
 
                 const Base::Vector3d position      = vectorArgument(arguments, 0, label);
                 const Value          rotationValue = arguments[1]->evaluate();
-                const auto          *rotation      = std::get_if<Base::Rotation>(&rotationValue);
+                const auto *         rotation      = std::get_if<Base::Rotation>(&rotationValue);
                 if (rotation == nullptr)
                 {
                     throw Base::TypeError(std::format("placement() 的第二个参数需要旋转，实际是{}；"
@@ -2186,7 +2187,7 @@ namespace ExpressionEngine::Expression
             case Function::ParseQuantity:
             {
                 const Value       value        = arguments[0]->evaluate();
-                const auto       *text         = std::get_if<std::string>(&value);
+                const auto *      text         = std::get_if<std::string>(&value);
                 const std::string quantityText = text != nullptr ? *text : valueText(value);
                 try
                 {
@@ -2492,7 +2493,7 @@ namespace ExpressionEngine::Expression
                     break;
                 }
                 throw Base::UnitsMismatchError("translationm() 的三个平移分量必须是长度量或纯数；"
-                                               "请改用 mm、in 这类长度单位");
+                        "请改用 mm、in 这类长度单位");
             case Function::LogicalNot:
                 // 与 FreeCAD 一致：只看数值不看量纲
                 unit = Units::Unit();
@@ -2768,76 +2769,76 @@ namespace ExpressionEngine::Expression
         };
 
         // 名字与 FreeCAD 的函数表一致，全部小写，供后续解析器直接查表
-        static const auto entries = std::to_array<Entry>({
-                {"abs", Function::Absolute},
-                {"acos", Function::ArcCosine},
-                {"asin", Function::ArcSine},
-                {"atan", Function::ArcTangent},
-                {"atan2", Function::ArcTangent2},
-                {"cath", Function::Cathetus},
-                {"cbrt", Function::CubeRoot},
-                {"ceil", Function::Ceiling},
-                {"cos", Function::Cosine},
-                {"cosh", Function::HyperbolicCosine},
-                {"exp", Function::Exponential},
-                {"floor", Function::Floor},
-                {"hypot", Function::Hypotenuse},
-                {"log", Function::Logarithm},
-                {"log10", Function::LogarithmBase10},
-                {"mod", Function::Modulo},
-                {"pow", Function::Power},
-                {"round", Function::Round},
-                {"sin", Function::Sine},
-                {"sinh", Function::HyperbolicSine},
-                {"sqrt", Function::SquareRoot},
-                {"tan", Function::Tangent},
-                {"tanh", Function::HyperbolicTangent},
-                {"trunc", Function::Truncate},
-                {"vangle", Function::VectorAngle},
-                {"vcross", Function::VectorCross},
-                {"vdot", Function::VectorDot},
-                {"vlinedist", Function::VectorLineDistance},
-                {"vlinesegdist", Function::VectorLineSegmentDistance},
-                {"vlineproj", Function::VectorLineProjection},
-                {"vnormalize", Function::VectorNormalize},
-                {"vplanedist", Function::VectorPlaneDistance},
-                {"vplaneproj", Function::VectorPlaneProjection},
-                {"vscale", Function::VectorScale},
-                {"vscalex", Function::VectorScaleX},
-                {"vscaley", Function::VectorScaleY},
-                {"vscalez", Function::VectorScaleZ},
-                {"minvert", Function::MatrixInvert},
-                {"mrotate", Function::MatrixRotate},
-                {"mrotatex", Function::MatrixRotateX},
-                {"mrotatey", Function::MatrixRotateY},
-                {"mrotatez", Function::MatrixRotateZ},
-                {"mscale", Function::MatrixScale},
-                {"mtranslate", Function::MatrixTranslate},
-                {"create", Function::Create},
-                {"list", Function::List},
-                {"matrix", Function::Matrix},
-                {"placement", Function::Placement},
-                {"rotation", Function::Rotation},
-                {"rotationx", Function::RotationX},
-                {"rotationy", Function::RotationY},
-                {"rotationz", Function::RotationZ},
-                {"str", Function::Stringify},
-                {"parsequant", Function::ParseQuantity},
-                {"translationm", Function::TranslationMatrix},
-                {"tuple", Function::Tuple},
-                {"vector", Function::Vector},
-                {"address", Function::Address},
-                {"hiddenref", Function::HiddenReference},
-                {"href", Function::HiddenReferenceAlias},
-                {"not", Function::LogicalNot},
-                {"average", Function::Average},
-                {"count", Function::Count},
-                {"max", Function::Maximum},
-                {"min", Function::Minimum},
-                {"stddev", Function::StandardDeviation},
-                {"sum", Function::Sum},
-                {"and", Function::LogicalAnd},
-                {"or", Function::LogicalOr},
+        static constexpr auto entries = std::to_array<Entry>({
+                {.name = "abs", .function = Function::Absolute},
+                {.name = "acos", .function = Function::ArcCosine},
+                {.name = "asin", .function = Function::ArcSine},
+                {.name = "atan", .function = Function::ArcTangent},
+                {.name = "atan2", .function = Function::ArcTangent2},
+                {.name = "cath", .function = Function::Cathetus},
+                {.name = "cbrt", .function = Function::CubeRoot},
+                {.name = "ceil", .function = Function::Ceiling},
+                {.name = "cos", .function = Function::Cosine},
+                {.name = "cosh", .function = Function::HyperbolicCosine},
+                {.name = "exp", .function = Function::Exponential},
+                {.name = "floor", .function = Function::Floor},
+                {.name = "hypot", .function = Function::Hypotenuse},
+                {.name = "log", .function = Function::Logarithm},
+                {.name = "log10", .function = Function::LogarithmBase10},
+                {.name = "mod", .function = Function::Modulo},
+                {.name = "pow", .function = Function::Power},
+                {.name = "round", .function = Function::Round},
+                {.name = "sin", .function = Function::Sine},
+                {.name = "sinh", .function = Function::HyperbolicSine},
+                {.name = "sqrt", .function = Function::SquareRoot},
+                {.name = "tan", .function = Function::Tangent},
+                {.name = "tanh", .function = Function::HyperbolicTangent},
+                {.name = "trunc", .function = Function::Truncate},
+                {.name = "vangle", .function = Function::VectorAngle},
+                {.name = "vcross", .function = Function::VectorCross},
+                {.name = "vdot", .function = Function::VectorDot},
+                {.name = "vlinedist", .function = Function::VectorLineDistance},
+                {.name = "vlinesegdist", .function = Function::VectorLineSegmentDistance},
+                {.name = "vlineproj", .function = Function::VectorLineProjection},
+                {.name = "vnormalize", .function = Function::VectorNormalize},
+                {.name = "vplanedist", .function = Function::VectorPlaneDistance},
+                {.name = "vplaneproj", .function = Function::VectorPlaneProjection},
+                {.name = "vscale", .function = Function::VectorScale},
+                {.name = "vscalex", .function = Function::VectorScaleX},
+                {.name = "vscaley", .function = Function::VectorScaleY},
+                {.name = "vscalez", .function = Function::VectorScaleZ},
+                {.name = "minvert", .function = Function::MatrixInvert},
+                {.name = "mrotate", .function = Function::MatrixRotate},
+                {.name = "mrotatex", .function = Function::MatrixRotateX},
+                {.name = "mrotatey", .function = Function::MatrixRotateY},
+                {.name = "mrotatez", .function = Function::MatrixRotateZ},
+                {.name = "mscale", .function = Function::MatrixScale},
+                {.name = "mtranslate", .function = Function::MatrixTranslate},
+                {.name = "create", .function = Function::Create},
+                {.name = "list", .function = Function::List},
+                {.name = "matrix", .function = Function::Matrix},
+                {.name = "placement", .function = Function::Placement},
+                {.name = "rotation", .function = Function::Rotation},
+                {.name = "rotationx", .function = Function::RotationX},
+                {.name = "rotationy", .function = Function::RotationY},
+                {.name = "rotationz", .function = Function::RotationZ},
+                {.name = "str", .function = Function::Stringify},
+                {.name = "parsequant", .function = Function::ParseQuantity},
+                {.name = "translationm", .function = Function::TranslationMatrix},
+                {.name = "tuple", .function = Function::Tuple},
+                {.name = "vector", .function = Function::Vector},
+                {.name = "address", .function = Function::Address},
+                {.name = "hiddenref", .function = Function::HiddenReference},
+                {.name = "href", .function = Function::HiddenReferenceAlias},
+                {.name = "not", .function = Function::LogicalNot},
+                {.name = "average", .function = Function::Average},
+                {.name = "count", .function = Function::Count},
+                {.name = "max", .function = Function::Maximum},
+                {.name = "min", .function = Function::Minimum},
+                {.name = "stddev", .function = Function::StandardDeviation},
+                {.name = "sum", .function = Function::Sum},
+                {.name = "and", .function = Function::LogicalAnd},
+                {.name = "or", .function = Function::LogicalOr},
         });
 
         for (const auto &entry: entries)
@@ -2887,7 +2888,8 @@ namespace ExpressionEngine::Expression
     // 变量引用节点
     //
 
-    VariableExpression::VariableExpression(IObjectResolver *resolver, Reference reference) : UnitExpression(resolver), m_reference(std::move(reference))
+    VariableExpression::VariableExpression(IObjectResolver *resolver, Reference reference) :
+        UnitExpression(resolver), m_reference(std::move(reference))
     {
     }
 
@@ -2924,7 +2926,7 @@ namespace ExpressionEngine::Expression
 
     IProperty *VariableExpression::resolveProperty() const
     {
-        IObjectResolver  *objectResolver = resolver();
+        IObjectResolver * objectResolver = resolver();
         const std::string path           = pathText();
         if (objectResolver == nullptr)
         {
@@ -2952,7 +2954,7 @@ namespace ExpressionEngine::Expression
         return property;
     }
 
-    void VariableExpression::assignValue(const Value &newValue)
+    void VariableExpression::assignValue(const Value &newValue) const
     {
         if (hasComponent())
         {
@@ -2988,7 +2990,7 @@ namespace ExpressionEngine::Expression
 
     Value VariableExpression::evaluateNode() const
     {
-        IProperty                 *property = resolveProperty();
+        IProperty *                property = resolveProperty();
         const std::optional<Value> value    = property->value();
         if (!value.has_value())
         {
@@ -3029,7 +3031,8 @@ namespace ExpressionEngine::Expression
     // 文本节点
     //
 
-    StringExpression::StringExpression(IObjectResolver *resolver, std::string text) : Expression(resolver), m_text(std::move(text))
+    StringExpression::StringExpression(IObjectResolver *resolver, std::string text) :
+        Expression(resolver), m_text(std::move(text))
     {
     }
 
@@ -3050,7 +3053,7 @@ namespace ExpressionEngine::Expression
 
     Value StringExpression::evaluateNode() const
     {
-        return Value(m_text);
+        return {m_text};
     }
 
     void StringExpression::appendText(std::string &text, bool, int) const
@@ -3072,7 +3075,8 @@ namespace ExpressionEngine::Expression
     // 取值节点
     //
 
-    ValueExpression::ValueExpression(IObjectResolver *resolver, Value value) : Expression(resolver), m_value(std::move(value))
+    ValueExpression::ValueExpression(IObjectResolver *resolver, Value value) :
+        Expression(resolver), m_value(std::move(value))
     {
     }
 
@@ -3110,7 +3114,8 @@ namespace ExpressionEngine::Expression
     // 单元格区间节点
     //
 
-    RangeExpression::RangeExpression(IObjectResolver *resolver, std::string begin, std::string end) : Expression(resolver), m_begin(std::move(begin)), m_end(std::move(end))
+    RangeExpression::RangeExpression(IObjectResolver *resolver, std::string begin, std::string end) :
+        Expression(resolver), m_begin(std::move(begin)), m_end(std::move(end))
     {
     }
 
@@ -3136,7 +3141,7 @@ namespace ExpressionEngine::Expression
                                               "请改成单元格地址，别名请由宿主的属性提供",
                                               m_begin, m_end));
         }
-        return Range(begin, end);
+        return {begin, end};
     }
 
     ExpressionPtr RangeExpression::simplify() const

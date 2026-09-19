@@ -75,10 +75,10 @@ namespace ExpressionEngine::Units
         [[nodiscard]] std::size_t count() const;
 
         /// 取全部方案名
-        [[nodiscard]] std::vector<std::string> names();
+        [[nodiscard]] std::vector<std::string> names() const;
 
         /// 取全部方案描述
-        [[nodiscard]] std::vector<std::string> descriptions();
+        [[nodiscard]] std::vector<std::string> descriptions() const;
 
         /// 取默认小数位数
         [[nodiscard]] std::size_t getDecimals() const;
@@ -94,7 +94,7 @@ namespace ExpressionEngine::Units
 
     private:
         /// 把各方案按取值函数投影成字符串列表，供名字与描述两处复用
-        [[nodiscard]] std::vector<std::string> collect(const std::function<std::string(UnitsSchemaSpecification)> &projector);
+        [[nodiscard]] std::vector<std::string> collect(const std::function<std::string(UnitsSchemaSpecification)> &projector) const;
 
         /// 按判定函数查找第一个匹配的方案
         [[nodiscard]] UnitsSchemaSpecification findSpecification(const std::function<bool(UnitsSchemaSpecification)> &predicate);

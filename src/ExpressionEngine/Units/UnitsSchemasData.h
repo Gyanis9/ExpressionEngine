@@ -40,7 +40,7 @@ namespace ExpressionEngine::Units::UnitsSchemasData
 
     using namespace UnitsConvData;
 
-// NOLINTBEGIN
+    // NOLINTBEGIN
 // clang-format off
 /// 编号 6 方案 MmMin：毫米与毫米每分钟，CNC 小件与公制小尺寸用
 inline const UnitsSchemaSpecification mmMinSchema
@@ -698,8 +698,8 @@ inline const UnitsSchemaSpecification imperialCivilSchema
     // clang-format on
     // NOLINTEND
     /// 内置方案列表：按编号排列，供 UnitsSchemas 按序号或名字查找
-    inline const std::vector schemaSpecifications{internalSchema,         mksSchema,           centimeterSchema, femSchema,          imperialSchema,
-                                                  imperialBuildingSchema, imperialCivilSchema, mmMinSchema,      meterDecimalSchema, imperialDecimalSchema};
+    inline const std::vector schemaSpecifications{internalSchema, mksSchema, centimeterSchema, femSchema, imperialSchema,
+                                                  imperialBuildingSchema, imperialCivilSchema, mmMinSchema, meterDecimalSchema, imperialDecimalSchema};
 
     /**
      * 特殊换算函数
@@ -732,7 +732,7 @@ inline const UnitsSchemaSpecification imperialCivilSchema
             return "0";
         }
 
-        const auto feet = static_cast<std::size_t>(std::floor(static_cast<double>(fractionalUnitCount) / (inchPerFoot * static_cast<double>(denominator))));
+        const auto feet     = static_cast<std::size_t>(std::floor(static_cast<double>(fractionalUnitCount) / (inchPerFoot * static_cast<double>(denominator))));
         fractionalUnitCount -= inchPerFoot * denominator * feet;
 
         const auto  inches    = static_cast<std::size_t>(std::floor(static_cast<double>(fractionalUnitCount) / static_cast<double>(denominator)));
@@ -740,26 +740,26 @@ inline const UnitsSchemaSpecification imperialCivilSchema
 
         // 分数要约到最简，否则 4/8" 这类写法会让显示结果不可读
         const std::size_t commonDenominator = greatestCommonDenominator(numerator, denominator);
-        numerator /= commonDenominator;
-        denominator /= commonDenominator;
+        numerator                           /= commonDenominator;
+        denominator                         /= commonDenominator;
 
         bool        addSpace{false};
         std::string result;
 
         if (value < 0)
         {
-            result += "-";
+            result += '-';
         }
 
         if (feet > 0)
         {
-            result += std::format("{}'", feet);
+            result   += std::format("{}'", feet);
             addSpace = true;
         }
 
         if (inches > 0)
         {
-            result += std::format("{}{}\"", addSpace ? " " : "", inches);
+            result   += std::format("{}{}\"", addSpace ? " " : "", inches);
             addSpace = false;
         }
 
@@ -768,7 +768,7 @@ inline const UnitsSchemaSpecification imperialCivilSchema
             // 英寸与分数之间补一个加减号，明确它是叠加在英寸上的余量
             if (inches > 0)
             {
-                result += std::format(" {} ", value < 0 ? "-" : "+");
+                result   += std::format(" {} ", value < 0 ? "-" : "+");
                 addSpace = false;
             }
             result += std::format("{}{}/{}\"", addSpace ? " " : "", numerator, denominator);
@@ -793,13 +793,13 @@ inline const UnitsSchemaSpecification imperialCivilSchema
             return {static_cast<int>(whole), degreeMinuteSecondRatio * (total - whole)};
         };
 
-        const auto [degrees, totalMinutes] = splitWholeAndRemainder(value);
-        std::string out                    = std::format("{}°", degrees);
+        const auto  [degrees, totalMinutes] = splitWholeAndRemainder(value);
+        std::string out                     = std::format("{}°", degrees);
 
         if (totalMinutes > 0)
         {
             const auto [minutes, totalSeconds] = splitWholeAndRemainder(totalMinutes);
-            out += std::format("{}′", minutes);
+            out                                += std::format("{}′", minutes);
 
             if (totalSeconds > 0)
             {
@@ -810,25 +810,26 @@ inline const UnitsSchemaSpecification imperialCivilSchema
         return out;
     }
 
-/// 特殊换算函数的登记表：函数名 → 实现
-// clang-format off
-inline const std::map<std::string, std::function<std::string(double, std::size_t, std::size_t, double&, std::string&)>> specials
-{
+    /// 特殊换算函数的登记表：函数名 → 实现
+    inline const std::map<std::string, std::function<std::string(double, std::size_t, std::size_t, double &, std::string &)> > specials
     {
-        { "toDMS"        , [](const double value, [[maybe_unused]] const std::size_t precision, [[maybe_unused]] const std::size_t denominator,
-                              double& factor, std::string& unitString) {
-            factor = 1.0;
-            unitString = "deg";
-            return toDegreesMinutesSeconds(value);
-        }},
-        { "toFractional" , [](const double value, [[maybe_unused]] const std::size_t precision, const std::size_t denominator,
-                              double& factor, std::string& unitString) {
-            factor = 25.4;
-            unitString = "in";
-            return toFractional(value, denominator);
-        }}
-    }
-}; // clang-format on
+            {
+                    {"toDMS", [](const double value, [[maybe_unused]] const std::size_t precision, [[maybe_unused]] const std::size_t denominator,
+                                 double &     factor, std::string &                     unitString)
+                    {
+                        factor     = 1.0;
+                        unitString = "deg";
+                        return toDegreesMinutesSeconds(value);
+                    }},
+                    {"toFractional", [](const double value, [[maybe_unused]] const std::size_t precision, const std::size_t denominator,
+                                        double &     factor, std::string &                     unitString)
+                    {
+                        factor     = 25.4;
+                        unitString = "in";
+                        return toFractional(value, denominator);
+                    }}
+            }
+    };
 
     /**
      * @brief 按名字调用特殊换算函数
@@ -846,5 +847,5 @@ inline const std::map<std::string, std::function<std::string(double, std::size_t
     }
 
     /// 内置方案数据包：全部方案、默认小数位数与默认分数分母
-    inline const UnitsSchemasDataPack unitSchemasDataPack{schemaSpecifications, defaultDecimals, defaultDenominator};
+    inline const UnitsSchemasDataPack unitSchemasDataPack{.specifications = schemaSpecifications, .defaultDecimals = defaultDecimals, .defaultDenominator = defaultDenominator};
 } // namespace ExpressionEngine::Units::UnitsSchemasData

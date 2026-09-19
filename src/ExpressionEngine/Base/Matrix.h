@@ -23,11 +23,11 @@ namespace ExpressionEngine::Base
      */
     enum class ScaleType
     {
-        Other           = -1, ///< 投影、剪切等不属于单纯缩放的矩阵
-        NoScaling       = 0,  ///< 无缩放
-        NonUniformRight = 1,  ///< 从右侧作用的非均匀缩放
-        NonUniformLeft  = 2,  ///< 从左侧作用的非均匀缩放
-        Uniform         = 3   ///< 均匀缩放
+        Other = -1,          ///< 投影、剪切等不属于单纯缩放的矩阵
+        NoScaling = 0,       ///< 无缩放
+        NonUniformRight = 1, ///< 从右侧作用的非均匀缩放
+        NonUniformLeft = 2,  ///< 从左侧作用的非均匀缩放
+        Uniform = 3          ///< 均匀缩放
     };
 
     /**
@@ -65,36 +65,34 @@ namespace ExpressionEngine::Base
          * @param a43 第 4 行第 3 列
          * @param a44 第 4 行第 4 列
          */
-        // clang-format off
-    Matrix4D(float a11, float a12, float a13, float a14,
-             float a21, float a22, float a23, float a24,
-             float a31, float a32, float a33, float a34,
-             float a41, float a42, float a43, float a44);
+        Matrix4D(float a11, float a12, float a13, float a14,
+                 float a21, float a22, float a23, float a24,
+                 float a31, float a32, float a33, float a34,
+                 float a41, float a42, float a43, float a44);
 
-    /**
-     * @brief 按 16 个双精度元素构造（行优先）
-     * @param a11 第 1 行第 1 列
-     * @param a12 第 1 行第 2 列
-     * @param a13 第 1 行第 3 列
-     * @param a14 第 1 行第 4 列
-     * @param a21 第 2 行第 1 列
-     * @param a22 第 2 行第 2 列
-     * @param a23 第 2 行第 3 列
-     * @param a24 第 2 行第 4 列
-     * @param a31 第 3 行第 1 列
-     * @param a32 第 3 行第 2 列
-     * @param a33 第 3 行第 3 列
-     * @param a34 第 3 行第 4 列
-     * @param a41 第 4 行第 1 列
-     * @param a42 第 4 行第 2 列
-     * @param a43 第 4 行第 3 列
-     * @param a44 第 4 行第 4 列
-     */
-    Matrix4D(double a11, double a12, double a13, double a14,
-             double a21, double a22, double a23, double a24,
-             double a31, double a32, double a33, double a34,
-             double a41, double a42, double a43, double a44);
-        // clang-format on
+        /**
+         * @brief 按 16 个双精度元素构造（行优先）
+         * @param a11 第 1 行第 1 列
+         * @param a12 第 1 行第 2 列
+         * @param a13 第 1 行第 3 列
+         * @param a14 第 1 行第 4 列
+         * @param a21 第 2 行第 1 列
+         * @param a22 第 2 行第 2 列
+         * @param a23 第 2 行第 3 列
+         * @param a24 第 2 行第 4 列
+         * @param a31 第 3 行第 1 列
+         * @param a32 第 3 行第 2 列
+         * @param a33 第 3 行第 3 列
+         * @param a34 第 3 行第 4 列
+         * @param a41 第 4 行第 1 列
+         * @param a42 第 4 行第 2 列
+         * @param a43 第 4 行第 3 列
+         * @param a44 第 4 行第 4 列
+         */
+        Matrix4D(double a11, double a12, double a13, double a14,
+                 double a21, double a22, double a23, double a24,
+                 double a31, double a32, double a33, double a34,
+                 double a41, double a42, double a43, double a44);
 
         /**
          * @brief 拷贝构造
@@ -251,32 +249,32 @@ namespace ExpressionEngine::Base
          * @param index 行下标，取值 0..3
          * @return 该行前三分量组成的向量
          */
-        inline Vector3d getRow(unsigned int index) const;
+        [[nodiscard]] inline Vector3d getRow(unsigned int index) const;
 
         /**
          * @brief 取一列并截去第 4 个元素
          * @param index 列下标，取值 0..3
          * @return 该列前三分量组成的向量
          */
-        inline Vector3d getCol(unsigned int index) const;
+        [[nodiscard]] inline Vector3d getCol(unsigned int index) const;
 
         /**
          * @brief 取 3x3 子矩阵的对角线
          * @return (m00, m11, m22)
          */
-        inline Vector3d diagonal() const;
+        [[nodiscard]] inline Vector3d diagonal() const;
 
         /**
          * @brief 取 3x3 子矩阵的迹
          * @return m00 + m11 + m22
          */
-        inline double trace3() const;
+        [[nodiscard]] inline double trace3() const;
 
         /**
          * @brief 取 4x4 矩阵的迹
          * @return m00 + m11 + m22 + m33
          */
-        inline double trace() const;
+        [[nodiscard]] inline double trace() const;
 
         /**
          * @brief 用向量写入一行
@@ -302,19 +300,19 @@ namespace ExpressionEngine::Base
          * @brief 求 4x4 行列式
          * @return 行列式值
          */
-        double determinant() const;
+        [[nodiscard]] double determinant() const;
 
         /**
          * @brief 求 3x3 子矩阵行列式
          * @return 子矩阵行列式值
          */
-        double determinant3() const;
+        [[nodiscard]] double determinant3() const;
 
         /**
          * @brief 分析矩阵描述的变换并用文本描述
          * @return 如 Unity Matrix、Scale [...]、Rotation Matrix 等的英文描述
          */
-        std::string analyse() const;
+        [[nodiscard]] std::string analyse() const;
 
         /**
          * @brief 计算外积（并矢）矩阵
@@ -374,7 +372,7 @@ namespace ExpressionEngine::Base
          * @brief 取对象占用的字节数
          * @return sizeof(Matrix4D)
          */
-        unsigned long getMemSpace() const;
+        static unsigned long getMemSpace();
 
         /**
          * @brief 重置为单位阵
@@ -385,14 +383,14 @@ namespace ExpressionEngine::Base
          * @brief 判断是否为单位阵（零容差）
          * @return 与单位阵逐位相等时返回 true
          */
-        bool isUnity() const;
+        [[nodiscard]] bool isUnity() const;
 
         /**
          * @brief 按容差判断是否为单位阵
          * @param tolerance 元素容差
          * @return 对角元素与 1、非对角元素与 0 的偏差都不超过容差时返回 true
          */
-        bool isUnity(double tolerance) const;
+        [[nodiscard]] bool isUnity(double tolerance) const;
 
         /**
          * @brief 重置为零矩阵
@@ -403,7 +401,7 @@ namespace ExpressionEngine::Base
          * @brief 判断是否为零矩阵
          * @return 16 个元素全为 0 时返回 true
          */
-        bool isNull() const;
+        [[nodiscard]] bool isNull() const;
 
         /**
          * @brief 平移坐标系
@@ -411,7 +409,7 @@ namespace ExpressionEngine::Base
          * @param y Y 方向平移量
          * @param z Z 方向平移量
          */
-        void move(float x, float y, float z)
+        void move(const float x, const float y, const float z)
         {
             move(Vector3f(x, y, z));
         }
@@ -445,7 +443,7 @@ namespace ExpressionEngine::Base
          * @param y Y 方向缩放因子
          * @param z Z 方向缩放因子
          */
-        void scale(float x, float y, float z)
+        void scale(const float x, const float y, const float z)
         {
             scale(Vector3f(x, y, z));
         }
@@ -456,7 +454,7 @@ namespace ExpressionEngine::Base
          * @param y Y 方向缩放因子
          * @param z Z 方向缩放因子
          */
-        void scale(double x, double y, double z)
+        void scale(const double x, const double y, const double z)
         {
             scale(Vector3d(x, y, z));
         }
@@ -477,7 +475,7 @@ namespace ExpressionEngine::Base
          * @brief 三轴同倍率缩放
          * @param uniformScale 统一缩放因子
          */
-        void scale(float uniformScale)
+        void scale(const float uniformScale)
         {
             scale(Vector3f(uniformScale, uniformScale, uniformScale));
         }
@@ -496,14 +494,14 @@ namespace ExpressionEngine::Base
          * @param tolerance 判定容差，传 0 时使用内部默认容差 1e-9
          * @return 缩放类型
          */
-        ScaleType hasScale(double tolerance = 0.0) const;
+        [[nodiscard]] ScaleType hasScale(double tolerance = 0.0) const;
 
         /**
          * @brief 把矩阵分解为剪切、缩放、旋转与平移四部分
          * @details 满足 matrix = move * rotation * scale * shear 的乘积关系。
          * @return 依次为剪切、缩放、旋转、平移的四个矩阵
          */
-        std::array<Matrix4D, 4> decompose() const;
+        [[nodiscard]] std::array<Matrix4D, 4> decompose() const;
 
         /**
          * @brief 绕 X 轴旋转（作用于已变换空间）
@@ -624,7 +622,7 @@ namespace ExpressionEngine::Base
          * @brief 把 16 个元素序列化为空格分隔的文本
          * @return 可直接交给 fromString() 还原的文本
          */
-        std::string toString() const;
+        [[nodiscard]] std::string toString() const;
 
         /**
          * @brief 从空格分隔文本读入 16 个元素
@@ -748,9 +746,9 @@ namespace ExpressionEngine::Base
     inline void Matrix4D::multiplyVector(const Vector3f &source, Vector3f &destination) const
     {
         // 累加在 double 下进行，只有最终结果落回 float，减少单精度累积误差
-        const double x = static_cast<double>(source.x);
-        const double y = static_cast<double>(source.y);
-        const double z = static_cast<double>(source.z);
+        const auto x = static_cast<double>(source.x);
+        const auto y = static_cast<double>(source.y);
+        const auto z = static_cast<double>(source.z);
 
         const double resultX = (m_matrix[0][0] * x + m_matrix[0][1] * y + m_matrix[0][2] * z + m_matrix[0][3]);
         const double resultY = (m_matrix[1][0] * x + m_matrix[1][1] * y + m_matrix[1][2] * z + m_matrix[1][3]);
@@ -758,13 +756,13 @@ namespace ExpressionEngine::Base
         destination.set(static_cast<float>(resultX), static_cast<float>(resultY), static_cast<float>(resultZ));
     }
 
-    inline Matrix4D Matrix4D::operator*(double scalar) const
+    inline Matrix4D Matrix4D::operator*(const double scalar) const
     {
         Matrix4D result(*this);
         return result *= scalar;
     }
 
-    inline Matrix4D &Matrix4D::operator*=(double scalar)
+    inline Matrix4D &Matrix4D::operator*=(const double scalar)
     {
         for (int row = 0; row < 4; ++row)
         {
@@ -811,7 +809,7 @@ namespace ExpressionEngine::Base
         return vector;
     }
 
-    inline std::array<double, 4> &Matrix4D::operator[](unsigned int index)
+    inline std::array<double, 4> &Matrix4D::operator[](const unsigned int index)
     {
         if (index > 3)
         {
@@ -830,12 +828,12 @@ namespace ExpressionEngine::Base
         return m_matrix[index];
     }
 
-    inline Vector3d Matrix4D::getRow(unsigned int index) const
+    inline Vector3d Matrix4D::getRow(const unsigned int index) const
     {
         return Vector3d(m_matrix[index][0], m_matrix[index][1], m_matrix[index][2]);
     }
 
-    inline Vector3d Matrix4D::getCol(unsigned int index) const
+    inline Vector3d Matrix4D::getCol(const unsigned int index) const
     {
         return Vector3d(m_matrix[0][index], m_matrix[1][index], m_matrix[2][index]);
     }
@@ -855,14 +853,14 @@ namespace ExpressionEngine::Base
         return m_matrix[0][0] + m_matrix[1][1] + m_matrix[2][2] + m_matrix[3][3];
     }
 
-    inline void Matrix4D::setRow(unsigned int index, const Vector3d &vector)
+    inline void Matrix4D::setRow(const unsigned int index, const Vector3d &vector)
     {
         m_matrix[index][0] = vector.x;
         m_matrix[index][1] = vector.y;
         m_matrix[index][2] = vector.z;
     }
 
-    inline void Matrix4D::setCol(unsigned int index, const Vector3d &vector)
+    inline void Matrix4D::setCol(const unsigned int index, const Vector3d &vector)
     {
         m_matrix[0][index] = vector.x;
         m_matrix[1][index] = vector.y;

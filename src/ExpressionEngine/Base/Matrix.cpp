@@ -1,4 +1,6 @@
 #include <ExpressionEngine/Base/Matrix.h>
+#include <ExpressionEngine/Base/Converter.h>
+#include <ExpressionEngine/Base/Exception.h>
 
 #include <algorithm>
 #include <array>
@@ -10,9 +12,6 @@
 #include <numbers>
 #include <string>
 #include <system_error>
-
-#include <ExpressionEngine/Base/Converter.h>
-#include <ExpressionEngine/Base/Exception.h>
 
 namespace ExpressionEngine::Base
 {
@@ -93,7 +92,7 @@ namespace ExpressionEngine::Base
                 matrix[4 * pivotColumn + pivotColumn] = 1.0;
                 for (int column = 0; column < 4; ++column)
                 {
-                    matrix[4 * pivotColumn + column] *= pivotInverse;
+                    matrix[4 * pivotColumn + column]  *= pivotInverse;
                     inverse[4 * pivotColumn + column] *= pivotInverse;
                 }
 
@@ -107,7 +106,7 @@ namespace ExpressionEngine::Base
                     const double factor = matrix[4 * row + pivotColumn];
                     for (int column = 0; column < 4; ++column)
                     {
-                        matrix[4 * row + column] -= matrix[4 * pivotColumn + column] * factor;
+                        matrix[4 * row + column]  -= matrix[4 * pivotColumn + column] * factor;
                         inverse[4 * row + column] -= inverse[4 * pivotColumn + column] * factor;
                     }
                     // 该位置理论上已为零，显式写 0 避免留下舍入残差
@@ -131,43 +130,47 @@ namespace ExpressionEngine::Base
         }
     } // namespace
 
-    Matrix4D::Matrix4D() : m_matrix{{{1.0, 0.0, 0.0, 0.0}, {0.0, 1.0, 0.0, 0.0}, {0.0, 0.0, 1.0, 0.0}, {0.0, 0.0, 0.0, 1.0}}}
+    Matrix4D::Matrix4D() :
+        m_matrix{{{1.0, 0.0, 0.0, 0.0}, {0.0, 1.0, 0.0, 0.0}, {0.0, 0.0, 1.0, 0.0}, {0.0, 0.0, 0.0, 1.0}}}
     {
     }
 
-    // clang-format off
-Matrix4D::Matrix4D(float a11, float a12, float a13, float a14,
-                   float a21, float a22, float a23, float a24,
-                   float a31, float a32, float a33, float a34,
-                   float a41, float a42, float a43, float a44)
-    : m_matrix {{{a11, a12, a13, a14},
-                 {a21, a22, a23, a24},
-                 {a31, a32, a33, a34},
-                 {a41, a42, a43, a44}}}
-{}
+    Matrix4D::Matrix4D(const float a11, const float a12, const float a13, const float a14,
+                       const float a21, const float a22, const float a23, const float a24,
+                       const float a31, const float a32, const float a33, const float a34,
+                       const float a41, const float a42, const float a43, const float a44) :
+        m_matrix{{{a11, a12, a13, a14},
+                  {a21, a22, a23, a24},
+                  {a31, a32, a33, a34},
+                  {a41, a42, a43, a44}}}
+    {
+    }
 
-Matrix4D::Matrix4D(double a11, double a12, double a13, double a14,
-                   double a21, double a22, double a23, double a24,
-                   double a31, double a32, double a33, double a34,
-                   double a41, double a42, double a43, double a44)
-    : m_matrix {{{a11, a12, a13, a14},
-                 {a21, a22, a23, a24},
-                 {a31, a32, a33, a34},
-                 {a41, a42, a43, a44}}}
-{}
-    // clang-format on
+    Matrix4D::Matrix4D(const double a11, const double a12, const double a13, const double a14,
+                       const double a21, const double a22, const double a23, const double a24,
+                       const double a31, const double a32, const double a33, const double a34,
+                       const double a41, const double a42, const double a43, const double a44) :
+        m_matrix{{{a11, a12, a13, a14},
+                  {a21, a22, a23, a24},
+                  {a31, a32, a33, a34},
+                  {a41, a42, a43, a44}}}
+    {
+    }
 
-    Matrix4D::Matrix4D(const Matrix4D &other) : Matrix4D()
+    Matrix4D::Matrix4D(const Matrix4D &other) :
+        Matrix4D()
     {
         (*this) = other;
     }
 
-    Matrix4D::Matrix4D(const Vector3f &base, const Vector3f &direction, float angle) : Matrix4D()
+    Matrix4D::Matrix4D(const Vector3f &base, const Vector3f &direction, float angle) :
+        Matrix4D()
     {
         rotateLine(base, direction, angle);
     }
 
-    Matrix4D::Matrix4D(const Vector3d &base, const Vector3d &direction, double angle) : Matrix4D()
+    Matrix4D::Matrix4D(const Vector3d &base, const Vector3d &direction, double angle) :
+        Matrix4D()
     {
         rotateLine(base, direction, angle);
     }
@@ -183,7 +186,7 @@ Matrix4D::Matrix4D(double a11, double a12, double a13, double a14,
         return isUnity(0.0);
     }
 
-    bool Matrix4D::isUnity(double tolerance) const
+    bool Matrix4D::isUnity(const double tolerance) const
     {
         for (int row = 0; row < 4; ++row)
         {
@@ -288,10 +291,10 @@ Matrix4D::Matrix4D(double a11, double a12, double a13, double a14,
         scaleMatrix.m_matrix[1][1] = vector.y;
         scaleMatrix.m_matrix[2][2] = vector.z;
         // 缩放左乘到当前矩阵上，与 FreeCAD 的运算次序一致
-        (*this) = scaleMatrix * (*this);
+        (*this)                    = scaleMatrix * (*this);
     }
 
-    void Matrix4D::rotateX(double angle)
+    void Matrix4D::rotateX(const double angle)
     {
         const double sinAngle = std::sin(angle);
         const double cosAngle = std::cos(angle);
@@ -305,7 +308,7 @@ Matrix4D::Matrix4D(double a11, double a12, double a13, double a14,
         (*this) = rotationMatrix * (*this);
     }
 
-    void Matrix4D::rotateY(double angle)
+    void Matrix4D::rotateY(const double angle)
     {
         const double sinAngle = std::sin(angle);
         const double cosAngle = std::cos(angle);
@@ -319,7 +322,7 @@ Matrix4D::Matrix4D(double a11, double a12, double a13, double a14,
         (*this) = rotationMatrix * (*this);
     }
 
-    void Matrix4D::rotateZ(double angle)
+    void Matrix4D::rotateZ(const double angle)
     {
         const double sinAngle = std::sin(angle);
         const double cosAngle = std::cos(angle);
@@ -333,7 +336,7 @@ Matrix4D::Matrix4D(double a11, double a12, double a13, double a14,
         (*this) = rotationMatrix * (*this);
     }
 
-    void Matrix4D::rotateLine(const Vector3d &vector, double angle)
+    void Matrix4D::rotateLine(const Vector3d &vector, const double angle)
     {
         // 罗德里格公式：R = (1-cos)*a*a^T + cos*I + sin*[a]_x
         Matrix4D outerTerm;
@@ -389,7 +392,7 @@ Matrix4D::Matrix4D(double a11, double a12, double a13, double a14,
         (*this) = rotationMatrix * (*this);
     }
 
-    void Matrix4D::rotateLine(const Vector3f &vector, float angle)
+    void Matrix4D::rotateLine(const Vector3f &vector, const float angle)
     {
         const auto axis = convertTo<Vector3d>(vector);
         rotateLine(axis, static_cast<double>(angle));
@@ -593,7 +596,7 @@ Matrix4D::Matrix4D(double a11, double a12, double a13, double a14,
         {
             // 奇异矩阵没有逆：与其返回垃圾结果，不如让调用方先处理可逆性问题
             throw ValueError("矩阵奇异（高斯消元找不到非零主元），无法求逆；请先用 determinant() 确认矩阵可逆，"
-                             "或改用 inverseOrthogonal() 处理只含旋转与平移的矩阵");
+                    "或改用 inverseOrthogonal() 处理只含旋转与平移的矩阵");
         }
 
         // 秩亏矩阵未必会在消元中撞上零主元，因此用 M * M^-1 近似单位阵来复核
@@ -609,7 +612,7 @@ Matrix4D::Matrix4D(double a11, double a12, double a13, double a14,
         if (!((*this) * candidate).isUnity(tolerance))
         {
             throw ValueError("矩阵接近奇异，求逆结果不可信；请先检查 determinant() 是否远离 0，"
-                             "或对坐标做缩放/归一化后再求逆");
+                    "或对坐标做缩放/归一化后再求逆");
         }
 
         setOpenGlMatrix(result.data());
@@ -660,7 +663,7 @@ Matrix4D::Matrix4D(double a11, double a12, double a13, double a14,
         }
     }
 
-    unsigned long Matrix4D::getMemSpace() const
+    unsigned long Matrix4D::getMemSpace()
     {
         return sizeof(Matrix4D);
     }
@@ -704,7 +707,7 @@ Matrix4D::Matrix4D(double a11, double a12, double a13, double a14,
 
     void Matrix4D::fromString(const std::string &text)
     {
-        const char       *cursor = text.data();
+        const char *      cursor = text.data();
         const char *const end    = text.data() + text.size();
 
         for (int row = 0; row < 4; ++row)
@@ -717,7 +720,7 @@ Matrix4D::Matrix4D(double a11, double a12, double a13, double a14,
                     ++cursor;
                 }
 
-                double value             = 0.0;
+                double     value         = 0.0;
                 const auto [next, error] = std::from_chars(cursor, end, value);
                 if (error != std::errc{})
                 {
@@ -877,7 +880,7 @@ Matrix4D::Matrix4D(double a11, double a12, double a13, double a14,
         }
 
         // 比较两个绝对值是否成比例：都以较大者为分母，避免放大相对误差
-        auto relativelyEqual = [&](double first, double second)
+        auto relativelyEqual = [&](const double first, const double second)
         {
             const double firstAbs  = std::abs(first);
             const double secondAbs = std::abs(second);

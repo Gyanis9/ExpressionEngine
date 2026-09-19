@@ -136,7 +136,7 @@ namespace ExpressionEngine::Base
     Vector makeVector(const std::tuple<FloatingType, FloatingType, FloatingType> &&floats)
     {
         using TraitsType      = VectorTraits<Vector>;
-        using FloatTraitsType = typename TraitsType::FloatingType;
+        using FloatTraitsType = TraitsType::FloatingType;
         return Vector(FloatTraitsType(std::get<0>(floats)), FloatTraitsType(std::get<1>(floats)), FloatTraitsType(std::get<2>(floats)));
     }
 
@@ -151,7 +151,7 @@ namespace ExpressionEngine::Base
     Vector makeVector(const std::tuple<FloatingType, FloatingType, FloatingType, FloatingType> &&floats)
     {
         using TraitsType      = VectorTraits<Vector>;
-        using FloatTraitsType = typename TraitsType::FloatingType;
+        using FloatTraitsType = TraitsType::FloatingType;
         return Vector(FloatTraitsType(std::get<0>(floats)), FloatTraitsType(std::get<1>(floats)), FloatTraitsType(std::get<2>(floats)), FloatTraitsType(std::get<3>(floats)));
     }
 
@@ -166,7 +166,7 @@ namespace ExpressionEngine::Base
     Vector1 convertTo(const Vector2 &vector)
     {
         using TraitsType   = VectorTraits<Vector2>;
-        using FloatingType = typename TraitsType::FloatingType;
+        using FloatingType = TraitsType::FloatingType;
         // traits 负责按源类型的存储形式取出分量，makeVector 再按目标类型重建
         TraitsType traits(vector);
         auto       tuple = traits.get();

@@ -9,7 +9,6 @@
 
 #pragma once
 
-#include <cstddef>
 #include <functional>
 #include <map>
 #include <string>
@@ -46,7 +45,7 @@ namespace ExpressionEngine::Units
         bool        isDefault{false};         ///< 是否为默认方案
 
         /// 按单位类型名索引的换算规则集合
-        std::map<std::string, std::vector<UnitTranslationSpecification>> translationSpecifications;
+        std::map<std::string, std::vector<UnitTranslationSpecification> > translationSpecifications;
     };
 
     /**
@@ -56,8 +55,8 @@ namespace ExpressionEngine::Units
      */
     struct UnitsSchemasDataPack
     {
-        std::vector<UnitsSchemaSpecification> specifications;              ///< 方案列表
-        std::size_t                  defaultDecimals;    ///< 默认小数位数
-        std::size_t                  defaultDenominator; ///< 默认分数分母
+        std::vector<UnitsSchemaSpecification> specifications;     ///< 方案列表
+        std::size_t                           defaultDecimals;    ///< 默认小数位数
+        std::size_t                           defaultDenominator; ///< 默认分数分母
     };
 } // namespace ExpressionEngine::Units

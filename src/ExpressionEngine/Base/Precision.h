@@ -9,8 +9,6 @@
 
 #pragma once
 
-#include <cmath>
-
 #include <ExpressionEngine/Base/Exception.h>
 
 namespace ExpressionEngine::Base
@@ -81,7 +79,7 @@ namespace ExpressionEngine::Base
             {
                 // 除以零会静默产出 inf，让后续比较全部失真，因此在入口拒绝
                 throw ValueError("参数区间长度为零，无法把实空间精度换算到参数空间；"
-                                 "请传入非零的参数区间长度（例如曲线的参数范围）");
+                        "请传入非零的参数区间长度（例如曲线的参数范围）");
             }
             return realPrecision / parameterRange;
         }

@@ -152,7 +152,7 @@ namespace ExpressionEngine::Base
          * @return 指向内部 4 个 double 的指针，顺序 x, y, z, w
          * @warning 指针指向对象内部存储，对象被修改或销毁后即失效
          */
-        const double *getValue() const;
+        [[nodiscard]] const double *getValue() const;
 
         /**
          * @brief 按分量取出四元数
@@ -274,27 +274,27 @@ namespace ExpressionEngine::Base
          * @brief 判断是否恰为单位旋转（四元数精确等于 ±(0,0,0,1)）
          * @return true 是单位旋转
          */
-        bool isIdentity() const;
+        [[nodiscard]] bool isIdentity() const;
 
         /**
          * @brief 判断在容差内是否为单位旋转
          * @param tolerance 容差，作用在四元数点积上
          * @return true 是单位旋转
          */
-        bool isIdentity(double tolerance) const;
+        [[nodiscard]] bool isIdentity(double tolerance) const;
 
         /**
          * @brief 判断四元数是否全零
          * @return true 四元数四个分量全为 0，此时旋转无定义
          */
-        bool isNull() const;
+        [[nodiscard]] bool isNull() const;
 
         /**
          * @brief 判断是否为同一个旋转（四元数精确相等，允许整体取反）
          * @param other 待比较的旋转
          * @return true 表示两个四元数互为同一旋转的两种表示
          */
-        bool isSame(const Rotation &other) const;
+        [[nodiscard]] bool isSame(const Rotation &other) const;
 
         /**
          * @brief 判断在容差内是否为同一个旋转
@@ -303,7 +303,7 @@ namespace ExpressionEngine::Base
          * @return true 表示两个旋转在容差内一致
          * @note 容差判据假定双方四元数均为单位长
          */
-        bool isSame(const Rotation &other, double tolerance) const;
+        [[nodiscard]] bool isSame(const Rotation &other, double tolerance) const;
 
         /**
          * @brief 就地取逆（四元数共轭）
@@ -315,7 +315,7 @@ namespace ExpressionEngine::Base
          * @brief 取逆（四元数共轭）
          * @return 新的旋转对象
          */
-        Rotation inverse() const;
+        [[nodiscard]] Rotation inverse() const;
 
         /**
          * @brief 就地右乘另一个旋转
@@ -403,7 +403,7 @@ namespace ExpressionEngine::Base
          * @param source 输入向量
          * @return 变换后的向量
          */
-        Vector3d multiplyVector(const Vector3d &source) const;
+        [[nodiscard]] Vector3d multiplyVector(const Vector3d &source) const;
 
         /**
          * @brief 用本旋转变换单精度向量
@@ -417,7 +417,7 @@ namespace ExpressionEngine::Base
          * @param source 输入向量
          * @return 变换后的向量
          */
-        Vector3f multiplyVector(const Vector3f &source) const;
+        [[nodiscard]] Vector3f multiplyVector(const Vector3f &source) const;
 
         /**
          * @brief 按比例缩放旋转角，转轴保持
