@@ -96,5 +96,5 @@ install(
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/ExpressionEngine
 )
 
-# LGPL-2.1-or-later 要求随二进制分发许可原文与出处说明。
-install(FILES LICENSE NOTICE DESTINATION ${CMAKE_INSTALL_DATADIR}/doc/ExpressionEngine)
+# LGPL-2.1-or-later 要求随二进制分发许可原文。
+install(FILES LICENSE DESTINATION ${CMAKE_INSTALL_DATADIR}/doc/ExpressionEngine)

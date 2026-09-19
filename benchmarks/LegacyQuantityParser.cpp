@@ -7,7 +7,7 @@
  * @author Gyanis
  * @date 2026-09-19
  * @version 1.0.0
- * @copyright Copyright (c) 2026 Gyanis. LGPL-2.1-or-later；出处与上游版权见 NOTICE
+ * @copyright Copyright (c) 2026 Gyanis. LGPL-2.1-or-later
  */
 
 #include "LegacyQuantityParser.h"

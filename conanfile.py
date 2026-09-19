@@ -29,7 +29,6 @@ class ExpressionEngineRecipe(ConanFile):
         "src/*",
         "conandata.yml",
         "LICENSE",
-        "NOTICE",
     )
 
     def requirements(self):
@@ -64,12 +63,6 @@ class ExpressionEngineRecipe(ConanFile):
         copy(
             self,
             "LICENSE",
-            src=self.source_folder,
-            dst=os.path.join(self.package_folder, "licenses"),
-        )
-        copy(
-            self,
-            "NOTICE",
             src=self.source_folder,
             dst=os.path.join(self.package_folder, "licenses"),
         )
