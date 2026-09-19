@@ -1,7 +1,5 @@
 #include <gtest/gtest.h>
 
-#include <cmath>
-
 #include <ExpressionEngine/Base/Exception.h>
 #include <ExpressionEngine/Base/Vector3D.h>
 

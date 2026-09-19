@@ -98,9 +98,9 @@ namespace ExpressionEngine::Units
          */
         TEST(UnitTest, ExplicitTypeNameOverridesLookup)
         {
-            const Unit custom{UnitExponents{1, 0, 0, 0, 0, 0, 0, 0}, "CustomLength"};
+            constexpr Unit custom{UnitExponents{1, 0, 0, 0, 0, 0, 0, 0}, "CustomLength"};
             EXPECT_EQ(custom.getTypeString(), "CustomLength");
         }
 
     } // namespace
-} // namespace ExpressionEngine::Units
+}     // namespace ExpressionEngine::Units

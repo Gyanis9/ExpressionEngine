@@ -3,7 +3,6 @@
 
 #include <gtest/gtest.h>
 
-#include <cmath>
 #include <numbers>
 
 #include <ExpressionEngine/Base/Exception.h>
@@ -47,8 +46,8 @@ TEST(RotationTest, DefaultConstructorIsIdentity)
  */
 TEST(RotationTest, AxisAngleAndQuaternionRoundTrip)
 {
-    const double   quarterTurn = std::numbers::pi / 2.0;
-    const Rotation rotation(Vector3d(0.0, 0.0, 1.0), quarterTurn);
+    constexpr double quarterTurn = std::numbers::pi / 2.0;
+    const Rotation   rotation(Vector3d(0.0, 0.0, 1.0), quarterTurn);
 
     const double *values = rotation.getValue();
     EXPECT_NEAR(values[0], 0.0, Tolerance);
@@ -123,10 +122,10 @@ TEST(RotationTest, NullQuaternionIsDetectableButHasNoUsableAxis)
  */
 TEST(RotationTest, CompositionFollowsQuaternionMultiplication)
 {
-    const double   quarterTurn = std::numbers::pi / 2.0;
-    const Rotation rotationZ90(Vector3d(0.0, 0.0, 1.0), quarterTurn);
-    const Rotation rotationX90(Vector3d(1.0, 0.0, 0.0), quarterTurn);
-    const Vector3d point(1.0, 0.0, 0.0);
+    constexpr double quarterTurn = std::numbers::pi / 2.0;
+    const Rotation   rotationZ90(Vector3d(0.0, 0.0, 1.0), quarterTurn);
+    const Rotation   rotationX90(Vector3d(1.0, 0.0, 0.0), quarterTurn);
+    const Vector3d   point(1.0, 0.0, 0.0);
 
     // composed == rotationZ90 ∘ rotationX90：先 X 后 Z
     const Rotation composed   = rotationZ90 * rotationX90;

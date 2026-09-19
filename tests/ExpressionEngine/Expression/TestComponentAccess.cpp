@@ -3,7 +3,6 @@
 
 #include <gtest/gtest.h>
 
-#include <cstddef>
 #include <memory>
 #include <optional>
 #include <string>
@@ -174,26 +173,26 @@ namespace ExpressionEngine::Expression
         const Value vector(Base::Vector3d(1.0, 2.0, 3.0));
 
         const std::vector<Value> full = applyRangeComponent(vector, makeRangeComponent(0.0, 2.0), "测试");
-        ASSERT_EQ(full.size(), std::size_t(3));
+        ASSERT_EQ(full.size(), static_cast<std::size_t>(3));
         EXPECT_DOUBLE_EQ(doubleOf(full[0]), 1.0);
         EXPECT_DOUBLE_EQ(doubleOf(full[1]), 2.0);
         EXPECT_DOUBLE_EQ(doubleOf(full[2]), 3.0);
 
         // [0:1] 含右端，取 x 与 y
         const std::vector<Value> pair = applyRangeComponent(vector, makeRangeComponent(0.0, 1.0), "测试");
-        ASSERT_EQ(pair.size(), std::size_t(2));
+        ASSERT_EQ(pair.size(), static_cast<std::size_t>(2));
         EXPECT_DOUBLE_EQ(doubleOf(pair[0]), 1.0);
         EXPECT_DOUBLE_EQ(doubleOf(pair[1]), 2.0);
 
         // 步长 2 隔一个取一个
         const std::vector<Value> spaced = applyRangeComponent(vector, makeRangeComponent(0.0, 2.0, 2.0), "测试");
-        ASSERT_EQ(spaced.size(), std::size_t(2));
+        ASSERT_EQ(spaced.size(), static_cast<std::size_t>(2));
         EXPECT_DOUBLE_EQ(doubleOf(spaced[0]), 1.0);
         EXPECT_DOUBLE_EQ(doubleOf(spaced[1]), 3.0);
 
         // 负步长反向取值
         const std::vector<Value> reversed = applyRangeComponent(vector, makeRangeComponent(2.0, 0.0, -1.0), "测试");
-        ASSERT_EQ(reversed.size(), std::size_t(3));
+        ASSERT_EQ(reversed.size(), static_cast<std::size_t>(3));
         EXPECT_DOUBLE_EQ(doubleOf(reversed[0]), 3.0);
         EXPECT_DOUBLE_EQ(doubleOf(reversed[1]), 2.0);
         EXPECT_DOUBLE_EQ(doubleOf(reversed[2]), 1.0);
@@ -208,13 +207,13 @@ namespace ExpressionEngine::Expression
 
         // 起点缺省按 0 计
         const std::vector<Value> fromStart = applyRangeComponent(vector, makeRangeComponent(std::nullopt, 1.0), "测试");
-        ASSERT_EQ(fromStart.size(), std::size_t(2));
+        ASSERT_EQ(fromStart.size(), static_cast<std::size_t>(2));
         EXPECT_DOUBLE_EQ(doubleOf(fromStart[0]), 1.0);
         EXPECT_DOUBLE_EQ(doubleOf(fromStart[1]), 2.0);
 
         // 终点缺省按末位计
         const std::vector<Value> toEnd = applyRangeComponent(vector, makeRangeComponent(1.0, std::nullopt), "测试");
-        ASSERT_EQ(toEnd.size(), std::size_t(2));
+        ASSERT_EQ(toEnd.size(), static_cast<std::size_t>(2));
         EXPECT_DOUBLE_EQ(doubleOf(toEnd[0]), 2.0);
         EXPECT_DOUBLE_EQ(doubleOf(toEnd[1]), 3.0);
     }
@@ -243,7 +242,7 @@ namespace ExpressionEngine::Expression
                                                                                              OperatorExpression::Operator::Multiply, makeVariableReference("", "Other", "Width")));
 
         const std::vector<VariableReference> references = sum->collectReferences();
-        ASSERT_EQ(references.size(), std::size_t(2));
+        ASSERT_EQ(references.size(), static_cast<std::size_t>(2));
         EXPECT_EQ(references[0].objectName, "Box");
         EXPECT_EQ(references[0].propertyName, "Length");
         EXPECT_EQ(references[1].objectName, "Other");
@@ -258,25 +257,25 @@ namespace ExpressionEngine::Expression
         auto product = std::make_unique<OperatorExpression>(nullptr, makeVariableReference("", "Box", "Length"), OperatorExpression::Operator::Multiply,
                                                             makeVariableReference("", "Box", "Length"));
         const std::vector<VariableReference> references = product->collectReferences();
-        ASSERT_EQ(references.size(), std::size_t(1));
+        ASSERT_EQ(references.size(), static_cast<std::size_t>(1));
         EXPECT_EQ(references[0].propertyName, "Length");
 
         // 同对象同属性但文档不同，是两条独立依赖
         auto qualified = std::make_unique<OperatorExpression>(nullptr, makeVariableReference("", "Box", "Length"), OperatorExpression::Operator::Add,
                                                               makeVariableReference("Doc", "Box", "Length"));
-        EXPECT_EQ(qualified->collectReferences().size(), std::size_t(2));
+        EXPECT_EQ(qualified->collectReferences().size(), static_cast<std::size_t>(2));
 
         // 条件节点的条件与两个分支都会被收集
         auto conditional = std::make_unique<ConditionalExpression>(nullptr, makeVariableReference("", "Box", "UseTop"), makeVariableReference("", "Box", "Top"),
                                                                    makeVariableReference("", "Box", "Bottom"));
-        EXPECT_EQ(conditional->collectReferences().size(), std::size_t(3));
+        EXPECT_EQ(conditional->collectReferences().size(), static_cast<std::size_t>(3));
 
         // 函数实参里的引用同样被递归收集
         std::vector<ExpressionPtr> arguments;
         arguments.push_back(makeVariableReference("", "Box", "Length"));
-        auto                                 call = std::make_unique<FunctionExpression>(nullptr, FunctionExpression::Function::Sine, std::string("sin"), std::move(arguments));
+        const auto                           call           = std::make_unique<FunctionExpression>(nullptr, FunctionExpression::Function::Sine, std::string("sin"), std::move(arguments));
         const std::vector<VariableReference> callReferences = call->collectReferences();
-        ASSERT_EQ(callReferences.size(), std::size_t(1));
+        ASSERT_EQ(callReferences.size(), static_cast<std::size_t>(1));
         EXPECT_EQ(callReferences[0].propertyName, "Length");
 
         // 常量表达式没有引用

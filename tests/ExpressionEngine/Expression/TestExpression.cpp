@@ -3,8 +3,6 @@
 
 #include <gtest/gtest.h>
 
-#include <cmath>
-#include <cstddef>
 #include <memory>
 #include <numbers>
 #include <optional>
@@ -83,7 +81,7 @@ namespace ExpressionEngine::Expression
             if (quantityValue == nullptr)
             {
                 ADD_FAILURE() << "期望数量，实际是 " << std::string(valueTypeName(value));
-                return Units::Quantity();
+                return {};
             }
             return *quantityValue;
         }
@@ -119,7 +117,7 @@ namespace ExpressionEngine::Expression
             if (textValue == nullptr)
             {
                 ADD_FAILURE() << "期望文本，实际是 " << std::string(valueTypeName(value));
-                return std::string();
+                return {};
             }
             return *textValue;
         }
@@ -143,7 +141,7 @@ namespace ExpressionEngine::Expression
             if (rotationValue == nullptr)
             {
                 ADD_FAILURE() << "期望旋转，实际是 " << std::string(valueTypeName(value));
-                return Base::Rotation();
+                return {};
             }
             return *rotationValue;
         }
@@ -155,7 +153,7 @@ namespace ExpressionEngine::Expression
             if (placementValue == nullptr)
             {
                 ADD_FAILURE() << "期望位姿，实际是 " << std::string(valueTypeName(value));
-                return Base::Placement();
+                return {};
             }
             return *placementValue;
         }
@@ -167,7 +165,7 @@ namespace ExpressionEngine::Expression
             if (matrixValue == nullptr)
             {
                 ADD_FAILURE() << "期望矩阵，实际是 " << std::string(valueTypeName(value));
-                return Base::Matrix4D();
+                return {};
             }
             return *matrixValue;
         }
@@ -585,7 +583,7 @@ namespace ExpressionEngine::Expression
             EXPECT_DOUBLE_EQ(quantityOf(function(Function::LogicalNot, number(2.0))->evaluate()).getValue(), 0.0);
 
             // 文本函数：str 排版取值，parsequant 解析数量文本
-            EXPECT_EQ(textOf(function(Function::Stringify, quantity(2.0, Units::Unit::Length))->evaluate()).find("2"), std::size_t(0));
+            EXPECT_EQ(textOf(function(Function::Stringify, quantity(2.0, Units::Unit::Length))->evaluate()).find('2'), static_cast<std::size_t>(0));
             const Units::Quantity parsed = quantityOf(function(Function::ParseQuantity, std::make_unique<StringExpression>(nullptr, "1.5 mm"))->evaluate());
             EXPECT_DOUBLE_EQ(parsed.getValue(), 1.5);
             EXPECT_EQ(parsed.getUnit(), Units::Unit::Length);
@@ -820,7 +818,7 @@ namespace ExpressionEngine::Expression
             EXPECT_DOUBLE_EQ(quantityOf(variable->evaluate()).getValue(), 5.0);
 
             // 只读属性拒绝写入
-            auto *lengthProperty = static_cast<FakeProperty *>(box.findProperty("Length"));
+            auto *lengthProperty = dynamic_cast<FakeProperty *>(box.findProperty("Length"));
             ASSERT_NE(lengthProperty, nullptr);
             lengthProperty->setReadOnly(true);
             EXPECT_THROW(variable->assignValue(Value(Units::Quantity(1.0, Units::Unit::Length))), Base::AttributeError);
@@ -874,7 +872,7 @@ namespace ExpressionEngine::Expression
             auto expression = std::make_unique<NumberExpression>(nullptr, Units::Quantity(2.0));
             expression->addComponent(Expression::Component("Length"));
             EXPECT_TRUE(expression->hasComponent());
-            EXPECT_EQ(expression->components().size(), std::size_t(1));
+            EXPECT_EQ(expression->components().size(), static_cast<std::size_t>(1));
             EXPECT_EQ(expression->toString(), "(2).Length");
             EXPECT_THROW(static_cast<void>(expression->evaluate()), EvaluationError);
 
@@ -950,13 +948,13 @@ namespace ExpressionEngine::Expression
             EXPECT_EQ(constant->nodeName(), "Constant");
             EXPECT_TRUE(boolOf(constant->evaluate()));
             // True 与 False 是布尔常量，不按数值参与运算
-            EXPECT_FALSE(static_cast<const ConstantExpression &>(*constant).isNumber());
+            EXPECT_FALSE(dynamic_cast<const ConstantExpression &>(*constant).isNumber());
 
-            ExpressionPtr wrapped = makeValueExpression(nullptr, Value(Base::Vector3d(1.0, 2.0, 3.0)));
+            const ExpressionPtr wrapped = makeValueExpression(nullptr, Value(Base::Vector3d(1.0, 2.0, 3.0)));
             EXPECT_EQ(wrapped->nodeName(), "Value");
             EXPECT_EQ(wrapped->toString(), "(1, 2, 3)");
             EXPECT_TRUE(vectorOf(wrapped->evaluate()).isEqual(Base::Vector3d(1.0, 2.0, 3.0), 1e-12));
         }
 
     } // namespace
-} // namespace ExpressionEngine::Expression
+}     // namespace ExpressionEngine::Expression

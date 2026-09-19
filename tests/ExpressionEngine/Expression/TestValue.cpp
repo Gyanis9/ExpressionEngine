@@ -25,7 +25,7 @@ namespace ExpressionEngine::Expression
             if (quantity == nullptr)
             {
                 ADD_FAILURE() << "期望数量，实际是 " << std::string(valueTypeName(value));
-                return Units::Quantity();
+                return {};
             }
             return *quantity;
         }
