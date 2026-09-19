@@ -29,7 +29,7 @@ namespace
 TEST(RotationTest, DefaultConstructorIsIdentity)
 {
     const Rotation rotation;
-    const double  *values = rotation.getValue();
+    const double * values = rotation.getValue();
     EXPECT_DOUBLE_EQ(values[0], 0.0);
     EXPECT_DOUBLE_EQ(values[1], 0.0);
     EXPECT_DOUBLE_EQ(values[2], 0.0);

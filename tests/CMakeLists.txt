@@ -8,13 +8,13 @@ add_subdirectory(ExpressionEngine/Expression)
 
 include(GoogleTest)
 
-foreach(MODULE Base Units Expression)
+foreach (MODULE Base Units Expression)
     get_property(TEST_SOURCES GLOBAL PROPERTY ExpressionEngine${MODULE}TestSources)
-    if(TEST_SOURCES)
+    if (TEST_SOURCES)
         add_executable(ExpressionEngine${MODULE}Tests ${TEST_SOURCES})
         # 用例没有自己的 main，链接 gtest_main 提供入口
         target_link_libraries(ExpressionEngine${MODULE}Tests
                 PRIVATE ExpressionEngine ExpressionEngineWarnings GTest::gtest_main)
         gtest_discover_tests(ExpressionEngine${MODULE}Tests)
-    endif()
-endforeach()
+    endif ()
+endforeach ()

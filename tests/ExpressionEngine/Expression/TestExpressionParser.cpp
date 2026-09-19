@@ -19,7 +19,7 @@ namespace ExpressionEngine::Expression
             {
                 const ExpressionPtr expression    = ExpressionParser::parse(nullptr, text);
                 const Value         value         = expression->evaluate();
-                const auto         *quantityValue = std::get_if<Units::Quantity>(&value);
+                const auto *        quantityValue = std::get_if<Units::Quantity>(&value);
                 if (quantityValue == nullptr)
                 {
                     ADD_FAILURE() << "表达式 " << text << " 的结果不是数量";
@@ -144,7 +144,7 @@ namespace ExpressionEngine::Expression
             const auto referenceOf = [](const std::string &text)
             {
                 const ExpressionPtr expression = ExpressionParser::parse(nullptr, text);
-                const auto         *variable   = dynamic_cast<const VariableExpression *>(expression.get());
+                const auto *        variable   = dynamic_cast<const VariableExpression *>(expression.get());
                 EXPECT_NE(variable, nullptr) << text;
                 if (variable == nullptr)
                 {
@@ -168,7 +168,7 @@ namespace ExpressionEngine::Expression
 
             // 索引与路径分量挂在同一条引用上
             const ExpressionPtr indexed         = ExpressionParser::parse(nullptr, "Box.Cells[1:5]");
-            const auto         *indexedVariable = dynamic_cast<const VariableExpression *>(indexed.get());
+            const auto *        indexedVariable = dynamic_cast<const VariableExpression *>(indexed.get());
             ASSERT_NE(indexedVariable, nullptr);
             EXPECT_EQ(indexedVariable->components().size(), 1U);
             EXPECT_EQ(indexedVariable->components().front().kind, Expression::ComponentKind::Range);
@@ -232,12 +232,11 @@ namespace ExpressionEngine::Expression
             {
                 static_cast<void>(ExpressionParser::parse(nullptr, "1 +"));
                 FAIL() << "非法文本应当抛错";
-            }
-            catch (const Base::ParserError &error)
+            } catch (const Base::ParserError &error)
             {
                 EXPECT_EQ(failed.error().message, error.message());
             }
         }
 
     } // namespace
-} // namespace ExpressionEngine::Expression
+}     // namespace ExpressionEngine::Expression

@@ -106,5 +106,5 @@ namespace ExpressionEngine::Units
             UnitsApi::setSchema(UnitsApi::getDefaultSchemaNumber());
         }
 
-    } // namespace
+    }
 } // namespace ExpressionEngine::Units

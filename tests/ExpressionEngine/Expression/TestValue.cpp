@@ -180,4 +180,4 @@ namespace ExpressionEngine::Expression
         }
 
     } // namespace
-} // namespace ExpressionEngine::Expression
+}     // namespace ExpressionEngine::Expression

@@ -39,17 +39,17 @@ namespace
 
     /// 手工构造宿主自定义快照，用来验证「不必受内置区域表限制」的用法
     NumericLocaleContext makeCustomContext(std::string localeId, std::string decimalSeparator, std::string groupingSeparator, const int primaryGroupingSize,
-                                           const int secondaryGroupingSize)
+                                           const int   secondaryGroupingSize)
     {
         return NumericLocaleContext{
-                .localeId              = std::move(localeId),
-                .decimalSeparator      = std::move(decimalSeparator),
-                .groupingSeparator     = std::move(groupingSeparator),
-                .positiveSign          = "+",
-                .negativeSign          = "-",
-                .primaryGroupingSize   = primaryGroupingSize,
+                .localeId = std::move(localeId),
+                .decimalSeparator = std::move(decimalSeparator),
+                .groupingSeparator = std::move(groupingSeparator),
+                .positiveSign = "+",
+                .negativeSign = "-",
+                .primaryGroupingSize = primaryGroupingSize,
                 .secondaryGroupingSize = secondaryGroupingSize,
-                .zeroDigit             = "0",
+                .zeroDigit = "0",
         };
     }
 

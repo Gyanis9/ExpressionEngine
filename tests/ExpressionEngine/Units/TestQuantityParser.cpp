@@ -174,12 +174,11 @@ namespace ExpressionEngine::Units
             {
                 static_cast<void>(QuantityParser::parse("1 mm $"));
                 FAIL() << "非法输入应当抛错";
-            }
-            catch (const Base::ParserError &error)
+            } catch (const Base::ParserError &error)
             {
                 EXPECT_EQ(failed.error().message, error.message());
             }
         }
 
     } // namespace
-} // namespace ExpressionEngine::Units
+}     // namespace ExpressionEngine::Units

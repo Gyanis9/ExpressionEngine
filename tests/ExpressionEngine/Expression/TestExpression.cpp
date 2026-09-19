@@ -64,7 +64,7 @@ namespace ExpressionEngine::Expression
 
         /// 造一个函数调用节点；实参逐个 move 进参数表（unique_ptr 无法从初始化列表拷贝）
         template<class... Arguments>
-        ExpressionPtr function(const Function functionKind, Arguments &&...arguments)
+        ExpressionPtr function(const Function functionKind, Arguments &&... arguments)
         {
             std::vector<ExpressionPtr> parameterList;
             parameterList.reserve(sizeof...(Arguments));
@@ -242,7 +242,8 @@ namespace ExpressionEngine::Expression
              * @param objectName 对象名
              * @param documentName 所属文档名
              */
-            explicit FakeObject(std::string objectName, std::string documentName = std::string()) : m_name(std::move(objectName)), m_documentName(std::move(documentName))
+            explicit FakeObject(std::string objectName, std::string documentName = std::string()) :
+                m_name(std::move(objectName)), m_documentName(std::move(documentName))
             {
             }
 
@@ -355,7 +356,7 @@ namespace ExpressionEngine::Expression
 
         private:
             std::vector<FakeObject> m_objects;                ///< 对象表
-            FakeObject             *m_currentObject{nullptr}; ///< 当前对象，供未限定名的引用使用
+            FakeObject *            m_currentObject{nullptr}; ///< 当前对象，供未限定名的引用使用
         };
 
         /**
@@ -524,9 +525,9 @@ namespace ExpressionEngine::Expression
             EXPECT_THROW(static_cast<void>(textCondition->evaluate()), Base::TypeError);
 
             // 条件化简后是常量：simplify 直接返回被选中分支的化简结果
-            auto          constantCondition = std::make_unique<ConditionalExpression>(nullptr, number(0.0), std::make_unique<StringExpression>(nullptr, "yes"),
-                                                                                      std::make_unique<StringExpression>(nullptr, "no"));
-            ExpressionPtr simplified        = constantCondition->simplify();
+            auto constantCondition = std::make_unique<ConditionalExpression>(nullptr, number(0.0), std::make_unique<StringExpression>(nullptr, "yes"),
+                                                                             std::make_unique<StringExpression>(nullptr, "no"));
+            ExpressionPtr simplified = constantCondition->simplify();
             EXPECT_EQ(simplified->nodeName(), "String");
             EXPECT_EQ(simplified->toString(), "'no'");
 
@@ -658,9 +659,9 @@ namespace ExpressionEngine::Expression
         {
             // 16 个分量按行优先拼出单位矩阵
             EXPECT_TRUE(matrixOf(function(Function::Matrix, number(1.0), number(0.0), number(0.0), number(0.0), number(0.0), number(1.0), number(0.0), number(0.0), number(0.0),
-                                          number(0.0), number(1.0), number(0.0), number(0.0), number(0.0), number(0.0), number(1.0))
-                                         ->evaluate())
-                                .isUnity());
+                            number(0.0), number(1.0), number(0.0), number(0.0), number(0.0), number(0.0), number(1.0))
+                        ->evaluate())
+                    .isUnity());
             // 实参个数只能是 1 到 16 个：0 个与 3 个都在构造期或求值期被拒
             EXPECT_THROW(static_cast<void>(function(Function::Matrix)->evaluate()), EvaluationError);
             EXPECT_THROW(static_cast<void>(function(Function::Matrix, number(1.0), number(0.0), number(0.0))->evaluate()), EvaluationError);
@@ -760,7 +761,7 @@ namespace ExpressionEngine::Expression
         TEST(ExpressionTest, RangeAggregateReadsCells)
         {
             FakeResolver resolver;
-            FakeObject  &sheet = resolver.addObject("Sheet", "Doc");
+            FakeObject & sheet = resolver.addObject("Sheet", "Doc");
             sheet.addProperty("A1", "Length", Value(Units::Quantity(1.0, Units::Unit::Length)));
             sheet.addProperty("A2", "Length", Value(Units::Quantity(2.0, Units::Unit::Length)));
             resolver.setCurrentObject(&sheet);
@@ -799,7 +800,7 @@ namespace ExpressionEngine::Expression
         TEST(ExpressionTest, VariableResolutionAndWriteBack)
         {
             FakeResolver resolver;
-            FakeObject  &box = resolver.addObject("Box", "Doc");
+            FakeObject & box = resolver.addObject("Box", "Doc");
             box.addProperty("Length", "Length", Value(Units::Quantity(2.0, Units::Unit::Length)));
 
             VariableExpression::Reference reference;
@@ -911,7 +912,7 @@ namespace ExpressionEngine::Expression
             EXPECT_EQ(folded->toString(), "5");
 
             FakeResolver resolver;
-            FakeObject  &box = resolver.addObject("Box", "Doc");
+            FakeObject & box = resolver.addObject("Box", "Doc");
             box.addProperty("Length", "Length", Value(Units::Quantity(2.0, Units::Unit::Length)));
             auto variable = std::make_unique<VariableExpression>(&resolver, VariableExpression::Reference{.documentName = "", .objectName = "Box", .propertyName = "Length"});
 
@@ -925,9 +926,9 @@ namespace ExpressionEngine::Expression
             EXPECT_EQ(function(Function::Sine, number(30.0))->simplify()->nodeName(), "Number");
             // 含引用的函数保持结构
             EXPECT_EQ(function(Function::Absolute,
-                               std::make_unique<VariableExpression>(&resolver, VariableExpression::Reference{.documentName = "", .objectName = "Box", .propertyName = "Length"}))
-                              ->simplify()
-                              ->nodeName(),
+                          std::make_unique<VariableExpression>(&resolver, VariableExpression::Reference{.documentName = "", .objectName = "Box", .propertyName = "Length"}))
+                      ->simplify()
+                      ->nodeName(),
                       "Function");
 
             // evaluateToConstantNode 把取值包成常量节点

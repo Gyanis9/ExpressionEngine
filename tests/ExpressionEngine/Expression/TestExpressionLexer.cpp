@@ -267,10 +267,10 @@ TEST(ExpressionLexerTest, OperatorsAndPunctuation)
 {
     const std::vector<ExpressionToken>     tokens = tokenize("+ - * / % ^ == != < > <= >= = ? : , ; ( ) [ ]");
     const std::vector<ExpressionTokenKind> expected{
-            ExpressionTokenKind::Plus,         ExpressionTokenKind::Minus,        ExpressionTokenKind::Star,      ExpressionTokenKind::Slash,      ExpressionTokenKind::Percent,
-            ExpressionTokenKind::Caret,        ExpressionTokenKind::Equal,        ExpressionTokenKind::NotEqual,  ExpressionTokenKind::Less,       ExpressionTokenKind::Greater,
-            ExpressionTokenKind::LessEqual,    ExpressionTokenKind::GreaterEqual, ExpressionTokenKind::Equal,     ExpressionTokenKind::Question,   ExpressionTokenKind::Colon,
-            ExpressionTokenKind::Comma,        ExpressionTokenKind::Semicolon,    ExpressionTokenKind::LeftParen, ExpressionTokenKind::RightParen, ExpressionTokenKind::LeftBracket,
+            ExpressionTokenKind::Plus, ExpressionTokenKind::Minus, ExpressionTokenKind::Star, ExpressionTokenKind::Slash, ExpressionTokenKind::Percent,
+            ExpressionTokenKind::Caret, ExpressionTokenKind::Equal, ExpressionTokenKind::NotEqual, ExpressionTokenKind::Less, ExpressionTokenKind::Greater,
+            ExpressionTokenKind::LessEqual, ExpressionTokenKind::GreaterEqual, ExpressionTokenKind::Equal, ExpressionTokenKind::Question, ExpressionTokenKind::Colon,
+            ExpressionTokenKind::Comma, ExpressionTokenKind::Semicolon, ExpressionTokenKind::LeftParen, ExpressionTokenKind::RightParen, ExpressionTokenKind::LeftBracket,
             ExpressionTokenKind::RightBracket,
     };
     EXPECT_EQ(kindsOf(tokens), expected);
