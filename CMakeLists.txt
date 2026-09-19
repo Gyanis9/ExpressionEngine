@@ -19,6 +19,37 @@ else()
     target_compile_options(ExpressionEngineWarnings INTERFACE -Wall -Wextra -Wpedantic)
 endif()
 
+# ---------------------------------------------------------------------------
+# 内存与未定义行为检测（CI 与需要插桩的构建用它）
+# ---------------------------------------------------------------------------
+# 能力边界决定了这里不是一套参数打天下：MSVC 只提供 AddressSanitizer
+# （/fsanitize=address），GCC/Clang 上顺带打开 UBSan（ASan 不覆盖未定义行为）。
+#
+# 默认关闭：MSVC 的 ASan 运行库位于 cl.exe 同目录、不在系统 PATH 上，插桩出来的
+# 可执行文件在裸 shell 里会以 0xC0000135 启动失败，不适合当调试构建的默认值；
+# CI 的开发者环境里 cl.exe 在 PATH 上，因此由工作流显式打开。
+option(ENABLE_SANITIZERS "启用 AddressSanitizer（GCC/Clang 上并含 UBSan）" OFF)
+
+if(ENABLE_SANITIZERS)
+    if(MSVC)
+        add_compile_options(/fsanitize=address)
+        add_link_options(/fsanitize=address)
+
+        # Conan 提供的 gtest 没有插桩，它的目标文件里没有 annotate_vector /
+        # annotate_string / annotate_optional 三个 ABI 标记，与本库插桩后的对象对不上，
+        # 链接会直接以 LNK2038 失败。关掉注解即可对齐：失去的只是容器越界与迭代器
+        # 失效这类注解检查，堆、栈、悬垂指针等主要检测不受影响。
+        add_compile_definitions(_DISABLE_VECTOR_ANNOTATION _DISABLE_STRING_ANNOTATION _DISABLE_OPTIONAL_ANNOTATION)
+
+        message(STATUS "Sanitizers: 已启用 AddressSanitizer（MSVC 无 UBSan；因 gtest 未插桩而关闭容器注解）")
+    else()
+        # -fno-omit-frame-pointer：栈回溯才有意义，否则报告里的调用栈会缺帧
+        add_compile_options(-fsanitize=address,undefined -fno-omit-frame-pointer)
+        add_link_options(-fsanitize=address,undefined)
+        message(STATUS "Sanitizers: 已启用 AddressSanitizer + UndefinedBehaviorSanitizer")
+    endif()
+endif()
+
 add_subdirectory(src)
 
 if(EXPRESSIONENGINE_BUILD_TESTS)
