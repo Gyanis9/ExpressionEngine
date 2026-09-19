@@ -1,0 +1,73 @@
+# Windows CI：构建（Debug + AddressSanitizer）并跑全量用例。
+#
+# 只覆盖 MSVC 一侧：本仓库当前只在 Windows 上开发，GCC/Linux 作业留到需要时再加。
+#
+# 不引编译缓存：库加用例总共几十个翻译单元，依赖里只有 Conan 提供的 gtest 预编译包，
+# 构建时间不足以摊平缓存工具的安装与还原开销。
+#
+# MSVC 的 ASan 需要额外处理：Conan 提供的 gtest 没有插桩，容器注解的 ABI 标记会对
+# 不上（LNK2038），顶层 CMakeLists 的 ENABLE_SANITIZERS 分支里关掉了这些注解。
+
+name: Windows CI
+
+on:
+  # 只在 main 的推送与手动触发上跑：日常开发在 develop 上，免费分钟数有限，
+  # 一次全量构建+用例的额度留给合进 main 的提交。要验证某个提交就手动 dispatch。
+  push:
+    branches: [ main ]
+    # 纯文档改动与工作流自身的改动不值得等构建
+    paths-ignore:
+      - '**.md'
+      - 'LICENSE'
+      - '.github/workflows/**'
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    runs-on: windows-latest
+    timeout-minutes: 60
+
+    env:
+      # Conan 的包缓存搬到仓库内，便于下面的 actions/cache 缓存它
+      CONAN_HOME: ${{ github.workspace }}/.conan2
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 缓存 Conan 依赖
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.CONAN_HOME }}
+          key: conan-${{ runner.os }}-${{ hashFiles('conandata.yml', 'conanfile.py') }}
+
+      # 让 cl.exe、ninja 等进入 PATH；windows-latest 上已预装 Visual Studio 与 Ninja
+      - uses: ilammy/msvc-dev-cmd@v1
+
+      - name: 安装 Conan
+        run: pip install "conan>=2.25"
+
+      - name: 探测 Conan profile
+        run: conan profile detect --force
+
+      # gtest 由 conan_provider.cmake 在配置阶段自动安装；sanitizer 在这里显式打开
+      - name: 配置（Debug + AddressSanitizer）
+        run: cmake --preset debug -DENABLE_SANITIZERS=ON
+
+      # 零告警是本仓库的提交硬判据：构建失败与告警都会让这一步红
+      - name: 构建
+        run: cmake --build build/debug
+
+      # MSVC 的 ASan 运行库位于 cl.exe 同目录、不在系统 PATH 上：不补这一行，插桩过的
+      # 用例会以 0xC0000135（DLL 未找到）启动失败，而报错完全读不出是这个原因
+      - name: 全量用例
+        run: |
+          $env:PATH = "$(Split-Path (Get-Command cl.exe).Source);$env:PATH"
+          ctest --test-dir build/debug --output-on-failure --parallel
+
+      - name: 失败时上传用例日志
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ctest-logs
+          path: build/debug/Testing/Temporary/LastTest.log
+          if-no-files-found: ignore
