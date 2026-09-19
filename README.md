@@ -2,14 +2,13 @@
 
 ## 这是什么
 
-从 FreeCAD 抽出的表达式引擎与单位模块，可脱离 FreeCAD 的文档模型独立使用：装上头文件、链一个静态库，
+表达式引擎与单位模块库，可脱离宿主文档模型独立使用：装上头文件、链一个静态库，
 就能在宿主自己的对象模型上解析与求值表达式、处理带单位的数量。零外部依赖（不再需要 Qt、Python、Boost、ICU），
 用 C++23 标准库实现。
 
 ## 许可与出处
 
-本库按 **LGPL-2.1-or-later** 授权，派生自 [FreeCAD](https://www.freecad.org)（原始代码版权归 FreeCAD 项目及其
-贡献者所有）：许可全文见 [`LICENSE`](LICENSE)，来源、派生与改动清单见 [`NOTICE`](NOTICE)。安装时会连同这两个
+本库按 **LGPL-2.1-or-later** 授权，原始代码版权与出处见 [`NOTICE`](NOTICE)：许可全文见 [`LICENSE`](LICENSE)。安装时会连同这两个
 文件一起装到 `share/doc/ExpressionEngine/`。
 
 本文件不承担 API 文档职责：接口契约以 `src/ExpressionEngine/**` 头文件里的 Doxygen 注释为准。
@@ -79,7 +78,7 @@ cmake --build build/bench --target ParserBenchmark
 ## 性能
 
 以下数字来自同源对照实测：同一条语料、同一套 `Quantity` 运算跑两侧，且逐位校验两侧结果一致
-（避免对照侧空转得出的假优势）。手写解析器一侧即本库实现；对照侧为 FreeCAD 26.3-dev 的 flex/bison
+（避免对照侧空转得出的假优势）。手写解析器一侧即本库实现；对照侧为上游 26.3-dev 的 flex/bison
 生成代码（`Quantity.tab.c` / `Quantity.lex.c`），**不随本仓分发**，需要对比时用 CMake 缓存变量
 `EXPRESSIONENGINE_LEGACY_QUANTITY_DIR` 指向上游目录，目录缺失时基准只跑手写侧。
 

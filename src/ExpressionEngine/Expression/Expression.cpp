@@ -33,7 +33,7 @@ namespace ExpressionEngine::Expression
     namespace
     {
 
-        /// 角度与弧度的换算：库内角度量一律以度存储，与 FreeCAD 的基准单位一致
+        /// 角度与弧度的换算：库内角度量一律以度存储
         double toRadians(const double degrees)
         {
             return degrees * std::numbers::pi / 180.0;
@@ -44,7 +44,7 @@ namespace ExpressionEngine::Expression
             return radians * 180.0 / std::numbers::pi;
         }
 
-        /// 真值判定：与 FreeCAD 一致，|值| 达到重合精度即视为真
+        /// 真值判定：|值| 达到重合精度即视为真
         bool asBoolean(const double value)
         {
             return std::fabs(value) >= Base::Precision::confusion();
@@ -72,7 +72,7 @@ namespace ExpressionEngine::Expression
             return true;
         }
 
-        /// 数值的表达式文本；与 FreeCAD 一致取 digits10 位有效数字，不写出无意义的尾数
+        /// 数值的表达式文本；取 digits10 位有效数字，不写出无意义的尾数
         std::string formatNumber(double value)
         {
             return std::format("{:.{}g}", value, std::numeric_limits<double>::digits10);
@@ -630,7 +630,7 @@ namespace ExpressionEngine::Expression
             /**
              * @brief 取样本标准差
              * @details 重写 Collector::getQuantity()：样本标准差要求至少两个样本，单个样本上
-             *          没有定义，与 FreeCAD 一致地报错。
+             *          没有定义，只能报错。
              * @return 样本标准差，单位与数据相同
              * @throws EvaluationError 收集到的条目少于两个
              */
@@ -638,7 +638,7 @@ namespace ExpressionEngine::Expression
             {
                 if (m_count < 2)
                 {
-                    // 单个样本上样本标准差没有定义，与 FreeCAD 一致地报错
+                    // 单个样本上样本标准差没有定义，只能报错
                     throw EvaluationError("stddev() 至少需要两个数值参数；请补充样本或改用 average()");
                 }
                 return Units::Quantity((m_squaredDeviationSum / (m_count - 1.0)).pow(Units::Quantity(0.5)).getValue(), m_mean.getUnit());
@@ -800,7 +800,7 @@ namespace ExpressionEngine::Expression
                 IProperty *property = container->findProperty(range.address());
                 if (property == nullptr)
                 {
-                    // 与 FreeCAD 一致：区间里空着的单元格跳过，不算错误
+                    // 区间里空着的单元格跳过，不算错误
                     continue;
                 }
                 const std::optional<Value> value = property->value();
@@ -1635,7 +1635,7 @@ namespace ExpressionEngine::Expression
                 }
                 throw Base::TypeError(std::format("取正运算符不能作用于{}；请改用数值或向量", valueTypeName(value)));
             }
-            // 比较运算按「小于」与「相等」组合，NaN 参与比较时结果与 FreeCAD 一致为假
+            // 比较运算按「小于」与「相等」组合，NaN 参与比较时结果为假
             case Operator::Equal:
                 return {valuesEqual(m_left->evaluate(), m_right->evaluate())};
             case Operator::NotEqual:
@@ -1838,7 +1838,7 @@ namespace ExpressionEngine::Expression
             {
                 throw EvaluationError("条件表达式 (?:) 的条件不是数值；请改用比较运算得到布尔条件");
             }
-            // 与 FreeCAD 一致：条件绝对值达到重合精度即取真分支
+            // 条件绝对值达到重合精度即取真分支
             if (std::fabs(magnitude) >= Base::Precision::confusion())
             {
                 return m_trueExpression->simplify();
@@ -2019,7 +2019,7 @@ namespace ExpressionEngine::Expression
                 Base::Rotation rotation;
                 if (arguments.size() == 4)
                 {
-                    // 三个数值按 yaw、pitch、roll 解释，与 FreeCAD 一致按弧度给出
+                    // 三个数值按 yaw、pitch、roll 解释，按弧度给出
                     rotation.setYawPitchRoll(numberArgument(arguments, 1, label), numberArgument(arguments, 2, label), numberArgument(arguments, 3, label));
                 } else
                 {
@@ -2088,7 +2088,7 @@ namespace ExpressionEngine::Expression
                 const Value target = arguments[0]->evaluate();
                 if (const auto *rotation = std::get_if<Base::Rotation>(&target))
                 {
-                    // 旋转本身没有平移分量，平移量单独补成位姿，与 FreeCAD 一致
+                    // 旋转本身没有平移分量，平移量单独补成位姿
                     Base::Matrix4D rotationMatrix;
                     rotation->getValue(rotationMatrix);
                     return Base::Placement(translationMatrix * rotationMatrix);
@@ -2158,7 +2158,7 @@ namespace ExpressionEngine::Expression
                 const Value first = arguments[0]->evaluate();
                 if (arguments.size() == 3)
                 {
-                    // 三个数值按 yaw、pitch、roll 解释，与 FreeCAD 一致按弧度给出
+                    // 三个数值按 yaw、pitch、roll 解释，按弧度给出
                     Base::Rotation rotation;
                     rotation.setYawPitchRoll(numberArgument(arguments, 0, label), numberArgument(arguments, 1, label), numberArgument(arguments, 2, label));
                     return rotation;
@@ -2177,7 +2177,7 @@ namespace ExpressionEngine::Expression
                     // 两个向量表示从起点方向转到终点方向
                     return Base::Rotation(*axis, *endDirection);
                 }
-                // 轴加角度：与 FreeCAD 的 rotation(axis, angle) 一致，角度按度给出
+                // 轴加角度：角度按度给出
                 return Base::Rotation(*axis, angleArgument(second, "rotation() 的第二个参数"));
             }
             case Function::Vector:
@@ -2314,7 +2314,7 @@ namespace ExpressionEngine::Expression
                     case Function::VectorCross:
                         return firstVector.cross(secondVector);
                     case Function::VectorDot:
-                        // 点积是无量纲的纯数，与 FreeCAD 返回 Python 浮点一致
+                        // 点积是无量纲的纯数
                         return firstVector.dot(secondVector);
                     default:
                         break;
@@ -2371,7 +2371,7 @@ namespace ExpressionEngine::Expression
         double      scaler = 1.0;
         double      value  = firstQuantity.getValue();
 
-        // 单位检查与换算；规则与 FreeCAD 一致
+        // 单位检查与换算：按函数族逐类校验量纲，并折算到库内的基准单位
         switch (function)
         {
             case Function::Cosine:
@@ -2495,7 +2495,7 @@ namespace ExpressionEngine::Expression
                 throw Base::UnitsMismatchError("translationm() 的三个平移分量必须是长度量或纯数；"
                         "请改用 mm、in 这类长度单位");
             case Function::LogicalNot:
-                // 与 FreeCAD 一致：只看数值不看量纲
+                // 只看数值不看量纲
                 unit = Units::Unit();
                 break;
             default:
@@ -2768,7 +2768,7 @@ namespace ExpressionEngine::Expression
             Function         function; ///< 函数种类
         };
 
-        // 名字与 FreeCAD 的函数表一致，全部小写，供后续解析器直接查表
+        // 全部小写，供解析器直接查表
         static constexpr auto entries = std::to_array<Entry>({
                 {.name = "abs", .function = Function::Absolute},
                 {.name = "acos", .function = Function::ArcCosine},
@@ -2865,7 +2865,7 @@ namespace ExpressionEngine::Expression
         {
             if (index != 0)
             {
-                // 实参分隔符与 FreeCAD 的表达一致，用分号避免与小数点逗号混淆
+                // 实参分隔符用分号，避免与小数点逗号混淆
                 text += "; ";
             }
             text += m_arguments[index]->toString(persistent);

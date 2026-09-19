@@ -265,7 +265,7 @@ namespace ExpressionEngine::Expression
                     best = {.length = integerDigits + exponent, .kind = ExpressionTokenKind::Number}; // {DIGIT}+{EXPO}
                 }
             }
-            // {DIGIT}* ("." | ",") {DIGIT}+ {EXPO}?：逗号在 FreeCAD 表达式里也当小数点用
+            // {DIGIT}* ("." | ",") {DIGIT}+ {EXPO}?：逗号也按小数点处理
             if (integerDigits < text.size() - offset && (text[offset + integerDigits] == '.' || text[offset + integerDigits] == ','))
             {
                 const std::size_t fractionStart  = offset + integerDigits + 1;

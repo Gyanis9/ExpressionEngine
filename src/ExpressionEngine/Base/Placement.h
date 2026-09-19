@@ -4,7 +4,7 @@
  * @author Gyanis
  * @date 2026-09-19
  * @version 1.0.0
- * @copyright Copyright (c) 2026 Gyanis. LGPL-2.1-or-later，派生自 FreeCAD
+ * @copyright Copyright (c) 2026 Gyanis. LGPL-2.1-or-later；出处与上游版权见 NOTICE
  */
 
 #pragma once
@@ -20,7 +20,7 @@ namespace ExpressionEngine::Base
 
     /**
      * @brief 刚体位姿：平移加旋转
-     * @details 语义与 FreeCAD Base::Placement 完全一致。multiplyVector() 先施加旋转再加上位置；
+     * @details multiplyVector() 先施加旋转再加上位置；
      *          复合按「右操作数先作用」的约定，零位置加单位旋转即恒等位姿。
      */
     class Placement

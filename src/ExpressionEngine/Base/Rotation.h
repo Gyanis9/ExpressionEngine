@@ -4,7 +4,7 @@
  * @author Gyanis
  * @date 2026-09-19
  * @version 1.0.0
- * @copyright Copyright (c) 2026 Gyanis. LGPL-2.1-or-later，派生自 FreeCAD
+ * @copyright Copyright (c) 2026 Gyanis. LGPL-2.1-or-later；出处与上游版权见 NOTICE
  */
 
 #pragma once
@@ -19,7 +19,7 @@ namespace ExpressionEngine::Base
 
     /**
      * @brief 三维旋转，内部以单位四元数表示
-     * @details 四元数分量按 (x, y, z, w) 排列，公开 API 与 FreeCAD Base::Rotation 完全一致。
+     * @details 四元数分量按 (x, y, z, w) 排列。
      *          所有 setValue() 入口都会归一化四元数；轴角另存一份，使旋转角为 0 时仍能取回用户给定的
      *          转轴方向。零四元数不会被自动纠正，调用方应先查 isNull() 再使用其轴角结果。
      */
@@ -85,7 +85,7 @@ namespace ExpressionEngine::Base
 
         /**
          * @brief 欧拉角序列标识
-         * @details 命名与 FreeCAD 一致：Extrinsic_ 为绕固定轴转动（外旋），Intrinsic_ 为绕自身新轴转动
+         * @details Extrinsic_ 为绕固定轴转动（外旋），Intrinsic_ 为绕自身新轴转动
          *          （内旋），后缀三个字母是绕轴顺序。
          */
         enum EulerSequence

@@ -778,7 +778,7 @@ namespace ExpressionEngine::Expression
             auto sum = std::make_unique<FunctionExpression>(&resolver, Function::Sum, "sum", std::move(arguments));
             EXPECT_DOUBLE_EQ(quantityOf(sum->evaluate()).getValue(), 3.0);
 
-            // 区间里的空单元格跳过，与 FreeCAD 一致
+            // 区间里的空单元格跳过
             std::vector<ExpressionPtr> partialArguments;
             partialArguments.push_back(std::make_unique<RangeExpression>(&resolver, "A1", "A3"));
             auto partialSum = std::make_unique<FunctionExpression>(&resolver, Function::Sum, "sum", std::move(partialArguments));
@@ -886,7 +886,7 @@ namespace ExpressionEngine::Expression
             copied->addComponent(Expression::Component("Width"));
             EXPECT_FALSE(expression->isSame(*copied));
 
-            // 变量引用可以索引，下标分量按 FreeCAD 的写法排版
+            // 变量引用可以索引，下标分量按索引写法排版
             auto variable = std::make_unique<VariableExpression>(nullptr, VariableExpression::Reference());
             variable->addComponent(Expression::Component::arrayIndex(std::make_unique<NumberExpression>(nullptr, Units::Quantity(0.0))));
             EXPECT_EQ(variable->toString(), "[0]");

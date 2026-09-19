@@ -4,7 +4,7 @@
  * @author Gyanis
  * @date 2026-09-19
  * @version 1.0.0
- * @copyright Copyright (c) 2026 Gyanis. LGPL-2.1-or-later，派生自 FreeCAD
+ * @copyright Copyright (c) 2026 Gyanis. LGPL-2.1-or-later；出处与上游版权见 NOTICE
  */
 
 #pragma once
@@ -382,7 +382,7 @@ namespace ExpressionEngine::Expression
 
     /**
      * @brief 带单位的数值节点
-     * @details 同时是数值、运算符、函数与变量节点的基类：FreeCAD 里这些节点的"取值"都是
+     * @details 同时是数值、运算符、函数与变量节点的基类：这些节点的"取值"都是
      *          一个带单位的量，因此单位节点承担这部分公共状态。
      */
     class UnitExpression : public Expression
@@ -405,7 +405,7 @@ namespace ExpressionEngine::Expression
         void setQuantity(const Units::Quantity &quantity);
 
         /**
-         * @brief 设置数量；与 setQuantity() 等价，保留 FreeCAD 的命名以便对照
+         * @brief 设置数量；与 setQuantity() 等价的兼容别名
          * @param quantity 数量
          */
         void setUnit(const Units::Quantity &quantity);
@@ -696,8 +696,7 @@ namespace ExpressionEngine::Expression
 
         /**
          * @brief 取运算优先级
-         * @details 重写 Expression::priority()：与 FreeCAD 一致，比较 1、加减 3、乘除取余 4、
-         *          幂 5、一元与单位 6，文本化时据此补括号。
+         * @details 重写 Expression::priority()：比较 1、加减 3、乘除取余 4、幂 5、一元与单位 6，文本化时据此补括号。
          * @return 本运算符的优先级
          */
         [[nodiscard]] int priority() const override;
@@ -838,8 +837,7 @@ namespace ExpressionEngine::Expression
 
         /**
          * @brief 取运算优先级
-         * @details 重写 Expression::priority()：与 FreeCAD 一致为 2，仅高于赋值类运算，
-         *          使三元表达式在文本化时整体带括号。
+         * @details 重写 Expression::priority()：恒为 2，仅高于赋值类运算，使三元表达式在文本化时整体带括号。
          * @return 固定值 2
          */
         [[nodiscard]] int priority() const override;
@@ -900,8 +898,7 @@ namespace ExpressionEngine::Expression
     public:
         /**
          * @brief 函数种类
-         * @details 名字与 FreeCAD 的函数表一一对应；Create、List、Tuple 依赖宿主的对象工厂，
-         *          本库保留条目但在构造时即报错，以免表达式被误当成可用。
+         * @details 枚举值与函数名表一一对应；Create、List、Tuple 依赖宿主的对象工厂，本库保留条目但在构造时即报错，以免表达式被误当成可用。
          */
         enum class Function
         {
@@ -1325,7 +1322,7 @@ namespace ExpressionEngine::Expression
     };
 
     /**
-     * @brief 取值节点：承载已经算出来的几何值，等价于 FreeCAD 的 PyObjectExpression
+     * @brief 取值节点：承载已经算出来的几何值
      */
     class ValueExpression : public Expression
     {

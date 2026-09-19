@@ -1,13 +1,13 @@
 /**
  * @file LegacyQuantityParser.cpp
- * @brief FreeCAD flex/bison 生成代码的对比实现（仅基准使用）
+ * @brief 生成式解析器（flex/bison）的对比实现（仅基准使用）
  * @details 在一个 TU 里原样包含 Quantity.tab.c 与 Quantity.lex.c，并补齐它们要求的宿主环境。
  *          生成代码是第三方 C 风格代码，只在 benchmarks/CMakeLists.txt 里对这一个文件放宽告警，
  *          全局告警级别不变。
  * @author Gyanis
  * @date 2026-09-19
  * @version 1.0.0
- * @copyright Copyright (c) 2026 Gyanis. LGPL-2.1-or-later，派生自 FreeCAD
+ * @copyright Copyright (c) 2026 Gyanis. LGPL-2.1-or-later；出处与上游版权见 NOTICE
  */
 
 #include "LegacyQuantityParser.h"

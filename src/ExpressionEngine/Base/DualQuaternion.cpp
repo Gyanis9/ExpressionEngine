@@ -8,7 +8,7 @@ namespace ExpressionEngine::Base
 {
     namespace
     {
-        /// 判定「无旋转」的实部向量长度阈值，与 FreeCAD 原实现保持一致
+        /// 判定「无旋转」的实部向量长度阈值
         constexpr double NoRotationThreshold = 1e-12;
 
         /// 判定实部/对偶部参数是否为纯实四元数的容差

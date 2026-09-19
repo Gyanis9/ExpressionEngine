@@ -48,7 +48,7 @@ namespace ExpressionEngine::Units
             EXPECT_EQ(Unit::Area.getString(), "mm^2");
             EXPECT_EQ((Unit::Length / Unit::TimeSpan).getString(), "mm/s");
             EXPECT_EQ(Unit::Velocity.getTypeString(), "Velocity");
-            // 无量纲单位的紧凑写法是空串，量纲信息全在数值里（与 FreeCAD 一致）
+            // 无量纲单位的紧凑写法是空串，量纲信息全在数值里
             EXPECT_EQ(Unit::One.getString(), "");
             EXPECT_EQ(Unit::One.getTypeString(), "1");
         }

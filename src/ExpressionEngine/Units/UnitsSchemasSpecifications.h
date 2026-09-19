@@ -4,7 +4,7 @@
  * @author Gyanis
  * @date 2026-09-19
  * @version 1.0.0
- * @copyright Copyright (c) 2026 Gyanis. LGPL-2.1-or-later，派生自 FreeCAD
+ * @copyright Copyright (c) 2026 Gyanis. LGPL-2.1-or-later；出处与上游版权见 NOTICE
  */
 
 #pragma once
@@ -31,8 +31,7 @@ namespace ExpressionEngine::Units
 
     /**
      * @brief 一个单位方案的完整定义
-     * @details 以数据形式描述方案（如 "Internal"、"ImperialDecimal"）：字段与 FreeCAD 的方案
-     *          描述一一对应，行为由 UnitsSchema 按本结构解释，数据本身不带逻辑。
+     * @details 以数据形式描述方案（如 "Internal"、"ImperialDecimal"）：行为由 UnitsSchema 按本结构解释，数据本身不带逻辑。
      */
     struct UnitsSchemaSpecification
     {

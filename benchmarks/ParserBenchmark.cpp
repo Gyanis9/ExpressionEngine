@@ -4,7 +4,7 @@
  * @author Gyanis
  * @date 2026-09-19
  * @version 1.0.0
- * @copyright Copyright (c) 2026 Gyanis. LGPL-2.1-or-later，派生自 FreeCAD
+ * @copyright Copyright (c) 2026 Gyanis. LGPL-2.1-or-later；出处与上游版权见 NOTICE
  */
 
 #include <algorithm>
@@ -355,11 +355,11 @@ int main()
     /// 数量用例的标签前缀：生成侧只替换这一截，两张表的列宽保持一致
     constexpr std::string_view quantityLabelPrefix = "数量解析/";
 
-    // 数量一侧的对比：同一份语料分别跑手写解析器与 FreeCAD 的 flex/bison 生成代码。
+    // 数量一侧的对比：同一份语料分别跑手写解析器与 flex/bison 生成式解析器。
     // 两侧都落在同一个 Quantity 实现上（生成代码用的门面类继承 Units::Quantity），
     // 差别只剩词法与语法机器本身；生成侧每次调用还要建/销毁扫描 buffer，这部分走 malloc，
     // 不计入结果行里的「分配」列，属于生成方案自带的固定成本。
-    std::printf("\n== 数量解析对比：手写解析器 vs FreeCAD flex/bison 生成代码 ==\n");
+    std::printf("\n== 数量解析对比：手写解析器 vs flex/bison 生成式解析器 ==\n");
 #endif
 
     for (const BenchmarkCase &entry: quantityCases)

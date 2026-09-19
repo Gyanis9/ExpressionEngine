@@ -4,7 +4,7 @@
  * @author Gyanis
  * @date 2026-09-19
  * @version 1.0.0
- * @copyright Copyright (c) 2026 Gyanis. LGPL-2.1-or-later，派生自 FreeCAD
+ * @copyright Copyright (c) 2026 Gyanis. LGPL-2.1-or-later；出处与上游版权见 NOTICE
  */
 
 #pragma once
@@ -33,7 +33,7 @@ namespace ExpressionEngine::Base
     /**
      * @brief 4x4 齐次变换矩阵
      * @details 元素按行优先存储，第 4 行固定为 (0,0,0,1) 表示仿射变换；默认构造为单位阵。
-     *          所有变换方法都是把变换左乘到当前矩阵，与 FreeCAD 的语义保持一致。
+     *          所有变换方法都是把变换左乘到当前矩阵。
      */
     class Matrix4D
     {
@@ -689,7 +689,7 @@ namespace ExpressionEngine::Base
         {
             for (int column = 0; column < 4; ++column)
             {
-                // 先清零再累加内积，运算次序与 FreeCAD 保持一致，保证结果可复现
+                // 先清零再累加内积，累加次序固定，保证结果可复现
                 result.m_matrix[row][column] = 0.0;
                 for (int inner = 0; inner < 4; ++inner)
                 {

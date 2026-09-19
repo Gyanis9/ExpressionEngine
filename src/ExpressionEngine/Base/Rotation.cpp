@@ -697,7 +697,7 @@ namespace ExpressionEngine::Base
         constexpr int YAxis = 1;
         constexpr int ZAxis = 2;
 
-        // 与 FreeCAD 一致地采用 OCC 的重合容差：方向长度低于该值即视为未提供
+        // 采用 OCC 的重合容差口径：方向长度低于该值即视为未提供
         const double confusionTolerance = Precision::confusion();
 
         if (priorityOrder == nullptr)

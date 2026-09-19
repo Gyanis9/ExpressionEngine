@@ -290,7 +290,7 @@ namespace ExpressionEngine::Base
         scaleMatrix.m_matrix[0][0] = vector.x;
         scaleMatrix.m_matrix[1][1] = vector.y;
         scaleMatrix.m_matrix[2][2] = vector.z;
-        // 缩放左乘到当前矩阵上，与 FreeCAD 的运算次序一致
+        // 缩放左乘到当前矩阵上，次序固定以保证结果可复现
         (*this)                    = scaleMatrix * (*this);
     }
 

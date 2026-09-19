@@ -22,10 +22,10 @@ target_compile_definitions(
                 BENCH_COMPILER_FLAGS="${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_${PARSERBENCH_BUILD_TYPE_UPPER}} ${PARSERBENCH_WARNING_FLAGS}"
 )
 
-# 可选的数量解析对比：FreeCAD 的 flex/bison 生成代码（Quantity.tab.c / Quantity.lex.c）不随仓库分发，
+# 可选的数量解析对比：上游的 flex/bison 生成代码（Quantity.tab.c / Quantity.lex.c）不随仓库分发，
 # 由本机目录提供；目录缺失时只跑手写解析器一侧，不阻塞基准构建。
-set(EXPRESSIONENGINE_LEGACY_QUANTITY_DIR "C:/Users/Gyanis/Downloads/FreeCAD/src/Base"
-    CACHE PATH "FreeCAD 生成代码（Quantity.tab.c / Quantity.lex.c）所在目录，仅供基准对比")
+set(EXPRESSIONENGINE_LEGACY_QUANTITY_DIR ""
+    CACHE PATH "上游生成代码（Quantity.tab.c / Quantity.lex.c）所在目录，仅供基准对比")
 if(EXISTS "${EXPRESSIONENGINE_LEGACY_QUANTITY_DIR}/Quantity.tab.c" AND EXISTS "${EXPRESSIONENGINE_LEGACY_QUANTITY_DIR}/Quantity.lex.c")
     target_sources(ParserBenchmark PRIVATE LegacyQuantityParser.cpp)
     target_include_directories(ParserBenchmark PRIVATE "${EXPRESSIONENGINE_LEGACY_QUANTITY_DIR}")

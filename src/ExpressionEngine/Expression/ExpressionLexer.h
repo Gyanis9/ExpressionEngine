@@ -4,7 +4,7 @@
  * @author Gyanis
  * @date 2026-09-19
  * @version 1.0.0
- * @copyright Copyright (c) 2026 Gyanis. LGPL-2.1-or-later，派生自 FreeCAD
+ * @copyright Copyright (c) 2026 Gyanis. LGPL-2.1-or-later；出处与上游版权见 NOTICE
  */
 
 #pragma once
@@ -64,10 +64,10 @@ namespace ExpressionEngine::Expression
     };
 
     /**
-     * @brief 手写表达式词法分析器，替代 FreeCAD 的 flex 生成代码
-     * @details 在同一位置并行求出各条规则的匹配长度并取最长匹配，等长时按 Expression.l
-     * 中规则的先后取舍， 因此 mm 胜过 m、sin( 胜过单位
-     * s；数字写法、单位与常量表、单元格地址与转义规则照 Expression.l。
+     * @brief 手写表达式词法分析器
+     * @details 在同一位置并行求出各条规则的匹配长度并取最长匹配，等长时按规则的先后取舍，
+     *          因此 mm 胜过 m、sin( 胜过单位 s；数字写法、单位与常量表、单元格地址与转义
+     *          规则由实现文件统一给出。
      */
     class ExpressionLexer
     {

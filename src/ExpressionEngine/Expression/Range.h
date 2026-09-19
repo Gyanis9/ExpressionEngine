@@ -4,7 +4,7 @@
  * @author Gyanis
  * @date 2026-09-19
  * @version 1.0.0
- * @copyright Copyright (c) 2026 Gyanis. LGPL-2.1-or-later，派生自 FreeCAD
+ * @copyright Copyright (c) 2026 Gyanis. LGPL-2.1-or-later；出处与上游版权见 NOTICE
  */
 
 #pragma once
@@ -200,7 +200,7 @@ namespace ExpressionEngine::Expression
 
         /**
          * @brief 前进到下一个单元格
-         * @details 与 FreeCAD 的区间语义一致：遍历游标是内部状态，因此本方法为 const，
+         * @details 遍历游标是内部状态，因此本方法为 const，
          *          使 const 区间也能参与 `do { … } while (range.next())` 的遍历写法。
          * @return 还有下一个单元格时为 true；已遍历完成为 false
          */

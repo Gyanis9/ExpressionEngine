@@ -16,7 +16,7 @@ class ExpressionEngineRecipe(ConanFile):
 
     name = "expressionengine"
     version = "1.0.0"
-    description = "从 FreeCAD 抽出的表达式引擎与单位模块，可脱离 FreeCAD 文档模型使用"
+    description = "表达式引擎与单位模块：解析并求值带单位的表达式，可脱离宿主文档模型使用"
     license = "LGPL-2.1-or-later"
     package_type = "static-library"
     settings = "os", "arch", "compiler", "build_type"

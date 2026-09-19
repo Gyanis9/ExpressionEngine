@@ -27,7 +27,7 @@ namespace ExpressionEngine::Expression
         /// 几何值排版时保留的有效数字位数：够定位问题，又不会排出一长串小数
         constexpr int s_geometryDigits = 6;
 
-        /// 是否为同一个舍入量级上的相等（与 FreeCAD 的 essentiallyEqual 一致）
+        /// 是否为同一个舍入量级上的相等
         bool essentiallyEqual(const double left, const double right)
         {
             constexpr double epsilon = std::numeric_limits<double>::epsilon();
@@ -105,7 +105,7 @@ namespace ExpressionEngine::Expression
             }
             if (const auto *boolean = std::get_if<bool>(&value))
             {
-                // 布尔按 0/1 参与数值比较，与 FreeCAD 的 anyToQuantity 一致
+                // 布尔按 0/1 参与数值比较
                 return Units::Quantity(*boolean ? 1.0 : 0.0);
             }
             return std::nullopt;
@@ -169,7 +169,7 @@ namespace ExpressionEngine::Expression
         }
         if (const auto *boolean = std::get_if<bool>(&value))
         {
-            // 布尔当量使用，与 FreeCAD 的 anyToQuantity(bool) 一致
+            // 布尔当量使用
             return Units::Quantity(*boolean ? 1.0 : 0.0);
         }
         if (const auto *text = std::get_if<std::string>(&value))

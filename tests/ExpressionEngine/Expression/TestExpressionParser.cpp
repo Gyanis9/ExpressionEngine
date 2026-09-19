@@ -100,7 +100,7 @@ namespace ExpressionEngine::Expression
          */
         TEST(ExpressionParserTest, FunctionCalls)
         {
-            // 三角函数按角度取值（与 FreeCAD 一致），因此 sin(90) 才是 1
+            // 三角函数按角度取值，因此 sin(90) 才是 1
             SCOPED_TRACE("sin(90)");
             EXPECT_NEAR(quantityOf("sin(90)").getValue(), 1.0, 1e-12);
 

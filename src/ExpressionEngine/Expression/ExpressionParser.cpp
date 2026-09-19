@@ -474,7 +474,7 @@ namespace ExpressionEngine::Expression
                 return Expression::Component::rangeComponent(std::move(begin), std::move(end), std::move(step));
             }
 
-            // 单个字符串下标按映射键处理，与 FreeCAD 的 MapComponent 一致
+            // 单个字符串下标按映射键处理
             if (const auto *stringIndex = dynamic_cast<const StringExpression *>(begin.get()))
             {
                 return Expression::Component::mapKey(stringIndex->getText());
