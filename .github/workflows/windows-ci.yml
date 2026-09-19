@@ -15,11 +15,10 @@ on:
   # 一次全量构建+用例的额度留给合进 main 的提交。要验证某个提交就手动 dispatch。
   push:
     branches: [ main ]
-    # 纯文档改动与工作流自身的改动不值得等构建
+    # 纯文档改动不值得等构建；工作流自身的改动要跑——改坏了得有红灯
     paths-ignore:
       - '**.md'
       - 'LICENSE'
-      - '.github/workflows/**'
   workflow_dispatch:
 
 jobs:
