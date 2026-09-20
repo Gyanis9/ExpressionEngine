@@ -29,6 +29,14 @@ namespace ExpressionEngine::Expression
         /// 一元正负比乘方结合更紧，因此 -2^2 是 (-2)^2，与 Expression.y 的优先级声明一致
         constexpr int unaryBinding          = 7;
 
+        /**
+         * @brief 允许的嵌套层数上限
+         * @details 解析、求值与文本回写都按 AST 递归，层数过深会栈溢出，而那种故障 try 不住。
+         *          实测约 700 层 abs() 嵌套就能耗尽默认 1 MB 线程栈，取 100 层既宽过 Excel 的
+         *          64 层公式嵌套，又给宿主的小栈线程留出余量。
+         */
+        constexpr int maxNestingDepth = 100;
+
         /// 二元运算符的记号、运算符节点取值与结合功率
         struct BinaryOperatorInfo
         {
@@ -135,17 +143,53 @@ namespace ExpressionEngine::Expression
 
             [[nodiscard]] ExpressionPtr makeUnary(OperatorExpression::Operator operation, ExpressionPtr operand);
 
+            /**
+             * @brief 一层递归的计数守卫
+             * @details 进入嵌套构造时占一层额度，离开时归还；额度用尽立刻抛解析错，
+             *          让宿主拿到可显示的文案而不是撞上 try 不住的栈溢出。
+             */
+            class NestingGuard
+            {
+            public:
+                explicit NestingGuard(ExpressionParserImplementation &parser);
+                NestingGuard(const NestingGuard &)            = delete;
+                NestingGuard &operator=(const NestingGuard &) = delete;
+                ~NestingGuard();
+
+            private:
+                ExpressionParserImplementation &m_parser;
+            };
+
             IObjectResolver        *m_resolver; ///< 对象解析器，可为空
             const FunctionRegistry &m_registry; ///< 自定义函数注册表，内置表查不到时来此查询
             ExpressionLexer         m_lexer;    ///< 词法分析器
             ExpressionToken         m_current;  ///< 当前记号
             ExpressionToken         m_next;     ///< 下一记号，用于识别英制两段写法与文档引用
+            int                     m_nestingDepth{}; ///< 已占用的嵌套额度，只用于限深
         };
 
         void ExpressionParserImplementation::advance()
         {
             m_current = m_next;
             m_next    = m_lexer.next();
+        }
+
+        ExpressionParserImplementation::NestingGuard::NestingGuard(ExpressionParserImplementation &parser) : m_parser(parser)
+        {
+            // 额度不够时先报错再计数，异常往上抛的途中不用归还本层
+            if (m_parser.m_nestingDepth >= maxNestingDepth)
+            {
+                throw Base::ParserError(std::format("{}：表达式嵌套超过 {} 层，已停止解析；请把长表达式拆成几个属性，"
+                                                    "或减少括号与函数的层数",
+                                                    locationOf(m_parser.m_current),
+                                                    maxNestingDepth));
+            }
+            ++m_parser.m_nestingDepth;
+        }
+
+        ExpressionParserImplementation::NestingGuard::~NestingGuard()
+        {
+            --m_parser.m_nestingDepth;
         }
 
         bool ExpressionParserImplementation::startsUnit() const
@@ -211,6 +255,8 @@ namespace ExpressionEngine::Expression
 
         ExpressionPtr ExpressionParserImplementation::parseExpression(const int minimumBinding)
         {
+            const NestingGuard guard(*this); // 括号、实参、一元与二元右操作数都从这里递归，限深即可护住整棵树
+
             ExpressionPtr left                      = parsePrefix();
             // 英制两段写法要求第一段带英制单位（如 5' 6"），因此单独跟踪上一次是否附着了英制单位
             bool          lastAttachmentWasImperial = false;

@@ -35,7 +35,8 @@ namespace ExpressionEngine::Expression
          * @param resolver 对象解析器，可为空；为空时变量引用仍能解析出结构，求值时才会报错
          * @param text 待解析文本，可为空（空文本报错：表达式不能为空）
          * @return 解析出的表达式，调用方持有所有权
-         * @throws Base::ParserError 词法或语法错误，消息中带出错列号
+         * @throws Base::ParserError 词法或语法错误，消息中带出错列号；括号、函数与运算符的嵌套
+         *         超过 100 层同样走这条文案，深到来不及报错就会撞穿调用方的线程栈
          */
         [[nodiscard]] static ExpressionPtr parse(IObjectResolver *resolver, std::string_view text);
 

@@ -607,5 +607,66 @@ namespace ExpressionEngine::Expression
             EXPECT_THROW(static_cast<void>(ExpressionParser::parse(nullptr, "split(<<abc>>)")), EvaluationError);
         }
 
+        /// 造 levels 层嵌套的文本：每层写 opening，中间放 core，再补 levels 个 closing
+        std::string nestText(const std::string &opening, const std::string &core, const std::string &closing, const int levels)
+        {
+            std::string text;
+            for (int level = 0; level < levels; ++level)
+            {
+                text += opening;
+            }
+            text += core;
+            for (int level = 0; level < levels; ++level)
+            {
+                text += closing;
+            }
+            return text;
+        }
+
+        /**
+         * @brief 钉住：超深嵌套按解析错拒绝，而不是撞穿宿主进程的栈
+         * @details 栈溢出是不可捕获的故障，用例能跑到断言就说明解析器活着返回了。
+         */
+        TEST(ExpressionParserTest, OverlyDeepNestingIsRejected)
+        {
+            const std::vector<std::string> samples{
+                    nestText("(", "1", ")", 2000),
+                    nestText("abs(", "1", ")", 2000),
+                    nestText("-", "1", "", 2000),
+                    nestText("2^", "2", "", 2000),
+                    nestText("1/(", "1", ")", 2000),
+                    // 单位链里的括号最终也回到表达式的括号层，同样受限深管住
+                    "1 m" + nestText("/(m", "", ")", 2000),
+            };
+
+            for (const std::string &sample: samples)
+            {
+                const auto parsed = ExpressionParser::tryParse(nullptr, sample);
+                ASSERT_FALSE(parsed.has_value()) << "超深嵌套应当被拒绝：" << sample.substr(0, 12);
+                EXPECT_NE(parsed.error().message.find("嵌套"), std::string::npos) << parsed.error().message;
+            }
+        }
+
+        /**
+         * @brief 钉住：上限内的深嵌套照常解析、求值与回写，限深不该伤到正常表达式
+         */
+        TEST(ExpressionParserTest, DeepNestingWithinTheLimitStillWorks)
+        {
+            const std::vector<std::string> samples{
+                    nestText("(", "1", ")", 20),
+                    nestText("abs(", "1", ")", 20),
+                    nestText("-", "1", "", 20), // 偶数个负号相互抵消，结果仍是 1
+            };
+
+            for (const std::string &sample: samples)
+            {
+                const auto parsed = ExpressionParser::tryParse(nullptr, sample);
+                ASSERT_TRUE(parsed.has_value()) << "上限内的写法不该被拒绝：" << parsed.error().message;
+                // 求值与文本回写同样按 AST 递归，深树走完这三条路都不该抛
+                EXPECT_DOUBLE_EQ(quantityOf(sample).getValue(), 1.0) << sample;
+                EXPECT_FALSE((*parsed)->toString().empty()) << sample;
+            }
+        }
+
     } // namespace
 }     // namespace ExpressionEngine::Expression
