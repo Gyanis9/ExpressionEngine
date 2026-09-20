@@ -539,9 +539,10 @@ namespace ExpressionEngine::Expression
 
             while (m_current.kind == ExpressionTokenKind::Star || m_current.kind == ExpressionTokenKind::Slash)
             {
-                // 只有下一段仍以单位开头时才是「单位之间的乘除」（如 m/s、mm*mm）；后面跟的是数字或
-                // 引用时，这个符号属于整个表达式，交回外层按二元运算处理，于是 3 mm * 4 mm 不用加括号
-                const bool nextStartsUnit = m_next.kind == ExpressionTokenKind::Unit || m_next.kind == ExpressionTokenKind::UsUnit || m_next.kind == ExpressionTokenKind::LeftParen;
+                // 只有下一段直接以单位符号开头时才是「单位之间的乘除」（如 m/s、mm*mm）；后面跟数字、
+                // 引用或括号时，这个符号属于整个表达式，交回外层按二元运算处理，于是 3 mm * 4 mm 与
+                // 2 * m / (4 * s) 都能按写法解析，不会被单位乘除链吞掉
+                const bool nextStartsUnit = m_next.kind == ExpressionTokenKind::Unit || m_next.kind == ExpressionTokenKind::UsUnit;
                 if (!nextStartsUnit)
                 {
                     return value;

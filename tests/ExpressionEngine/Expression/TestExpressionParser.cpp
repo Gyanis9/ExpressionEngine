@@ -213,7 +213,14 @@ namespace ExpressionEngine::Expression
             for (const std::string &text: {"1 + 2*3", "(1+2)*3", "2 mm", "1/2 mm", "sin(0.5)"})
             {
                 SCOPED_TRACE(text);
-                const ExpressionPtr first   = ExpressionParser::parse(nullptr, text);
+                ExpressionPtr first;
+                try
+                {
+                    first = ExpressionParser::parse(nullptr, text);
+                } catch (const Base::Exception &error) {
+                    ADD_FAILURE() << "原式解析不过：" << text << " （" << error.message() << "）";
+                    continue;
+                }
                 const std::string   printed = first->toString();
                 const ExpressionPtr second  = ExpressionParser::parse(nullptr, printed);
                 // 文本往返后求值结果必须一致
@@ -346,7 +353,14 @@ namespace ExpressionEngine::Expression
                 SCOPED_TRACE(text);
                 const ExpressionPtr first   = ExpressionParser::parse(nullptr, text);
                 const std::string   printed = first->toString(true, true);
-                const ExpressionPtr second  = ExpressionParser::parse(nullptr, printed);
+                ExpressionPtr       second;
+                try
+                {
+                    second = ExpressionParser::parse(nullptr, printed);
+                } catch (const Base::Exception &error) {
+                    ADD_FAILURE() << "回写文本解析不回来：" << printed << " （" << error.message() << "）";
+                    continue;
+                }
                 EXPECT_TRUE(first->isSame(*second)) << printed;
             }
         }
@@ -502,6 +516,31 @@ namespace ExpressionEngine::Expression
             EXPECT_THROW(static_cast<void>(ExpressionParser::parse(nullptr, "len(2 mm)")->evaluate()), Base::TypeError);
             EXPECT_THROW(static_cast<void>(ExpressionParser::parse(nullptr, "upper(2)")->evaluate()), Base::TypeError);
             EXPECT_THROW(static_cast<void>(ExpressionParser::parse(nullptr, "contains(<<abc>>; 1)")->evaluate()), Base::TypeError);
+        }
+
+        /**
+         * @brief 钉住：单位写法的持久化文本再解析一次，算出的量不变
+         */
+        TEST(ExpressionParserTest, UnitExpressionTextRoundTrips)
+        {
+            // 回写的文本再解析一次必须算出同一个量：单位后置、幂、英制两段与带括号的除法逐条覆盖
+            for (const std::string &text: {"2 mm", "1/2 mm", "2 m/s", "3 mm^2", "1/2 mm + 2 mm", "5' 6\"", "(2 m) / (4 s)", "3 mm * 4 mm", "2 * mm"})
+            {
+                SCOPED_TRACE(text);
+                const ExpressionPtr first   = ExpressionParser::parse(nullptr, text);
+                const std::string   printed = first->toString(true, true);
+                const ExpressionPtr second  = ExpressionParser::parse(nullptr, printed);
+
+                const Units::Quantity left  = std::get<Units::Quantity>(first->evaluate());
+                const Units::Quantity right = std::get<Units::Quantity>(second->evaluate());
+                EXPECT_EQ(right.getUnit(), left.getUnit()) << printed;
+                EXPECT_DOUBLE_EQ(right.getValue(), left.getValue()) << printed;
+            }
+
+            // 「要速度请写 (2 m) / (4 s)」是 README 给的写法：它的回写文本必须还能解析回来
+            const std::string velocityText = ExpressionParser::parse(nullptr, "(2 m) / (4 s)")->toString(true, true);
+            EXPECT_EQ(velocityText, "(2 * m / (4 * s))");
+            EXPECT_EQ(std::get<Units::Quantity>(ExpressionParser::parse(nullptr, velocityText)->evaluate()).getUnit(), Units::Unit::Velocity);
         }
 
     } // namespace
