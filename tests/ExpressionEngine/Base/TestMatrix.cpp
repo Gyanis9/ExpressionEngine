@@ -322,3 +322,56 @@ TEST(Matrix4D, HatAndOuterFillOnlyTheThreeByThreeBlock)
 
     EXPECT_EQ(Matrix4D::getMemSpace(), static_cast<unsigned long>(sizeof(Matrix4D)));
 }
+
+/**
+ * @brief 钉住原始数组是行主序，与 OpenGL 的列主序互为转置
+ */
+TEST(Matrix4D, RawArrayIsRowMajorWhileOpenGLIsColumnMajor)
+{
+    Matrix4D moved;
+    moved.move(Vector3d(1.0, 2.0, 3.0));
+
+    double rowMajor[16] = {};
+    moved.getMatrix(rowMajor);
+    // 行主序：平移在每行的末尾
+    EXPECT_DOUBLE_EQ(rowMajor[3], 1.0);
+    EXPECT_DOUBLE_EQ(rowMajor[7], 2.0);
+    EXPECT_DOUBLE_EQ(rowMajor[11], 3.0);
+
+    double columnMajor[16] = {};
+    moved.getOpenGlMatrix(columnMajor);
+    EXPECT_DOUBLE_EQ(columnMajor[12], 1.0);
+    EXPECT_DOUBLE_EQ(columnMajor[3], 0.0);
+
+    Matrix4D restored;
+    restored.setMatrix(rowMajor);
+    EXPECT_TRUE(restored == moved);
+}
+
+/**
+ * @brief 钉住 multiplyVector 的异地与就地两种用法，float 与 double 同结果
+ */
+TEST(Matrix4D, MultiplyVectorWritesToTheGivenDestination)
+{
+    Matrix4D scaled;
+    scaled.scale(Vector3d(2.0, 3.0, 4.0));
+
+    Vector3d source(1.0, 1.0, 1.0);
+    Vector3d destination;
+    scaled.multiplyVector(source, destination);
+    EXPECT_TRUE(destination == Vector3d(2.0, 3.0, 4.0));
+    // 源不该被改写
+    EXPECT_TRUE(source == Vector3d(1.0, 1.0, 1.0));
+
+    // 同一个对象传两次即就地变换
+    Vector3d inPlace(1.0, 2.0, 3.0);
+    scaled.multiplyVector(inPlace, inPlace);
+    EXPECT_TRUE(inPlace == Vector3d(2.0, 6.0, 12.0));
+
+    Matrix4D scaledFloat;
+    scaledFloat.scale(Vector3f(2.0f, 3.0f, 4.0f));
+    Vector3f       sourceF(1.0f, 2.0f, 3.0f);
+    Vector3f       destinationF;
+    scaledFloat.multiplyVector(sourceF, destinationF);
+    EXPECT_TRUE(destinationF == Vector3f(2.0f, 6.0f, 12.0f));
+}
