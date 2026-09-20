@@ -322,5 +322,44 @@ namespace ExpressionEngine::Expression
             }
         }
 
+        /**
+         * @brief 钉住：折成常量的带单位数量，其持久化文本仍带着量纲
+         */
+        TEST(ExpressionParserTest, FoldedConstantKeepsItsUnit)
+        {
+            // 单量纲、复合量纲与角度量各一条：折成常量后文本必须带着量纲
+            for (const std::string &text: {"2 m + 3 m", "(2 m) / (4 s)", "(3 mm) * (4 mm)", "90 deg + 90 deg"})
+            {
+                SCOPED_TRACE(text);
+                const ExpressionPtr folded  = ExpressionParser::parse(nullptr, text)->simplify();
+                const std::string   printed = folded->toString(true);
+
+                const Units::Quantity original = quantityOf(text);
+                const Units::Quantity reparsed = quantityOf(printed);
+                EXPECT_NE(printed.find(original.getUnit().getString()), std::string::npos) << printed;
+                EXPECT_EQ(reparsed.getUnit(), original.getUnit()) << printed;
+                EXPECT_DOUBLE_EQ(reparsed.getValue(), original.getValue()) << printed;
+            }
+        }
+
+        /**
+         * @brief 钉住：几何与序列取值的持久化文本写成可重新解析的构造调用
+         */
+        TEST(ExpressionParserTest, GeometryAndListTextRoundTrip)
+        {
+            for (const std::string &text: {"vector(1; 2; 3)",
+                                           "matrix(1; 0; 0; 0; 0; 1; 0; 0; 0; 0; 1; 0; 0; 0; 0; 1)",
+                                           "rotation(0; 0; 0.5)",
+                                           "placement(vector(1; 2; 3); rotation(0; 0; 0.5))",
+                                           "list(vector(1; 2; 3); 2 m; <<文本>>)"})
+            {
+                SCOPED_TRACE(text);
+                const ExpressionPtr folded   = ExpressionParser::parse(nullptr, text)->simplify();
+                const std::string   printed  = folded->toString(true, true);
+                const ExpressionPtr reparsed = ExpressionParser::parse(nullptr, printed);
+                EXPECT_TRUE(valuesEqual(folded->evaluate(), reparsed->evaluate())) << printed;
+            }
+        }
+
     } // namespace
 }     // namespace ExpressionEngine::Expression

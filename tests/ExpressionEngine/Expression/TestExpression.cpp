@@ -955,7 +955,9 @@ namespace ExpressionEngine::Expression
 
             const ExpressionPtr wrapped = makeValueExpression(nullptr, Value(Base::Vector3d(1.0, 2.0, 3.0)));
             EXPECT_EQ(wrapped->nodeName(), "Value");
-            EXPECT_EQ(wrapped->toString(), "(1, 2, 3)");
+            // AST 文本写成可重新解析的构造调用；面向用户的紧凑写法仍是 (1, 2, 3)
+            EXPECT_EQ(wrapped->toString(), "vector(1; 2; 3)");
+            EXPECT_EQ(toString(Value(Base::Vector3d(1.0, 2.0, 3.0))), "(1, 2, 3)");
             EXPECT_TRUE(vectorOf(wrapped->evaluate()).isEqual(Base::Vector3d(1.0, 2.0, 3.0), 1e-12));
         }
 

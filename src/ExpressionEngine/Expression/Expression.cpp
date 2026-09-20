@@ -71,55 +71,6 @@ namespace ExpressionEngine::Expression
             return true;
         }
 
-        /// 数值的表达式文本；取 digits10 位有效数字，不写出无意义的尾数
-        std::string formatNumber(double value)
-        {
-            return std::format("{:.{}g}", value, std::numeric_limits<double>::digits10);
-        }
-
-        /// 把文本写成词法器 << >> 字符串的正文；反斜杠、结束符、文档分隔符与控制字符都要转义
-        [[nodiscard]] std::string escapeStringBody(const std::string &text)
-        {
-            std::string result;
-            result.reserve(text.size());
-            for (const char character: text)
-            {
-                switch (character)
-                {
-                    case '\\':
-                        result += "\\\\";
-                        break;
-                    case '>':
-                        // 正文里单独的 '>' 不是结束符的一部分，词法器会在此断开
-                        result += "\\>";
-                        break;
-                    case '#':
-                        // 未转义的 '#' 会把整段文本当成 <<文档#单元格>> 引用
-                        result += "\\#";
-                        break;
-                    case '\n':
-                        result += "\\n";
-                        break;
-                    case '\r':
-                        result += "\\r";
-                        break;
-                    case '\t':
-                        result += "\\t";
-                        break;
-                    default:
-                        result += character;
-                        break;
-                }
-            }
-            return result;
-        }
-
-        /// 文本的表达式写法：词法器只认 << >> 一种文本定界符，单引号是英尺单位
-        std::string quoteText(const std::string &text)
-        {
-            return "<<" + escapeStringBody(text) + ">>";
-        }
-
         /// 取值的可读文本；单独包一层是为了在成员函数里也能解析到这个自由函数
         std::string valueText(const Value &value)
         {
@@ -1007,7 +958,7 @@ namespace ExpressionEngine::Expression
                 return;
             case ComponentKind::MapKey:
                 text += '[';
-                text += quoteText(name);
+                text += quoteExpressionText(name);
                 text += ']';
                 return;
             case ComponentKind::Index:
@@ -1364,8 +1315,15 @@ namespace ExpressionEngine::Expression
 
     void NumberExpression::appendText(std::string &text, bool, int) const
     {
-        // 只写数值：单位由单位节点或 UNIT 运算符负责排版
-        text += formatNumber(getValue());
+        // 未化简的表达式里单位是独立的 UnitExpression 节点，这里只写数字；而化简折出来的
+        // 常量节点自带量纲，必须一并写出，否则文本读回来变成一个纯数
+        const Units::Quantity &quantity = getQuantity();
+        text += formatExpressionNumber(quantity.getValue());
+        if (!quantity.isDimensionless())
+        {
+            text += ' ';
+            text += quantity.getUnit().getString();
+        }
     }
 
     ExpressionPtr NumberExpression::copyNode() const
@@ -3109,7 +3067,7 @@ namespace ExpressionEngine::Expression
 
     void StringExpression::appendText(std::string &text, bool, int) const
     {
-        text += quoteText(m_text);
+        text += quoteExpressionText(m_text);
     }
 
     ExpressionPtr StringExpression::copyNode() const
@@ -3153,7 +3111,8 @@ namespace ExpressionEngine::Expression
 
     void ValueExpression::appendText(std::string &text, bool, int) const
     {
-        text += valueText(m_value);
+        // 按表达式的写法输出，保证几何值与序列也能被解析回来
+        text += toExpressionText(m_value);
     }
 
     ExpressionPtr ValueExpression::copyNode() const

@@ -34,7 +34,7 @@ namespace ExpressionEngine::Expression
     class ValueSequence
     {
     public:
-        ValueSequence() = default;   ///< 空序列
+        ValueSequence() = default; ///< 空序列
 
         /**
          * @brief 接管一份元素存储
@@ -61,7 +61,7 @@ namespace ExpressionEngine::Expression
         [[nodiscard]] const class ValueSequenceItems *items() const noexcept;
 
     private:
-        std::shared_ptr<class ValueSequenceItems> m_items;   ///< 元素存储，空序列时为空指针
+        std::shared_ptr<class ValueSequenceItems> m_items; ///< 元素存储，空序列时为空指针
     };
 
     /**
@@ -80,7 +80,7 @@ namespace ExpressionEngine::Expression
     class ValueSequenceItems
     {
     public:
-        std::vector<Value> values;   ///< 序列元素，构造后不再改动
+        std::vector<Value> values; ///< 序列元素，构造后不再改动
     };
 
     /// 是否数值型（数量或纯数）
@@ -148,6 +148,34 @@ namespace ExpressionEngine::Expression
 
     /// 把值转成可读文本；数量按当前单位方案排版，几何值给出其紧凑写法
     [[nodiscard]] std::string toString(const Value &value);
+
+    /**
+     * @brief 数值在表达式文本里的写法
+     * @details 取「能解析回同一个 double 的最短写法」，保证折成常量再写回文本不改变取值；
+     *          与面向用户的排版（按单位方案与小数位）分开，后者不保证可逆。
+     * @param value 数值
+     * @return 可直接解析回该数的文本
+     */
+    [[nodiscard]] std::string formatExpressionNumber(double value);
+
+    /**
+     * @brief 把文本写成表达式里的文本取值
+     * @details 词法器只认 << >> 一种文本定界符（单引号是英尺单位），正文里的反斜杠、'>'、
+     *          '#' 与控制字符一并转义，使写出的文本能被词法器原样读回。
+     * @param text 待写出的文本，可含任意字节
+     * @return 带定界符的表达式文本
+     */
+    [[nodiscard]] std::string quoteExpressionText(std::string_view text);
+
+    /**
+     * @brief 取值的表达式写法，保证能被解析器读回同一个值
+     * @details 与面向用户的 toString() 不同：几何值写成 vector()、matrix()、rotation()、
+     *          placement() 构造调用，序列写成 list(...)，数量在非纯数时带上单位符号，
+     *          文本按 << >> 定界，数值一律走 formatExpressionNumber()。
+     * @param value 待写出的取值
+     * @return 可重新解析的表达式文本
+     */
+    [[nodiscard]] std::string toExpressionText(const Value &value);
 
     /**
      * @brief 判断两个值是否相等

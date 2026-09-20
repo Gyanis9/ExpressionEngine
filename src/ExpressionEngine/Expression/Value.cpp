@@ -1,5 +1,7 @@
 #include <ExpressionEngine/Expression/Value.h>
 
+#include <array>
+#include <charconv>
 #include <cmath>
 #include <format>
 #include <limits>
@@ -300,6 +302,125 @@ namespace ExpressionEngine::Expression
                                           context, valueTypeName(value)));
     }
 
+    std::string formatExpressionNumber(const double value)
+    {
+        // to_chars 的默认浮点格式给出「能往返的最短写法」：既不多打一串无意义尾数，
+        // 也不会像固定 16 位那样把 0.1 + 0.2 写成 0.3 后解析回另一个数
+        std::array<char, 40>       buffer{};
+        const std::to_chars_result result = std::to_chars(buffer.data(), buffer.data() + buffer.size(), value);
+        if (result.ec != std::errc())
+        {
+            throw std::logic_error("数值无法排版成表达式文本；请检查该取值是否为有限的双精度数");
+        }
+        return std::string(buffer.data(), static_cast<std::size_t>(result.ptr - buffer.data()));
+    }
+
+    std::string quoteExpressionText(const std::string_view text)
+    {
+        std::string body;
+        body.reserve(text.size());
+        for (const char character: text)
+        {
+            switch (character)
+            {
+                case '\\':
+                    body += "\\\\";
+                    break;
+                case '>':
+                    // 正文里单独的 '>' 不是结束符的一部分，词法器会在此断开
+                    body += "\\>";
+                    break;
+                case '#':
+                    // 未转义的 '#' 会把整段文本当成 <<文档#单元格>> 引用
+                    body += "\\#";
+                    break;
+                case '\n':
+                    body += "\\n";
+                    break;
+                case '\r':
+                    body += "\\r";
+                    break;
+                case '\t':
+                    body += "\\t";
+                    break;
+                default:
+                    body += character;
+                    break;
+            }
+        }
+        return "<<" + body + ">>";
+    }
+
+    std::string toExpressionText(const Value &value)
+    {
+        if (const auto *quantity = std::get_if<Units::Quantity>(&value))
+        {
+            const std::string number = formatExpressionNumber(quantity->getValue());
+            // 纯数只写数字；带量纲的必须把量纲也写上，否则解析回来变成一个纯数
+            return quantity->isDimensionless() ? number : number + " " + quantity->getUnit().getString();
+        }
+        if (const auto *number = std::get_if<double>(&value))
+        {
+            return formatExpressionNumber(*number);
+        }
+        if (const auto *boolean = std::get_if<bool>(&value))
+        {
+            return *boolean ? "True" : "False";
+        }
+        if (const auto *text = std::get_if<std::string>(&value))
+        {
+            return quoteExpressionText(*text);
+        }
+        if (const auto *vector = std::get_if<Base::Vector3d>(&value))
+        {
+            return std::format("vector({}; {}; {})", formatExpressionNumber(vector->x), formatExpressionNumber(vector->y), formatExpressionNumber(vector->z));
+        }
+        if (const auto *matrix = std::get_if<Base::Matrix4D>(&value))
+        {
+            std::string text = "matrix(";
+            for (unsigned int row = 0; row < 4; ++row)
+            {
+                for (unsigned int column = 0; column < 4; ++column)
+                {
+                    if (row != 0 || column != 0)
+                    {
+                        text += "; ";
+                    }
+                    text += formatExpressionNumber((*matrix)[row][column]);
+                }
+            }
+            return text + ')';
+        }
+        if (const auto *rotation = std::get_if<Base::Rotation>(&value))
+        {
+            double yaw   = 0.0;
+            double pitch = 0.0;
+            double roll  = 0.0;
+            rotation->getYawPitchRoll(yaw, pitch, roll);
+            return std::format("rotation({}; {}; {})", formatExpressionNumber(yaw), formatExpressionNumber(pitch), formatExpressionNumber(roll));
+        }
+        if (const auto *placement = std::get_if<Base::Placement>(&value))
+        {
+            return std::format("placement({}; {})", toExpressionText(placement->getPosition()), toExpressionText(placement->getRotation()));
+        }
+        if (const auto *sequence = std::get_if<ValueSequence>(&value))
+        {
+            std::string               text   = "list(";
+            const std::vector<Value> &values = sequenceValues(*sequence);
+            for (std::size_t index = 0; index < values.size(); ++index)
+            {
+                if (index != 0)
+                {
+                    text += "; ";
+                }
+                text += toExpressionText(values[index]);
+            }
+            return text + ')';
+        }
+
+        throw std::logic_error("Value 出现未处理的备选类型，请同步更新 toExpressionText()");
+    }
+
     std::string toString(const Value &value)
     {
         if (const auto *quantity = std::get_if<Units::Quantity>(&value))
@@ -337,7 +458,7 @@ namespace ExpressionEngine::Expression
         }
         if (const auto *sequence = std::get_if<ValueSequence>(&value))
         {
-            std::string text = "list(";
+            std::string               text   = "list(";
             const std::vector<Value> &values = sequenceValues(*sequence);
             for (std::size_t index = 0; index < values.size(); ++index)
             {
