@@ -11,8 +11,10 @@ namespace
     using ExpressionEngine::Base::distance;
     using ExpressionEngine::Base::IndexError;
     using ExpressionEngine::Base::squaredDistance;
+    using ExpressionEngine::Base::toVector;
     using ExpressionEngine::Base::ValueError;
     using ExpressionEngine::Base::Vector3d;
+    using ExpressionEngine::Base::Vector3f;
 
 } // namespace
 
@@ -147,4 +149,52 @@ TEST(Vector3D, DistancesAndProjections)
     EXPECT_NEAR(Vector3d(0.0, 1.0, 0.0).getAngleOriented(Vector3d(1.0, 0.0, 0.0), Vector3d(0.0, 0.0, 1.0)), 3.0 * quarterTurn, 1e-12);
     // 参考法向反过来，同一个转向就落到另一侧
     EXPECT_NEAR(Vector3d(1.0, 0.0, 0.0).getAngleOriented(Vector3d(0.0, 1.0, 0.0), Vector3d(0.0, 0.0, -1.0)), 3.0 * quarterTurn, 1e-12);
+}
+
+/**
+ * @brief 钉住单分量的就地缩放、平移、旋转与坐标系换算
+ */
+TEST(Vector3D, PerComponentInPlaceOperations)
+{
+    Vector3d value(1.0, 2.0, 3.0);
+    value.scaleX(2.0);
+    value.scaleY(0.5);
+    value.scaleZ(-1.0);
+    EXPECT_TRUE(value == Vector3d(2.0, 1.0, -3.0));
+
+    value.moveX(1.0);
+    value.moveY(1.0);
+    value.moveZ(1.0);
+    EXPECT_TRUE(value == Vector3d(3.0, 2.0, -2.0));
+
+    value.set(4.0, 5.0, 6.0);
+    EXPECT_DOUBLE_EQ(value.z, 6.0);
+
+    // 右手定则：绕 X 转正 90° 把 Y 带到 Z，绕 Y 转正 90° 把 Z 带到 X
+    const double quarterTurn = std::asin(1.0);
+    Vector3d aroundX(0.0, 1.0, 0.0);
+    aroundX.rotateX(quarterTurn);
+    EXPECT_NEAR(aroundX.x, 0.0, 1e-12);
+    EXPECT_NEAR(aroundX.y, 0.0, 1e-12);
+    EXPECT_NEAR(aroundX.z, 1.0, 1e-12);
+
+    Vector3d aroundY(0.0, 0.0, 1.0);
+    aroundY.rotateY(quarterTurn);
+    EXPECT_NEAR(aroundY.x, 1.0, 1e-12);
+    EXPECT_NEAR(aroundY.y, 0.0, 1e-12);
+    EXPECT_NEAR(aroundY.z, 0.0, 1e-12);
+
+    // 换到给定坐标系：只取位移在三条正交基上的投影
+    Vector3d point(2.0, 2.0, 0.0);
+    point.transformToCoordinateSystem(Vector3d(1.0, 1.0, 0.0), Vector3d(1.0, 0.0, 0.0), Vector3d(0.0, 1.0, 0.0));
+    EXPECT_TRUE(point == Vector3d(1.0, 1.0, 0.0));
+    // 两条方向平行时补不出第三轴，报错而不是给一套退化的基
+    Vector3d degenerate(1.0, 1.0, 1.0);
+    EXPECT_THROW(degenerate.transformToCoordinateSystem(Vector3d(), Vector3d(1.0, 0.0, 0.0), Vector3d(2.0, 0.0, 0.0)),
+                 ValueError);
+
+    // 分量类型转换按逐个分量拷贝
+    const Vector3f shortened = toVector<float>(Vector3d(1.5, -2.5, 3.5));
+    EXPECT_NEAR(shortened.x, 1.5f, 1e-6);
+    EXPECT_TRUE((toVector<double>(shortened) == Vector3d(1.5, -2.5, 3.5)));
 }
