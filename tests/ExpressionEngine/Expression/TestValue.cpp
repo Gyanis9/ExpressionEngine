@@ -1,14 +1,18 @@
-// 本文件覆盖值模型 Value 的类型判定、转换与拒绝面：类型不符、量纲不匹配、文本解析失败。
+// 本文件覆盖值模型 Value 的类型判定、转换与拒绝面：类型不符、量纲不匹配、文本解析失败，
+// 以及取值回写成表达式文本后的往返。
 
 #include <gtest/gtest.h>
 
 #include <string>
+#include <string_view>
 #include <variant>
+#include <vector>
 
 #include <ExpressionEngine/Base/Exception.h>
 #include <ExpressionEngine/Base/Matrix.h>
 #include <ExpressionEngine/Base/Rotation.h>
 #include <ExpressionEngine/Base/Vector3D.h>
+#include <ExpressionEngine/Expression/ExpressionParser.h>
 #include <ExpressionEngine/Expression/Value.h>
 #include <ExpressionEngine/Units/Quantity.h>
 #include <ExpressionEngine/Units/Unit.h>
@@ -234,6 +238,52 @@ namespace ExpressionEngine::Expression
             EXPECT_FALSE(valuesEqual(makeValueSequence({Value(1.0)}), Value(1.0)));
             // 序列之间没有大小关系
             EXPECT_THROW(static_cast<void>(valueLessThan(nested, nested)), Base::TypeError);
+        }
+
+        /**
+         * @brief 钉住：文本取值回写的档案文本能解析回同一个值
+         * @details 定界符 <<…>> 本身、引用分隔符 #、反斜杠与控制字符都是能打断往返的字节；
+         *          宿主存回的文本一旦解析成另一个值，存档就悄悄改了内容。
+         */
+        TEST(ValueTest, TextValuesRoundTripThroughArchiveText)
+        {
+            const std::vector<std::pair<std::string, std::string> > hostile{
+                    {"空文本", std::string{}},
+                    {"普通文本", "plain"},
+                    {"含结束符", "a>>b"},
+                    {"含起始符", "a<<b"},
+                    {"以结束符开头", ">lead"},
+                    {"以结束符结尾", "tail>"},
+                    {"含引用分隔符", "Sheet#A1"},
+                    {"含反斜杠", "back\\slash"},
+                    {"含换行", "line\nbreak"},
+                    {"含回车", "cr\rhere"},
+                    {"含制表符", "tab\there"},
+                    {"反斜杠贴着结束符", "\\>>"},
+                    {"含双引号", "\"quoted\""},
+                    {"含单引号", "'single'"},
+                    {"含英寸符号", "6\" x 2'"},
+                    {"多字节文本", "中文 é 😀"},
+                    {"内嵌 NUL", std::string("a\0b", 3)},
+            };
+
+            for (const auto &[label, text]: hostile)
+            {
+                const Value           original{text};
+                const std::string     written = toExpressionText(original);
+                const auto            parsed  = ExpressionParser::tryParse(nullptr, written);
+
+                ASSERT_TRUE(parsed.has_value()) << label << " 回写成：" << written << " 解析失败：" << parsed.error().message;
+
+                const auto readBack = (*parsed)->tryEvaluate();
+                ASSERT_TRUE(readBack.has_value()) << label << " 取值失败：" << readBack.error().message;
+
+                // 值不是文本时不要抛 bad_any_cast，先报「变成了别的东西」
+                const auto *readBackText = std::get_if<std::string>(&readBack.value());
+                ASSERT_NE(readBackText, nullptr) << label << " 回写成 " << written << " 后不再是文本取值";
+                EXPECT_EQ(readBackText->size(), text.size()) << label << " 回写成 " << written << " 后长度变了";
+                EXPECT_TRUE(valuesEqual(original, readBack.value())) << label << " 回写成 " << written << " 后解析成了另一个值";
+            }
         }
 
     } // namespace
