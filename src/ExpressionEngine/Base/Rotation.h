@@ -61,8 +61,9 @@ namespace ExpressionEngine::Base
 
         /**
          * @brief 构造把 rotateFrom 方向转到 rotateTo 方向的旋转
-         * @param rotateFrom 起始方向，零向量时方向未定义
+         * @param rotateFrom 起始方向
          * @param rotateTo 目标方向
+         * @throws ValueError 任一方向是零向量
          */
         Rotation(const Vector3d &rotateFrom, const Vector3d &rotateTo);
 
@@ -131,8 +132,9 @@ namespace ExpressionEngine::Base
 
         /**
          * @brief 构造把 Z 轴转到 normal 方向的旋转
-         * @param normal 目标法向
-         * @return 旋转；normal 为零向量时方向未定义
+         * @param normal 目标法向，非零即可（长度不影响结果方向）
+         * @return 旋转
+         * @throws ValueError normal 是零向量
          */
         static Rotation fromNormalVector(const Vector3d &normal);
 
@@ -217,6 +219,7 @@ namespace ExpressionEngine::Base
          * @brief 设置把 rotateFrom 方向转到 rotateTo 方向的最短旋转
          * @param rotateFrom 起始方向
          * @param rotateTo 目标方向
+         * @throws ValueError 任一方向是零向量
          */
         void setValue(const Vector3d &rotateFrom, const Vector3d &rotateTo);
 
