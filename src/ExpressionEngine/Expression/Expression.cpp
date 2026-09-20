@@ -3398,7 +3398,9 @@ namespace ExpressionEngine::Expression
                                               "请改成单元格地址，别名请由宿主的属性提供",
                                               m_begin, m_end));
         }
-        return {begin, end};
+        // 端点先后顺序不参与语义：反向拖选（B2:A1）与正向（A1:B2）指同一片单元格，
+        // 不整理就会只遍历到起点，sum() 于是悄悄少算一整片
+        return {begin, end, true};
     }
 
     ExpressionPtr RangeExpression::simplify() const

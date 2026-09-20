@@ -327,27 +327,26 @@ namespace ExpressionEngine::Expression
         {
             std::swap(m_columnBegin, m_columnEnd);
         }
+        // 端点换过之后旧游标可能落在区间之外，遍历会漏掉前面一整片
+        m_rowCurrent    = m_rowBegin;
+        m_columnCurrent = m_columnBegin;
     }
 
     bool Range::next() const
     {
+        // 先把当前列自上而下走完，再换到下一列（A1, A2, …, B1, B2, …）
         if (m_rowCurrent < m_rowEnd)
         {
             ++m_rowCurrent;
             return true;
         }
-        if (m_columnCurrent < m_columnEnd)
+        if (m_columnCurrent >= m_columnEnd)
         {
-            // 上一轮已经走到最后一行的下一格时结束，避免重复访问第一行
-            if (m_rowCurrent == m_rowEnd + 1)
-            {
-                return false;
-            }
-            m_rowCurrent = m_rowBegin;
-            ++m_columnCurrent;
-            return true;
+            return false;
         }
-        return false;
+        m_rowCurrent = m_rowBegin;
+        ++m_columnCurrent;
+        return true;
     }
 
     int Range::row() const noexcept

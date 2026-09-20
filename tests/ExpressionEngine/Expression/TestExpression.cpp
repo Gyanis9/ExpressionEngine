@@ -795,6 +795,14 @@ namespace ExpressionEngine::Expression
             auto unboundSum = std::make_unique<FunctionExpression>(nullptr, Function::Sum, "sum", std::move(unboundArguments));
             EXPECT_THROW(static_cast<void>(unboundSum->evaluate()), Base::NameError);
 
+            // 反向拖选的选区与正向同义：B2:A1 就是 A1:B2 这一片
+            sheet.addProperty("B1", "Length", Value(Units::Quantity(4.0, Units::Unit::Length)));
+            sheet.addProperty("B2", "Length", Value(Units::Quantity(5.0, Units::Unit::Length)));
+            std::vector<ExpressionPtr> reversedArguments;
+            reversedArguments.push_back(std::make_unique<RangeExpression>(&resolver, "B2", "A1"));
+            auto reversedSum = std::make_unique<FunctionExpression>(&resolver, Function::Sum, "sum", std::move(reversedArguments));
+            EXPECT_DOUBLE_EQ(quantityOf(reversedSum->evaluate()).getValue(), 12.0);
+
             // 非法单元格地址在取区间时报错
             auto invalidRange = std::make_unique<RangeExpression>(&resolver, "?", "A2");
             EXPECT_THROW(static_cast<void>(invalidRange->getRange()), EvaluationError);

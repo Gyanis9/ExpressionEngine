@@ -12,6 +12,7 @@
 #include <compare>
 #include <string>
 #include <string_view>
+#include <utility>
 
 #include <ExpressionEngine/Base/Exception.h>
 
@@ -127,6 +128,19 @@ namespace ExpressionEngine::Expression
     };
 
     /**
+     * @brief 组合 CellAddress::Cell 的显示选项位
+     * @details 有作用域枚举不自带按位或（标准没给 flag enum 补上这个），而头文件承诺样式位
+     *          可以直接相或，因此在这里补一个：宿主写 Absolute | ShowRowColumn 不必自己降级成 unsigned。
+     * @param left 已有样式位
+     * @param right 要并进来的样式位
+     * @return 两者按位或的结果
+     */
+    [[nodiscard]] constexpr CellAddress::Cell operator|(const CellAddress::Cell left, const CellAddress::Cell right) noexcept
+    {
+        return static_cast<CellAddress::Cell>(std::to_underlying(left) | std::to_underlying(right));
+    }
+
+    /**
      * @brief 把地址文本解析成单元格地址
      * @param address 形如 "A1"、"$B$2" 的文本
      * @param silent true 时解析失败返回无效地址，false 时抛错
@@ -161,8 +175,9 @@ namespace ExpressionEngine::Expression
 
     /**
      * @brief 单元格区间迭代器
-     * @details 区间至少含一个单元格，遍历写法固定为 do { ... } while (range.next());，
-     *          首次取值前不需要调用 next()。行列顺序上先沿列推进，再换行。
+     * @details 遍历写法固定为 do { ... } while (range.next());，首次取值前不需要调用 next()。
+     *          顺序是先把当前列自上而下走完，再换到下一列（A1、A2、…、B1、B2、…）。
+     *          端点要满足起点在左上：反向端点先 normalize()，否则行数、列数与遍历范围都不成立。
      */
     class Range
     {
@@ -201,7 +216,10 @@ namespace ExpressionEngine::Expression
          */
         [[nodiscard]] bool next() const;
 
-        /// 整理区间，使起点在左上、终点在右下
+        /**
+         * @brief 整理区间，使起点在左上、终点在右下
+         * @details 游标跟着回到新的起点：端点换过之后从旧位置开始遍历会漏掉整片区间。
+         */
         void normalize();
 
         /// 当前行，0 起
@@ -210,10 +228,10 @@ namespace ExpressionEngine::Expression
         /// 当前列，0 起
         [[nodiscard]] int column() const noexcept;
 
-        /// 区间行数，至少为 1
+        /// 区间行数，含首尾两端（端点已整理时至少为 1）
         [[nodiscard]] int rowCount() const noexcept;
 
-        /// 区间列数，至少为 1
+        /// 区间列数，含首尾两端（端点已整理时至少为 1）
         [[nodiscard]] int columnCount() const noexcept;
 
         /// 起始地址
@@ -231,7 +249,10 @@ namespace ExpressionEngine::Expression
         /// 结束地址文本
         [[nodiscard]] std::string toCellText() const;
 
-        /// 当前地址文本，可作为宿主的属性名使用
+        /**
+         * @brief 当前地址文本，可作为宿主的属性名使用
+         * @details 区间只记行列坐标，不带 '$' 绝对标记，因此 "A1" 这类名字可直接当作属性名查。
+         */
         [[nodiscard]] std::string address() const;
 
         /// 区间文本，形如 "A1:B2"
