@@ -177,10 +177,10 @@ namespace ExpressionEngine::Expression
     protected:
         /**
          * @brief 节点自身的求值
-         * @details 重写 Expression::evaluateNode()：组装调用上下文后转交宿主回调，随后把
-         *          分量逐段作用在回调给出的取值上，使 myVector(x; y; z)[0] 这类写法可用。
-         * @return 回调给出的取值（或它按分量取出的子值）
-         * @throws Base::Exception 回调抛出的异常，或分量无法作用在取值上
+         * @details 重写 Expression::evaluateNode()：组装调用上下文后转交宿主回调，
+         *          分量由基类统一作用在回调给出的取值上，使 myVector(x; y; z)[0] 这类写法可用。
+         * @return 回调给出的取值
+         * @throws Base::Exception 回调抛出的异常
          */
         [[nodiscard]] Value evaluateNode() const override;
 
@@ -208,14 +208,6 @@ namespace ExpressionEngine::Expression
          * @return 恒为 true
          */
         [[nodiscard]] bool isIndexable() const override;
-
-        /**
-         * @brief 本节点能把分量作用在回调取值上
-         * @details 重写 Expression::supportsComponentAccess()：与只读宿主属性的引用节点同理，
-         *          分量作用在本节点求出的值上，因此恒为 true。
-         * @return 恒为 true
-         */
-        [[nodiscard]] bool supportsComponentAccess() const noexcept override;
 
         /**
          * @brief 递归收集全部实参里的变量引用

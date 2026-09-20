@@ -317,12 +317,14 @@ namespace ExpressionEngine::Expression
                         throwArgumentCount(label, "至少 1 个参数", argumentCount);
                     }
                     return;
-                case Function::Create:
                 case Function::List:
+                    // list() 取任意个实参，零个即空序列
+                    return;
+                case Function::Create:
                 case Function::Tuple:
-                    // 这三个函数要造宿主对象，本库没有 Python 对象模型，构造期就拦下
+                    // 这两个函数要造宿主对象，本库没有 Python 对象模型，构造期就拦下
                     throw EvaluationError(std::format("{}() 依赖宿主提供的对象工厂；请改用 "
-                                                      "matrix()、vector()、rotation()、placement() 这些构造函数，"
+                                                      "list()、matrix()、vector()、rotation()、placement() 这些构造函数，"
                                                       "或由宿主属性直接给出取值",
                                                       label));
                 case Function::None:
@@ -848,6 +850,20 @@ namespace ExpressionEngine::Expression
             } while (range.next());
         }
 
+        /// 把单个标量取值喂给收集器
+        void collectScalar(Collector &collector, const Value &value, std::string_view context)
+        {
+            // 类型不符直接报错而不是跳过：静默跳过会让 sum() 悄悄给出偏小的结果
+            double magnitude = 0.0;
+            if (!numericMagnitude(value, magnitude))
+            {
+                throw Base::TypeError(std::format("聚合函数的实参需要数值，实际是{}；请改用数值属性，"
+                                                  "或改用 count() 之外的处理方式",
+                                                  valueTypeName(value)));
+            }
+            collector.collect(toQuantity(value, context));
+        }
+
         /// 按聚合函数种类收集所有实参
         Value collectAggregate(const Expression &context, FunctionExpression::Function function, const std::vector<ExpressionPtr> &arguments)
         {
@@ -892,16 +908,17 @@ namespace ExpressionEngine::Expression
                     continue;
                 }
 
-                // 类型不符直接报错而不是跳过：静默跳过会让 sum() 悄悄给出偏小的结果
-                const Value value     = argument->evaluate();
-                double      magnitude = 0.0;
-                if (!numericMagnitude(value, magnitude))
+                const Value value = argument->evaluate();
+                if (const auto *sequence = std::get_if<ValueSequence>(&value))
                 {
-                    throw Base::TypeError(std::format("聚合函数的实参需要数值，实际是{}；请改用数值属性，"
-                                                      "或改用 count() 之外的处理方式",
-                                                      valueTypeName(value)));
+                    // 序列实参摊开成逐个元素，sum(list(1; 2)) 与 sum(1; 2) 同义
+                    for (const Value &item: sequenceValues(*sequence))
+                    {
+                        collectScalar(*collector, item, "聚合函数的序列实参");
+                    }
+                    continue;
                 }
-                collector->collect(toQuantity(value, "聚合函数的实参"));
+                collectScalar(*collector, value, "聚合函数的实参");
             }
 
             return collector->getQuantity();
@@ -1040,16 +1057,20 @@ namespace ExpressionEngine::Expression
 
     Value Expression::evaluate() const
     {
-        if (!m_components.empty() && !supportsComponentAccess())
+        Value result = evaluateNode();
+        if (m_components.empty())
         {
-            // 分量目前只接在能解析到宿主属性的引用上；其余节点若静默忽略，表达式会取到
-            // 整体值而不是子值。这里在读数之前拦下，避免连宿主属性都不必要地读一遍
-            throw EvaluationError(std::format("表达式 {} 带有分量或下标，但当前节点无法按分量取值；"
-                                              "分量访问要求引用能解析到宿主属性（请给表达式注入对象解析器），"
-                                              "区间分量只能作为聚合函数的实参",
-                                              toString(true)));
+            return result;
         }
-        return evaluateNode();
+
+        // 分量按值语义逐段作用在求值结果上：Box.Placement.Base[0] 先取向量再取 x，
+        // list(1; 2)[1] 取第二项。不支持该分量的取值由 applyComponent 报出具体原因
+        const std::string context = std::format("表达式 {} 的分量访问", toString(true));
+        for (const auto &component: m_components)
+        {
+            result = applyComponent(result, component, context);
+        }
+        return result;
     }
 
     ExpressionPtr Expression::evaluateToConstantNode() const
@@ -1096,12 +1117,6 @@ namespace ExpressionEngine::Expression
     void Expression::collectReferencesInto(std::vector<VariableReference> &) const
     {
         // 基类不知道子节点结构：默认不收集，复合节点覆写后递归子表达式
-    }
-
-    bool Expression::supportsComponentAccess() const noexcept
-    {
-        // 默认节点没有可施加分量的宿主取值；引用节点按需覆写
-        return false;
     }
 
     int Expression::priority() const
@@ -2014,6 +2029,18 @@ namespace ExpressionEngine::Expression
         if (isAggregate(function))
         {
             return evaluateAggregate(context, function, arguments);
+        }
+
+        if (function == Function::List)
+        {
+            // 实参可以是任意取值，逐个求值后原样装进序列；list() 允许零个实参
+            std::vector<Value> values;
+            values.reserve(arguments.size());
+            for (const auto &argument: arguments)
+            {
+                values.push_back(argument->evaluate());
+            }
+            return makeValueSequence(std::move(values));
         }
 
         if (arguments.empty())
@@ -3032,19 +3059,7 @@ namespace ExpressionEngine::Expression
         {
             throw Base::AttributeError(std::format("属性 '{}' 尚未赋值，表达式无法取值；请先给该属性赋值", pathText()));
         }
-        if (!hasComponent())
-        {
-            return *value;
-        }
-
-        // 分量在解析到基属性之后逐段作用在属性值上：Box.Placement.Base[0] 先取向量再取 x
-        Value             result  = *value;
-        const std::string context = std::format("引用 '{}' 的分量访问", pathText());
-        for (const auto &component: components())
-        {
-            result = applyComponent(result, component, context);
-        }
-        return result;
+        return *value;
     }
 
     void VariableExpression::appendText(std::string &text, bool, int) const
@@ -3244,13 +3259,6 @@ namespace ExpressionEngine::Expression
     void VariableExpression::collectReferencesInto(std::vector<VariableReference> &collectedReferences) const
     {
         collectedReferences.push_back(m_reference);
-    }
-
-    bool VariableExpression::supportsComponentAccess() const noexcept
-    {
-        // 与基类差异：引用节点能把分量作用在解析到的属性值上，但前提是有解析器，
-        // 否则连基属性都拿不到；此时仍按基类统一报错，而不是误报「属性不存在」
-        return resolver() != nullptr;
     }
 
 } // namespace ExpressionEngine::Expression

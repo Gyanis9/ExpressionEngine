@@ -9,9 +9,12 @@
 
 #pragma once
 
+#include <cstddef>
+#include <memory>
 #include <string>
 #include <string_view>
 #include <variant>
+#include <vector>
 
 #include <ExpressionEngine/Base/Matrix.h>
 #include <ExpressionEngine/Base/Placement.h>
@@ -23,18 +26,94 @@ namespace ExpressionEngine::Expression
 {
 
     /**
+     * @brief 有序序列取值
+     * @details list() 的取值形态，元素仍是 Value。Value 是个别名、无法前向声明，所以元素存储
+     *          单独放进载体 ValueSequenceItems（定义在本文件 Value 别名之后），本类只持有它。
+     *          序列一经构造就不可变，拷贝与移动只转手共享指针，与深拷贝无法从外部区分。
+     */
+    class ValueSequence
+    {
+    public:
+        ValueSequence() = default;   ///< 空序列
+
+        /**
+         * @brief 接管一份元素存储
+         * @param items 元素存储；宿主通常改用 makeValueSequence()
+         */
+        explicit ValueSequence(std::shared_ptr<class ValueSequenceItems> items);
+
+        /**
+         * @brief 元素个数
+         * @return 元素个数
+         */
+        [[nodiscard]] std::size_t size() const noexcept;
+
+        /**
+         * @brief 是否为空序列
+         * @return 没有元素时为 true
+         */
+        [[nodiscard]] bool empty() const noexcept;
+
+        /**
+         * @brief 取元素存储
+         * @return 元素存储；默认构造的空序列返回 nullptr
+         */
+        [[nodiscard]] const class ValueSequenceItems *items() const noexcept;
+
+    private:
+        std::shared_ptr<class ValueSequenceItems> m_items;   ///< 元素存储，空序列时为空指针
+    };
+
+    /**
      * @brief 表达式与属性之间的值
      * @details 固定类型集合而非任意类型：运算与函数的取值路径都能被编译器穷举检查，
      *          类型不符在编译错而不是等到运行期才发现。宿主若要承载自定义类型，
      *          应把它映射到这几类之一（如序列化成文本），而不是往值里塞任意对象。
      */
-    using Value = std::variant<Units::Quantity, double, bool, std::string, Base::Vector3d, Base::Matrix4D, Base::Rotation, Base::Placement>;
+    using Value = std::variant<Units::Quantity, double, bool, std::string, Base::Vector3d, Base::Matrix4D, Base::Rotation, Base::Placement, ValueSequence>;
+
+    /**
+     * @brief 序列的元素载体
+     * @details 必须定义在 Value 别名之后（元素类型就是 Value 本身），因此与 ValueSequence 分开。
+     *          构造序列请走 makeValueSequence()，本类只负责装元素。
+     */
+    class ValueSequenceItems
+    {
+    public:
+        std::vector<Value> values;   ///< 序列元素，构造后不再改动
+    };
 
     /// 是否数值型（数量或纯数）
     [[nodiscard]] bool isNumeric(const Value &value);
 
     /// 是否几何型（向量、矩阵、旋转、位姿）
     [[nodiscard]] bool isGeometric(const Value &value);
+
+    /// 是否序列型（list() 的取值）
+    [[nodiscard]] bool isSequence(const Value &value);
+
+    /**
+     * @brief 造一个序列取值
+     * @param values 元素，按值接收所有权
+     * @return 序列取值；传入空列表得到空序列
+     */
+    [[nodiscard]] ValueSequence makeValueSequence(std::vector<Value> values);
+
+    /**
+     * @brief 取序列的全部元素
+     * @param sequence 序列取值
+     * @return 元素列表的只读引用；空序列返回空列表
+     */
+    [[nodiscard]] const std::vector<Value> &sequenceValues(const ValueSequence &sequence);
+
+    /**
+     * @brief 按下标取序列元素
+     * @param sequence 序列取值
+     * @param index 下标，0 起
+     * @return 元素引用，指向序列自身的存储
+     * @throws Base::IndexError 下标越界
+     */
+    [[nodiscard]] const Value &sequenceAt(const ValueSequence &sequence, std::size_t index);
 
     /// 取值的类型名，用于报错文案（如 "数量"、"文本"、"向量"）
     [[nodiscard]] std::string_view valueTypeName(const Value &value);

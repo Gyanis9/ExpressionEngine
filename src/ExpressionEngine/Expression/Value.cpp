@@ -3,10 +3,12 @@
 #include <cmath>
 #include <format>
 #include <limits>
+#include <memory>
 #include <optional>
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <variant>
 
 #include <ExpressionEngine/Base/Exception.h>
@@ -113,6 +115,53 @@ namespace ExpressionEngine::Expression
 
     } // namespace
 
+    ValueSequence::ValueSequence(std::shared_ptr<ValueSequenceItems> items) : m_items(std::move(items))
+    {
+    }
+
+    std::size_t ValueSequence::size() const noexcept
+    {
+        // 默认构造的序列不带存储，与「零个元素」同义
+        return m_items == nullptr ? 0 : m_items->values.size();
+    }
+
+    bool ValueSequence::empty() const noexcept
+    {
+        return size() == 0;
+    }
+
+    const ValueSequenceItems *ValueSequence::items() const noexcept
+    {
+        return m_items.get();
+    }
+
+    ValueSequence makeValueSequence(std::vector<Value> values)
+    {
+        if (values.empty())
+        {
+            return ValueSequence();
+        }
+        return ValueSequence(std::make_shared<ValueSequenceItems>(ValueSequenceItems{std::move(values)}));
+    }
+
+    const std::vector<Value> &sequenceValues(const ValueSequence &sequence)
+    {
+        static const std::vector<Value> s_empty;
+        const ValueSequenceItems       *items = sequence.items();
+        return items == nullptr ? s_empty : items->values;
+    }
+
+    const Value &sequenceAt(const ValueSequence &sequence, const std::size_t index)
+    {
+        const std::vector<Value> &values = sequenceValues(sequence);
+        if (index >= values.size())
+        {
+            throw Base::IndexError(std::format("序列只有 {} 个元素，却要取第 {} 个；下标从 0 到 {}；请改用范围内的下标",
+                                               values.size(), index, values.size() == 0 ? 0 : values.size() - 1));
+        }
+        return values[index];
+    }
+
     bool isNumeric(const Value &value)
     {
         return std::holds_alternative<Units::Quantity>(value) || std::holds_alternative<double>(value);
@@ -122,6 +171,11 @@ namespace ExpressionEngine::Expression
     {
         return std::holds_alternative<Base::Vector3d>(value) || std::holds_alternative<Base::Matrix4D>(value) || std::holds_alternative<Base::Rotation>(value) ||
                std::holds_alternative<Base::Placement>(value);
+    }
+
+    bool isSequence(const Value &value)
+    {
+        return std::holds_alternative<ValueSequence>(value);
     }
 
     std::string_view valueTypeName(const Value &value)
@@ -154,7 +208,11 @@ namespace ExpressionEngine::Expression
         {
             return "旋转";
         }
-        return "位姿";
+        if (std::holds_alternative<Base::Placement>(value))
+        {
+            return "位姿";
+        }
+        return "序列";
     }
 
     Units::Quantity toQuantity(const Value &value, std::string_view context)
@@ -184,6 +242,13 @@ namespace ExpressionEngine::Expression
                                                     "请写成 '1.5 mm'、'90 deg' 这样的形式",
                                                     context, *text, error.message()));
             }
+        }
+
+        if (const auto *sequence = std::get_if<ValueSequence>(&value))
+        {
+            throw Base::TypeError(std::format("{}需要数量，但拿到的是含 {} 个元素的序列；请用 [下标] 取出单个元素，"
+                                              "或改用 sum()、average() 等聚合函数",
+                                              context, sequence->size()));
         }
 
         throw Base::TypeError(std::format("{}需要数量，但拿到的是{}；几何值请改用 vdot()、vangle() 等向量函数"
@@ -270,6 +335,21 @@ namespace ExpressionEngine::Expression
         {
             return formatPlacement(*placement);
         }
+        if (const auto *sequence = std::get_if<ValueSequence>(&value))
+        {
+            std::string text = "list(";
+            const std::vector<Value> &values = sequenceValues(*sequence);
+            for (std::size_t index = 0; index < values.size(); ++index)
+            {
+                if (index != 0)
+                {
+                    text += "; ";
+                }
+                text += toString(values[index]);
+            }
+            text += ')';
+            return text;
+        }
 
         // 变体没有其它备选类型，走到这里说明 Value 的定义与排版函数脱节，属于库内部不一致
         throw std::logic_error("Value 出现未处理的备选类型，请同步更新 toString()");
@@ -314,6 +394,22 @@ namespace ExpressionEngine::Expression
                     } else if constexpr (std::is_same_v<LeftType, Base::Rotation>)
                     {
                         return leftValue.isSame(rightValue, Base::Precision::angular());
+                    } else if constexpr (std::is_same_v<LeftType, ValueSequence>)
+                    {
+                        const std::vector<Value> &leftValues  = sequenceValues(leftValue);
+                        const std::vector<Value> &rightValues = sequenceValues(rightValue);
+                        if (leftValues.size() != rightValues.size())
+                        {
+                            return false;
+                        }
+                        for (std::size_t position = 0; position < leftValues.size(); ++position)
+                        {
+                            if (!valuesEqual(leftValues[position], rightValues[position]))
+                            {
+                                return false;
+                            }
+                        }
+                        return true;
                     } else
                     {
                         // 备选类型只剩位姿；若 Value 将来新增备选，这里的静态断言会先报出来

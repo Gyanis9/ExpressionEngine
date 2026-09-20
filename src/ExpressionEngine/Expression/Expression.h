@@ -64,9 +64,9 @@ namespace ExpressionEngine::Expression
     /**
      * @brief 表达式节点基类
      * @details 每个节点自己完成求值、化简、文本化与深拷贝；对象引用通过宿主注入的
-     *          IObjectResolver 解析，节点不持有对象树的所有权。分量由各节点自行解释：
-     *          引用节点在解析到宿主属性后按分量逐段取子值，其余节点遇到分量时明确报错，
-     *          不会静默忽略。
+     *          IObjectResolver 解析，节点不持有对象树的所有权。分量由 evaluate() 统一作用在
+     *          节点求出的取值上（引用节点因此是「先解析属性、再逐段取子值」），取值不支持
+     *          某个分量时明确报错，不会静默忽略。
      */
     class Expression
     {
@@ -198,8 +198,8 @@ namespace ExpressionEngine::Expression
         [[nodiscard]] IObjectResolver *resolver() const noexcept;
 
         /**
-         * @brief 求值
-         * @return 求值结果
+         * @brief 求值，并把本节点的分量逐段作用在求值结果上
+         * @return 求值结果（或它按分量取出的子值）
          * @throws Base::Exception 各类求值失败；调用方可用 Base::Exception 统一兜住
          */
         [[nodiscard]] Value evaluate() const;
@@ -342,14 +342,6 @@ namespace ExpressionEngine::Expression
         [[nodiscard]] virtual bool isIndexable() const;
 
         /**
-         * @brief 本节点能否自行把分量作用到求值结果上
-         * @details 只有引用节点在绑定了解析器时才能（分量作用在解析到的属性值上）；其余
-         *          节点遇到分量时由 evaluate() 明确报错，避免静默取到整体值。
-         * @return 能按分量取值时为 true；默认 false
-         */
-        [[nodiscard]] virtual bool supportsComponentAccess() const noexcept;
-
-        /**
          * @brief 收集本节点子树里的变量引用
          * @details 基类不知道子节点结构，默认什么都不收集；复合节点覆写后递归子表达式，
          *          引用节点覆写后把自身追加进列表。去重由 collectReferences() 统一完成。
@@ -368,7 +360,7 @@ namespace ExpressionEngine::Expression
 
     private:
         IObjectResolver *m_resolver;   ///< 对象解析器，不持所有权，可为空
-        ComponentList    m_components; ///< 分量列表，由各节点按 supportsComponentAccess() 的约定解释
+        ComponentList    m_components; ///< 分量列表，由 evaluate() 统一作用在求值结果上
         std::string      m_comment;    ///< 注释
     };
 
@@ -956,7 +948,7 @@ namespace ExpressionEngine::Expression
 
             // 构造函数
             Create,            ///< create：按类型名造对象，本库不支持
-            List,              ///< list：造列表，本库不支持
+            List,              ///< list：造序列取值，可含任意类型的元素
             Matrix,            ///< matrix：造矩阵
             Placement,         ///< placement：造位姿
             Rotation,          ///< rotation：造旋转
@@ -966,7 +958,7 @@ namespace ExpressionEngine::Expression
             Stringify,         ///< str：转文本
             ParseQuantity,     ///< parsequant：解析数量文本
             TranslationMatrix, ///< translationm：造平移矩阵
-            Tuple,             ///< tuple：造元组，本库不支持
+            Tuple,             ///< tuple：造元组，依赖宿主对象工厂，本库用 list 表达同义
             Vector,            ///< vector：造向量
 
             // 单元格
@@ -1114,9 +1106,9 @@ namespace ExpressionEngine::Expression
      * @brief 变量引用节点
      * @details 引用被解耦成「文档名 + 对象名 + 属性名」三元组，由宿主注入的 IObjectResolver
      *          解析成对象，再经 IPropertyContainer::findProperty 与 IProperty 读写取值。
-     *          解析到基属性后分量按值语义逐段取值：下标取向量分量或文本字符；区间、映射键
-     *          与名字分量在取值路径上给出明确报错（分别提示聚合函数、值模型无映射类型、
-     *          名字指向子属性），完整标识符模型留给后续 Identifier 模块。
+     *          解析到基属性后分量按值语义逐段取值：下标与区间分别取元素与子序列（区间得到
+     *          序列取值），映射键与名字分量在取值路径上给出明确报错（值模型没有映射类型、
+     *          名字指向对象子属性），完整标识符模型留给后续 Identifier 模块。
      */
     class VariableExpression : public UnitExpression
     {
@@ -1227,15 +1219,6 @@ namespace ExpressionEngine::Expression
          * @return 恒为 true
          */
         [[nodiscard]] bool isIndexable() const override;
-
-        /**
-         * @brief 引用节点在绑定了解析器时支持分量取值
-         * @details 与基类实现的差异：分量作用在解析到的属性值上（先解析基属性、再逐段取
-         *          子值），因此必须存在解析器；未绑定解析器时返回 false，由基类在读数之前
-         *          统一报错，避免把「没有解析器」误报成「属性不存在」。
-         * @return 绑定了解析器时为 true
-         */
-        [[nodiscard]] bool supportsComponentAccess() const noexcept override;
 
         /**
          * @brief 把自身引用追加进列表

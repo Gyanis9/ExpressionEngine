@@ -179,5 +179,62 @@ namespace ExpressionEngine::Expression
             EXPECT_THROW(static_cast<void>(valueLessThan(Value(std::string("a")), Value(1.0))), Base::TypeError);
         }
 
+        /**
+         * @brief 钉住：序列取值的构造、元素访问与越界拒绝
+         */
+        TEST(ValueTest, SequenceConstructionAndAccess)
+        {
+            const ValueSequence sequence = makeValueSequence({Value(Units::Quantity(1.0)), Value(std::string("abc"))});
+            EXPECT_EQ(sequence.size(), 2U);
+            EXPECT_FALSE(sequence.empty());
+            EXPECT_DOUBLE_EQ(quantityOf(sequenceAt(sequence, 0)).getValue(), 1.0);
+            EXPECT_EQ(std::get<std::string>(sequenceAt(sequence, 1)), "abc");
+            EXPECT_EQ(sequenceValues(sequence).size(), 2U);
+            EXPECT_THROW(static_cast<void>(sequenceAt(sequence, 2)), Base::IndexError);
+
+            // 默认构造与「零个元素」同义；造空序列也得到可用的空序列
+            const ValueSequence empty = makeValueSequence({});
+            EXPECT_TRUE(empty.empty());
+            EXPECT_EQ(empty.size(), 0U);
+            EXPECT_TRUE(sequenceValues(empty).empty());
+            EXPECT_THROW(static_cast<void>(sequenceAt(empty, 0)), Base::IndexError);
+        }
+
+        /**
+         * @brief 钉住：序列既不是数值也不是几何值，三种强制转换各自报出类型错
+         */
+        TEST(ValueTest, SequenceIsNeitherNumericNorGeometric)
+        {
+            const Value list = makeValueSequence({Value(1.0)});
+            EXPECT_TRUE(isSequence(list));
+            EXPECT_FALSE(isNumeric(list));
+            EXPECT_FALSE(isGeometric(list));
+            EXPECT_EQ(valueTypeName(list), "序列");
+
+            EXPECT_THROW(static_cast<void>(toQuantity(list, "加法左操作数")), Base::TypeError);
+            EXPECT_THROW(static_cast<void>(toDouble(list, "参数")), Base::TypeError);
+            EXPECT_THROW(static_cast<void>(toBool(list, "条件")), Base::TypeError);
+        }
+
+        /**
+         * @brief 钉住：序列排版成可重新解析的 list(...)，相等判定逐元素按各自容差
+         */
+        TEST(ValueTest, SequenceTextAndEquality)
+        {
+            const Value nested = makeValueSequence({Value(Units::Quantity(1.0)), makeValueSequence({Value(2.0)})});
+            const std::string text = toString(nested);
+            EXPECT_TRUE(text.starts_with("list(")) << text;
+            EXPECT_TRUE(text.ends_with(")")) << text;
+            EXPECT_NE(text.find("list(", 5), std::string::npos) << "嵌套序列也要写成 list(...)：" << text;
+
+            EXPECT_TRUE(valuesEqual(makeValueSequence({Value(1.0), Value(2.0)}), makeValueSequence({Value(1.0), Value(2.0)})));
+            // 纯数按容差比较，浮点舍入不会让序列判不等
+            EXPECT_TRUE(valuesEqual(makeValueSequence({Value(0.1 + 0.2)}), makeValueSequence({Value(0.3)})));
+            EXPECT_FALSE(valuesEqual(makeValueSequence({Value(1.0)}), makeValueSequence({Value(1.0), Value(2.0)})));
+            EXPECT_FALSE(valuesEqual(makeValueSequence({Value(1.0)}), Value(1.0)));
+            // 序列之间没有大小关系
+            EXPECT_THROW(static_cast<void>(valueLessThan(nested, nested)), Base::TypeError);
+        }
+
     } // namespace
 }     // namespace ExpressionEngine::Expression

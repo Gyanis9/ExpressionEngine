@@ -343,7 +343,8 @@ namespace ExpressionEngine::Expression
                     advance();
                     ExpressionPtr nested = parseExpression(0);
                     expect(ExpressionTokenKind::RightParen, "与左括号匹配的右括号 ')'");
-                    return nested;
+                    // 括号里的表达式也可以继续跟分量：(vector(1; 2; 3))[0] 与函数调用写法同义
+                    return attachComponents(std::move(nested));
                 }
                 case ExpressionTokenKind::Identifier:
                 case ExpressionTokenKind::CellAddress:

@@ -273,5 +273,54 @@ namespace ExpressionEngine::Expression
             }
         }
 
+        /**
+         * @brief 钉住：list() 造出序列取值，可下标、可区间，也能被聚合函数摊平
+         */
+        TEST(ExpressionParserTest, ListValuesSupportIndexSliceAndAggregates)
+        {
+            const Value listValue = ExpressionParser::parse(nullptr, "list(1 mm; 2 mm; <<abc>>)")->evaluate();
+            const auto *sequence  = std::get_if<ValueSequence>(&listValue);
+            ASSERT_NE(sequence, nullptr);
+            ASSERT_EQ(sequence->size(), 3U);
+
+            // 下标按值语义取元素，负下标从末尾计数
+            EXPECT_DOUBLE_EQ(quantityOf("list(1 mm; 2 mm; <<abc>>)[1]").getValue(), 2.0);
+            EXPECT_EQ(std::get<std::string>(ExpressionParser::parse(nullptr, "list(1 mm; 2 mm; <<abc>>)[2]")->evaluate()), "abc");
+            EXPECT_DOUBLE_EQ(quantityOf("list(1; 2; 3)[-1]").getValue(), 3.0);
+
+            // 区间分量得到一个序列，可直接喂给聚合函数；含末端
+            EXPECT_DOUBLE_EQ(quantityOf("sum(list(1; 2; 3)[0:2])").getValue(), 6.0);
+            EXPECT_DOUBLE_EQ(quantityOf("sum(list(1; 2; 3)[0:1])").getValue(), 3.0);
+
+            // 序列实参被摊平，与逐个给实参同义
+            EXPECT_DOUBLE_EQ(quantityOf("sum(list(1; 2); 3)").getValue(), 6.0);
+            EXPECT_DOUBLE_EQ(quantityOf("average(list(2; 4))").getValue(), 3.0);
+            EXPECT_DOUBLE_EQ(quantityOf("count(list(1; 2; 3))").getValue(), 3.0);
+
+            // 空序列是合法取值；对空区间取聚合由聚合函数自己判定
+            EXPECT_TRUE(std::get<ValueSequence>(ExpressionParser::parse(nullptr, "list()")->evaluate()).empty());
+
+            // 内置几何函数的取值同样可按下标取分量
+            EXPECT_DOUBLE_EQ(toDouble(ExpressionParser::parse(nullptr, "vector(1; 2; 3)[0]")->evaluate(), "向量下标"), 1.0);
+
+            // 拒绝面：序列不能直接当数量参与算术
+            EXPECT_THROW(static_cast<void>(ExpressionParser::parse(nullptr, "list(1; 2) + 1")->evaluate()), Base::TypeError);
+        }
+
+        /**
+         * @brief 钉住：list 的持久化文本能原样解析回同一棵树
+         */
+        TEST(ExpressionParserTest, ListTextRoundTrips)
+        {
+            for (const std::string &text: {"list()", "list(1; 2 mm)", "list(1; list(2; 3))", "sum(list(1; 2)[0:1])"})
+            {
+                SCOPED_TRACE(text);
+                const ExpressionPtr first   = ExpressionParser::parse(nullptr, text);
+                const std::string   printed = first->toString(true, true);
+                const ExpressionPtr second  = ExpressionParser::parse(nullptr, printed);
+                EXPECT_TRUE(first->isSame(*second)) << printed;
+            }
+        }
+
     } // namespace
 }     // namespace ExpressionEngine::Expression

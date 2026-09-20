@@ -599,8 +599,8 @@ namespace ExpressionEngine::Expression
             EXPECT_THROW(static_cast<void>(function(Function::Sum)), EvaluationError);
             EXPECT_THROW(static_cast<void>(function(Function::Sine)), EvaluationError);
             // 依赖宿主对象工厂的函数不可用
-            EXPECT_THROW(static_cast<void>(function(Function::List, number(1.0))), EvaluationError);
             EXPECT_THROW(static_cast<void>(function(Function::Create, number(1.0))), EvaluationError);
+            EXPECT_THROW(static_cast<void>(function(Function::Tuple, number(1.0))), EvaluationError);
             // 哨兵值不是函数
             EXPECT_THROW(static_cast<void>(std::make_unique<FunctionExpression>(nullptr, Function::None, std::string(), std::vector<ExpressionPtr>())), Base::ParserError);
         }
@@ -866,16 +866,17 @@ namespace ExpressionEngine::Expression
         }
 
         /**
-         * @brief 钉住：分量只保存与打印，求值时明确报错而不静默忽略
+         * @brief 钉住：分量随节点一起保存、打印与拷贝，求值时按值语义作用在取值上
          */
-        TEST(ExpressionTest, ComponentsAreStoredButRejected)
+        TEST(ExpressionTest, ComponentsApplyToEvaluatedValues)
         {
             auto expression = std::make_unique<NumberExpression>(nullptr, Units::Quantity(2.0));
             expression->addComponent(Expression::Component("Length"));
             EXPECT_TRUE(expression->hasComponent());
             EXPECT_EQ(expression->components().size(), static_cast<std::size_t>(1));
             EXPECT_EQ(expression->toString(), "(2).Length");
-            EXPECT_THROW(static_cast<void>(expression->evaluate()), EvaluationError);
+            // 名字分量指向对象子属性，值层面无法解析：报属性错而不是静默取整体值
+            EXPECT_THROW(static_cast<void>(expression->evaluate()), Base::AttributeError);
 
             // 拷贝会带上分量，相等判定把分量算在内
             ExpressionPtr copied = expression->copy();
@@ -889,7 +890,8 @@ namespace ExpressionEngine::Expression
             auto variable = std::make_unique<VariableExpression>(nullptr, VariableExpression::Reference());
             variable->addComponent(Expression::Component::arrayIndex(std::make_unique<NumberExpression>(nullptr, Units::Quantity(0.0))));
             EXPECT_EQ(variable->toString(), "[0]");
-            EXPECT_THROW(static_cast<void>(variable->evaluate()), EvaluationError);
+            // 没有解析器时先报「解析不到对象」，而不是把分量说成属性不存在
+            EXPECT_THROW(static_cast<void>(variable->evaluate()), Base::NameError);
 
             // 名字、映射键与区间的文本写法
             auto keyed = std::make_unique<NumberExpression>(nullptr, Units::Quantity(1.0));

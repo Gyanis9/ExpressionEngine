@@ -149,20 +149,22 @@ namespace ExpressionEngine::Expression
     }
 
     /**
-     * @brief 钉住：区间分量不能按单值取用，报错并提示只能作为聚合函数的实参
+     * @brief 钉住：区间分量在单值路径上展开成序列取值，越界与不支持的类型各自报错
      */
-    TEST(ComponentAccessTest, RangeComponentInSingleValuePathIsRejected)
+    TEST(ComponentAccessTest, RangeComponentYieldsSequenceValue)
     {
         const Value vector(Base::Vector3d(1.0, 2.0, 3.0));
-        EXPECT_THROW(static_cast<void>(applyComponent(vector, makeRangeComponent(0.0, 1.0), "测试")), EvaluationError);
-        try
-        {
-            static_cast<void>(applyComponent(vector, makeRangeComponent(0.0, 1.0), "测试"));
-            FAIL() << "区间分量不应按单值取用";
-        } catch (const EvaluationError &error)
-        {
-            EXPECT_NE(std::string(error.message()).find("聚合函数"), std::string::npos);
-        }
+
+        const Value   sliced   = applyComponent(vector, makeRangeComponent(0.0, 1.0), "测试");
+        const auto   *sequence = std::get_if<ValueSequence>(&sliced);
+        ASSERT_NE(sequence, nullptr);
+        ASSERT_EQ(sequence->size(), 2U);
+        EXPECT_DOUBLE_EQ(toDouble(sequenceAt(*sequence, 0), "首项"), 1.0);
+        EXPECT_DOUBLE_EQ(toDouble(sequenceAt(*sequence, 1), "第二项"), 2.0);
+
+        // 端点越界仍是下标错；不支持区间的取值给出类型错
+        EXPECT_THROW(static_cast<void>(applyComponent(vector, makeRangeComponent(0.0, 3.0), "测试")), Base::IndexError);
+        EXPECT_THROW(static_cast<void>(applyComponent(Value(1.0), makeRangeComponent(0.0, 1.0), "测试")), Base::TypeError);
     }
 
     /**

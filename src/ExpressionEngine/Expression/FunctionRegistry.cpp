@@ -9,7 +9,6 @@
 #include <vector>
 
 #include <ExpressionEngine/Base/Exception.h>
-#include <ExpressionEngine/Expression/ComponentAccess.h>
 #include <ExpressionEngine/Expression/ExpressionLexer.h>
 
 namespace ExpressionEngine::Expression
@@ -165,20 +164,9 @@ namespace ExpressionEngine::Expression
 
     Value CustomFunctionExpression::evaluateNode() const
     {
+        // 分量由基类统一作用在本节点求出的取值上：myVector(1; 2; 3)[1] 取到 y
         const FunctionCall call(m_spec->name, m_arguments, resolver());
-        Value              result = m_spec->function(call);
-
-        if (!hasComponent())
-        {
-            return result;
-        }
-        // 分量作用在回调给出的取值上：myVector(1; 2; 3)[1] 取到 y
-        const std::string context = std::format("自定义函数 '{}' 的分量访问", m_spec->name);
-        for (const auto &component: components())
-        {
-            result = applyComponent(result, component, context);
-        }
-        return result;
+        return m_spec->function(call);
     }
 
     void CustomFunctionExpression::appendText(std::string &text, const bool persistent, int) const
@@ -211,11 +199,6 @@ namespace ExpressionEngine::Expression
     bool CustomFunctionExpression::isIndexable() const
     {
         // 回调可以返回向量或文本，其值能按下标继续取子值
-        return true;
-    }
-
-    bool CustomFunctionExpression::supportsComponentAccess() const noexcept
-    {
         return true;
     }
 

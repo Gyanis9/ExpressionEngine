@@ -169,8 +169,21 @@ namespace ExpressionEngine::Expression
                 const CharacterSpan span = locateCharacter(*text, static_cast<std::size_t>(offset));
                 return {text->substr(span.offset, span.length)};
             }
-            throw Base::TypeError(std::format("{}：{}不支持下标分量；下标只支持向量（如 v[0] 取 x 分量）"
-                                              "与文本（如 <<abc>>[0] 取首字符）", context, valueTypeName(value)));
+            if (const auto *sequence = std::get_if<ValueSequence>(&value))
+            {
+                const long elementCount = static_cast<long>(sequence->size());
+                const long offset       = index < 0 ? index + elementCount : index;
+                if (offset < 0 || offset >= elementCount)
+                {
+                    throw Base::IndexError(std::format("{}：序列下标 {} 越界；序列共 {} 个元素，"
+                                                       "也支持负下标从末尾计数", context, index, elementCount));
+                }
+                return sequenceAt(*sequence, static_cast<std::size_t>(offset));
+            }
+
+            throw Base::TypeError(std::format("{}：{}不支持下标分量；下标支持向量（如 v[0] 取 x 分量）、"
+                                              "序列（如 list(1; 2)[0]）与文本（如 <<abc>>[0] 取首字符）",
+                                              context, valueTypeName(value)));
         }
 
     } // namespace
@@ -191,8 +204,8 @@ namespace ExpressionEngine::Expression
                                                        "不是值的一部分；请在引用路径里补全该段（如 Box.{}.Length），"
                                                        "或改用 [下标] 分量", context, component.name, component.name));
             case Expression::ComponentKind::Range:
-                throw EvaluationError(std::format("{}：区间分量不能按单个子值取用，"
-                                                  "区间分量只能作为聚合函数的实参（如 sum(v[0:2])）", context));
+                // 区间取出多个子值，整体作为一个序列取值：sum(v[0:2]) 与 sum(list(...)) 同路
+                return makeValueSequence(applyRangeComponent(value, component, context));
         }
         // 分量种类只有上面四种，走到这里说明枚举被写坏；不做静默兜底
         throw EvaluationError(std::format("{}：未知的分量种类，无法取值", context));
@@ -205,14 +218,31 @@ namespace ExpressionEngine::Expression
             // 用法错误：这里只处理区间分量，单值路径请走 applyComponent
             throw std::invalid_argument("applyRangeComponent 只接受区间分量；单个下标或名字请用 applyComponent");
         }
-        const auto *vector = std::get_if<Base::Vector3d>(&value);
-        if (vector == nullptr)
+        // 区间作用在「按下标可数的取值」上：向量的元素是三个分量，序列的元素就是列表项
+        std::vector<Value> elements;
+        if (const auto *vector = std::get_if<Base::Vector3d>(&value))
         {
-            throw Base::TypeError(std::format("{}：{}不支持区间分量；区间分量目前只支持向量（如 v[0:2]），"
-                                              "其它类型请改用聚合函数或单个下标", context, valueTypeName(value)));
+            for (unsigned short axis = 0; axis < 3; ++axis)
+            {
+                elements.emplace_back((*vector)[axis]);
+            }
+        } else if (const auto *sequence = std::get_if<ValueSequence>(&value))
+        {
+            const std::vector<Value> &items = sequenceValues(*sequence);
+            elements.assign(items.begin(), items.end());
+        }
+        else
+        {
+            throw Base::TypeError(std::format("{}：{}不支持区间分量；区间分量支持向量（如 v[0:2]）与序列"
+                                              "（如 list(1; 2; 3)[0:2]），其它类型请改用聚合函数或单个下标",
+                                              context, valueTypeName(value)));
         }
 
-        constexpr long componentCount = 3;
+        const long componentCount = static_cast<long>(elements.size());
+        if (componentCount == 0)
+        {
+            throw Base::IndexError(std::format("{}：空序列没有可取的区间；请先给出至少一个元素，或改用 count()", context));
+        }
         const long     step           = component.step != nullptr ? constantIndex(component.step, "区间步长", context) : 1;
         if (step == 0)
         {
@@ -233,13 +263,13 @@ namespace ExpressionEngine::Expression
         }
         if (begin < 0 || begin >= componentCount)
         {
-            throw Base::IndexError(std::format("{}：区间起点越界（换算后为 {}）；向量分量下标只能是 "
-                                               "0（x）、1（y）、2（z）", context, begin));
+            throw Base::IndexError(std::format("{}：区间起点越界（换算后为 {}）；可下标的取值共 {} 项，"
+                                               "下标只能是 0 到 {}", context, begin, componentCount, componentCount - 1));
         }
         if (end < 0 || end >= componentCount)
         {
-            throw Base::IndexError(std::format("{}：区间终点越界（换算后为 {}）；向量分量下标只能是 "
-                                               "0（x）、1（y）、2（z）", context, end));
+            throw Base::IndexError(std::format("{}：区间终点越界（换算后为 {}）；可下标的取值共 {} 项，"
+                                               "下标只能是 0 到 {}", context, end, componentCount, componentCount - 1));
         }
 
         // 两端都算在取值范围内；起点越过终点时结果为空，由聚合函数决定空集的处理方式
@@ -248,13 +278,13 @@ namespace ExpressionEngine::Expression
         {
             for (long index = begin; index <= end; index += step)
             {
-                values.emplace_back((*vector)[static_cast<unsigned short>(index)]);
+                values.push_back(elements[static_cast<std::size_t>(index)]);
             }
         } else
         {
             for (long index = begin; index >= end; index += step)
             {
-                values.emplace_back((*vector)[static_cast<unsigned short>(index)]);
+                values.push_back(elements[static_cast<std::size_t>(index)]);
             }
         }
         return values;
