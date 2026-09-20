@@ -668,5 +668,46 @@ namespace ExpressionEngine::Expression
             }
         }
 
+        /**
+         * @brief 钉住：化简不改变取值，化简后的存档文本再解析仍算出同一个值
+         * @details 覆盖新增的取值形态：序列、文本、几何、带单位量、走文本通道的聚合。
+         */
+        TEST(ExpressionParserTest, SimplifyKeepsValuesAndArchiveText)
+        {
+            const std::vector<std::string> samples{
+                    "2 mm + 3 mm",
+                    "sqrt(16) + abs(-7)",
+                    "(2^3)^4",
+                    "not(True)",
+                    "list(1; 2 mm)[1]",
+                    "sum(list(1; 2; 3; 4)[0:2])",
+                    "join(list(<<a>>; <<b>>); <<, >>)",
+                    "split(<<a,b,c>>; <<,>>)[2]",
+                    "sum(split(<<1 mm; 2 mm>>; <<; >>))",
+                    "len(<<\"你好\">>)",
+                    "str(2 mm)",
+                    "vector(1; 2; 3)",
+                    "vdot(vector(1; 2; 3); vector(0; 1; 0))",
+                    "rotation(vector(0; 0; 1); 90 deg)",
+                    "(<<ab>> + <<cd>>)[1]",
+                    "(1 > 0 ? list(1; 2) : list(3; 4))[1]",
+            };
+
+            for (const std::string &sample: samples)
+            {
+                const Value         original   = ExpressionParser::parse(nullptr, sample)->evaluate();
+                const ExpressionPtr simplified = ExpressionParser::parse(nullptr, sample)->simplify();
+
+                // 化简只折叠常量，取值必须一字不差
+                EXPECT_TRUE(valuesEqual(original, simplified->evaluate())) << sample << " 化简后取值变了";
+
+                // 存档文本还要能原样解析回来，算出同一个值
+                const std::string text = simplified->toString(true);
+                const auto        reparsed = ExpressionParser::tryParse(nullptr, text);
+                ASSERT_TRUE(reparsed.has_value()) << sample << " 化简后写成「" << text << "」解析不回来";
+                EXPECT_TRUE(valuesEqual(original, (*reparsed)->evaluate())) << sample << " 的存档文本「" << text << "」算出了别的值";
+            }
+        }
+
     } // namespace
 }     // namespace ExpressionEngine::Expression

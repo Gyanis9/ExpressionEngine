@@ -1088,6 +1088,19 @@ namespace ExpressionEngine::Expression
         return makeValueExpression(m_resolver, evaluate());
     }
 
+    ExpressionPtr Expression::carryComponents(ExpressionPtr rebuilt) const
+    {
+        if (rebuilt != nullptr)
+        {
+            // 追加而不是覆盖：被搬过去的节点自己可能带着更内层的分量
+            for (const auto &component: m_components)
+            {
+                rebuilt->m_components.push_back(component);
+            }
+        }
+        return rebuilt;
+    }
+
     std::vector<VariableReference> Expression::collectReferences() const
     {
         std::vector<VariableReference> references;
@@ -1301,7 +1314,7 @@ namespace ExpressionEngine::Expression
     ExpressionPtr UnitExpression::simplify() const
     {
         // 单位节点本身就是常量，化简成数值节点
-        return std::make_unique<NumberExpression>(resolver(), m_quantity);
+        return carryComponents(std::make_unique<NumberExpression>(resolver(), m_quantity));
     }
 
     std::string_view UnitExpression::nodeName() const
@@ -1502,7 +1515,7 @@ namespace ExpressionEngine::Expression
             {
                 return evaluateToConstantNode();
             }
-            return std::make_unique<OperatorExpression>(resolver(), std::move(left), m_operator, nullptr);
+            return carryComponents(std::make_unique<OperatorExpression>(resolver(), std::move(left), m_operator, nullptr));
         }
 
         ExpressionPtr right = m_right->simplify();
@@ -1511,7 +1524,7 @@ namespace ExpressionEngine::Expression
             // 两侧都是常量，结果必然也是常量，直接折叠
             return evaluateToConstantNode();
         }
-        return std::make_unique<OperatorExpression>(resolver(), std::move(left), m_operator, std::move(right));
+        return carryComponents(std::make_unique<OperatorExpression>(resolver(), std::move(left), m_operator, std::move(right)));
     }
 
     int OperatorExpression::priority() const
@@ -1901,12 +1914,12 @@ namespace ExpressionEngine::Expression
             // 条件绝对值达到重合精度即取真分支
             if (std::fabs(magnitude) >= Base::Precision::confusion())
             {
-                return m_trueExpression->simplify();
+                return carryComponents(m_trueExpression->simplify());
             }
-            return m_falseExpression->simplify();
+            return carryComponents(m_falseExpression->simplify());
         }
 
-        return std::make_unique<ConditionalExpression>(resolver(), std::move(simplifiedCondition), m_trueExpression->simplify(), m_falseExpression->simplify());
+        return carryComponents(std::make_unique<ConditionalExpression>(resolver(), std::move(simplifiedCondition), m_trueExpression->simplify(), m_falseExpression->simplify()));
     }
 
     int ConditionalExpression::priority() const
@@ -2013,7 +2026,7 @@ namespace ExpressionEngine::Expression
             // 全部实参都是常量，函数结果必然也是常量，直接折叠
             return evaluateToConstantNode();
         }
-        return std::make_unique<FunctionExpression>(resolver(), m_function, m_name, std::move(simplifiedArguments));
+        return carryComponents(std::make_unique<FunctionExpression>(resolver(), m_function, m_name, std::move(simplifiedArguments)));
     }
 
     std::string_view FunctionExpression::nodeName() const

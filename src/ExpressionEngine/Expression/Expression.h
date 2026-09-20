@@ -388,6 +388,16 @@ namespace ExpressionEngine::Expression
          */
         static void collectReferencesFrom(const Expression *expression, std::vector<VariableReference> &collectedReferences);
 
+        /**
+         * @brief 把本节点的分量链追加到重建出来的节点上
+         * @details 化简时若重建同类节点（而不是走 copy()），分量必须一起带走，否则
+         *          `split(...)[2]` 这类「函数结果再取分量」会被折成没有分量的节点，取值就此改变。
+         *          追加而非覆盖：被搬过去的节点自己可能带着更内层的分量。
+         * @param rebuilt 重建出来的节点；为空时原样返回
+         * @return 传入的节点，便于直接 return
+         */
+        [[nodiscard]] ExpressionPtr carryComponents(ExpressionPtr rebuilt) const;
+
     private:
         IObjectResolver *m_resolver;   ///< 对象解析器，不持所有权，可为空
         ComponentList    m_components; ///< 分量列表，由 evaluate() 统一作用在求值结果上

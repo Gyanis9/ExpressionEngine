@@ -154,7 +154,7 @@ namespace ExpressionEngine::Expression
             // 实参全为常量时结果必然恒定，折叠成一个常量节点
             return evaluateToConstantNode();
         }
-        return std::make_unique<CustomFunctionExpression>(resolver(), m_spec, std::move(simplifiedArguments));
+        return carryComponents(std::make_unique<CustomFunctionExpression>(resolver(), m_spec, std::move(simplifiedArguments)));
     }
 
     std::string_view CustomFunctionExpression::nodeName() const
