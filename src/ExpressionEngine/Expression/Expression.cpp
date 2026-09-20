@@ -271,13 +271,6 @@ namespace ExpressionEngine::Expression
                 case Function::List:
                     // list() 取任意个实参，零个即空序列
                     return;
-                case Function::Create:
-                case Function::Tuple:
-                    // 这两个函数要造宿主对象，本库没有 Python 对象模型，构造期就拦下
-                    throw EvaluationError(std::format("{}() 依赖宿主提供的对象工厂；请改用 "
-                                                      "list()、matrix()、vector()、rotation()、placement() 这些构造函数，"
-                                                      "或由宿主属性直接给出取值",
-                                                      label));
                 case Function::None:
                 case Function::Aggregates:
                 case Function::Last:
@@ -2734,8 +2727,6 @@ namespace ExpressionEngine::Expression
                 return "mscale";
             case Function::MatrixTranslate:
                 return "mtranslate";
-            case Function::Create:
-                return "create";
             case Function::List:
                 return "list";
             case Function::Matrix:
@@ -2756,8 +2747,6 @@ namespace ExpressionEngine::Expression
                 return "parsequant";
             case Function::TranslationMatrix:
                 return "translationm";
-            case Function::Tuple:
-                return "tuple";
             case Function::Vector:
                 return "vector";
             case Function::Address:
@@ -2848,7 +2837,6 @@ namespace ExpressionEngine::Expression
                 {.name = "mrotatez", .function = Function::MatrixRotateZ},
                 {.name = "mscale", .function = Function::MatrixScale},
                 {.name = "mtranslate", .function = Function::MatrixTranslate},
-                {.name = "create", .function = Function::Create},
                 {.name = "list", .function = Function::List},
                 {.name = "matrix", .function = Function::Matrix},
                 {.name = "placement", .function = Function::Placement},
@@ -2859,7 +2847,7 @@ namespace ExpressionEngine::Expression
                 {.name = "str", .function = Function::Stringify},
                 {.name = "parsequant", .function = Function::ParseQuantity},
                 {.name = "translationm", .function = Function::TranslationMatrix},
-                {.name = "tuple", .function = Function::Tuple},
+                {.name = "tuple", .function = Function::List},
                 {.name = "vector", .function = Function::Vector},
                 {.name = "address", .function = Function::Address},
                 {.name = "hiddenref", .function = Function::HiddenReference},

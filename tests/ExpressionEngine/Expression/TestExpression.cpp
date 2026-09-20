@@ -599,9 +599,11 @@ namespace ExpressionEngine::Expression
             EXPECT_THROW(static_cast<void>(function(Function::SquareRoot, number(4.0), number(4.0))), EvaluationError);
             EXPECT_THROW(static_cast<void>(function(Function::Sum)), EvaluationError);
             EXPECT_THROW(static_cast<void>(function(Function::Sine)), EvaluationError);
-            // 依赖宿主对象工厂的函数不可用
-            EXPECT_THROW(static_cast<void>(function(Function::Create, number(1.0))), EvaluationError);
-            EXPECT_THROW(static_cast<void>(function(Function::Tuple, number(1.0))), EvaluationError);
+            // 函数名表里没有的写法按未知函数拒绝，不再保留「登记了但一定报错」的条目
+            EXPECT_EQ(FunctionExpression::functionFromName("create"), Function::None);
+            // tuple 是 list 的别名：同一个取值形态，规范名回到 list
+            EXPECT_EQ(FunctionExpression::functionFromName("tuple"), Function::List);
+            EXPECT_EQ(FunctionExpression::functionName(Function::List), "list");
             // 哨兵值不是函数
             EXPECT_THROW(static_cast<void>(std::make_unique<FunctionExpression>(nullptr, Function::None, std::string(), std::vector<ExpressionPtr>())), Base::ParserError);
         }

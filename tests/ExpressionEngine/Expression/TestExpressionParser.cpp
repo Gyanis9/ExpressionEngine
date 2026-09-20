@@ -352,6 +352,23 @@ namespace ExpressionEngine::Expression
         }
 
         /**
+         * @brief 钉住：tuple 是 list 的别名，且按书写原样回写
+         */
+        TEST(ExpressionParserTest, TupleIsAnAliasOfList)
+        {
+            const ExpressionPtr tuple = ExpressionParser::parse(nullptr, "tuple(1; 2 mm)");
+            ASSERT_NE(tuple, nullptr);
+            const Value value = tuple->evaluate();
+            EXPECT_EQ(std::get<ValueSequence>(value).size(), 2U);
+
+            // 回写保持使用者写的名字，规范名只在函数表查询侧出现；单位后置按显式乘法排版
+            const std::string   printed  = tuple->toString(true, true);
+            const ExpressionPtr reparsed = ExpressionParser::parse(nullptr, printed);
+            EXPECT_TRUE(tuple->isSame(*reparsed)) << printed;
+            EXPECT_EQ(printed, "tuple(1; 2 * mm)");
+        }
+
+        /**
          * @brief 钉住：折成常量的带单位数量，其持久化文本仍带着量纲
          */
         TEST(ExpressionParserTest, FoldedConstantKeepsItsUnit)

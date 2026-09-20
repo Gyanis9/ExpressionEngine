@@ -911,7 +911,9 @@ namespace ExpressionEngine::Expression
     public:
         /**
          * @brief 函数种类
-         * @details 枚举值与函数名表一一对应；Create、List、Tuple 依赖宿主的对象工厂，本库保留条目但在构造时即报错，以免表达式被误当成可用。
+         * @details 枚举值与函数名表一一对应；tuple 是 list 的别名（两者给出同一种有序取值），
+         *          因此表里只留 List 一个条目。按类型名造对象的 create 依赖宿主的对象工厂，
+         *          本库不提供，函数名表里也就没有它。
          */
         enum class Function
         {
@@ -968,8 +970,7 @@ namespace ExpressionEngine::Expression
             MatrixTranslate, ///< mtranslate：平移
 
             // 构造函数
-            Create,            ///< create：按类型名造对象，本库不支持
-            List,              ///< list：造序列取值，可含任意类型的元素
+            List,              ///< list：造序列取值，可含任意类型的元素；tuple 是它的别名
             Matrix,            ///< matrix：造矩阵
             Placement,         ///< placement：造位姿
             Rotation,          ///< rotation：造旋转
@@ -979,7 +980,6 @@ namespace ExpressionEngine::Expression
             Stringify,         ///< str：转文本
             ParseQuantity,     ///< parsequant：解析数量文本
             TranslationMatrix, ///< translationm：造平移矩阵
-            Tuple,             ///< tuple：造元组，依赖宿主对象工厂，本库用 list 表达同义
             Vector,            ///< vector：造向量
 
             // 单元格
