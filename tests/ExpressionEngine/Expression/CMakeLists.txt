@@ -4,6 +4,7 @@ set_property(GLOBAL APPEND PROPERTY ExpressionEngineExpressionTestSources
         ${CMAKE_CURRENT_LIST_DIR}/TestDictionary.cpp
         ${CMAKE_CURRENT_LIST_DIR}/TestExpression.cpp
         ${CMAKE_CURRENT_LIST_DIR}/TestExpressionLexer.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/TestExpressionNodes.cpp
         ${CMAKE_CURRENT_LIST_DIR}/TestExpressionParser.cpp
         ${CMAKE_CURRENT_LIST_DIR}/TestFunctionRegistry.cpp
         ${CMAKE_CURRENT_LIST_DIR}/TestRange.cpp

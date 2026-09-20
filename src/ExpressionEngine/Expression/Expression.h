@@ -722,13 +722,17 @@ namespace ExpressionEngine::Expression
 
         /**
          * @brief 运算是否左结合
+         * @details 语法上只有乘方右结合，因此「左操作数是同一个幂运算符」时要保住括号：
+         *          省掉括号会让 (2^3)^4 被回写成 2^3^4，再解析回去就成了另一棵树。
          * @return 左结合时为 true
          */
-        static [[nodiscard]] bool isLeftAssociative() ;
+        [[nodiscard]] bool isLeftAssociative() const;
 
         /**
-         * @brief 运算是否右结合
-         * @return 右结合时为 true
+         * @brief 同类运算挂在右侧时能否省掉括号
+         * @details 只有加法与乘法可自由换括号，故为真；与 isLeftAssociative() 判的不是
+         *          同一件事（那个问语法结合方向，这个问换括号是否安全）。
+         * @return 可自由换括号时为 true
          */
         [[nodiscard]] bool isRightAssociative() const;
 

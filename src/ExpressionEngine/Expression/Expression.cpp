@@ -1567,9 +1567,10 @@ namespace ExpressionEngine::Expression
         }
     }
 
-    bool OperatorExpression::isLeftAssociative()
+    bool OperatorExpression::isLeftAssociative() const
     {
-        return true;
+        // 解析器里只有乘方按右结合拼装，其余二元运算都从左往右收敛
+        return m_operator != Operator::Power;
     }
 
     bool OperatorExpression::isRightAssociative() const
