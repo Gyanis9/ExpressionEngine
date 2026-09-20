@@ -10,6 +10,7 @@ set_property(GLOBAL APPEND PROPERTY ExpressionEngineExpressionSources
         ${CMAKE_CURRENT_LIST_DIR}/ExpressionLexer.h
         ${CMAKE_CURRENT_LIST_DIR}/ExpressionParser.cpp
         ${CMAKE_CURRENT_LIST_DIR}/ExpressionParser.h
+        ${CMAKE_CURRENT_LIST_DIR}/PropertyModel.h
         ${CMAKE_CURRENT_LIST_DIR}/FunctionRegistry.cpp
         ${CMAKE_CURRENT_LIST_DIR}/FunctionRegistry.h
         ${CMAKE_CURRENT_LIST_DIR}/Range.cpp
