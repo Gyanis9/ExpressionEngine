@@ -260,3 +260,65 @@ TEST(Matrix4D, RowAndColumnAccessors)
     EXPECT_DOUBLE_EQ(unity.determinant(), 1.0);
     EXPECT_DOUBLE_EQ(unity.determinant3(), 1.0);
 }
+
+/**
+ * @brief 钉住变换类型的文字分析与矩阵文本往返
+ */
+TEST(Matrix4D, AnalyseNamesTheTransformKind)
+{
+    EXPECT_EQ(Matrix4D().analyse(), "Unity Matrix");
+
+    Matrix4D scaled;
+    scaled.scale(Vector3d(2.0, 3.0, 4.0));
+    EXPECT_EQ(scaled.analyse(), "Scale [2, 3, 4]");
+
+    Matrix4D rotated;
+    rotated.rotateZ(std::asin(1.0));
+    EXPECT_EQ(rotated.analyse(), "Rotation Matrix");
+
+    Matrix4D movedRotated = rotated;
+    movedRotated.move(Vector3d(1.0, 0.0, 0.0));
+    EXPECT_EQ(movedRotated.analyse(), "Rotation Matrix with Translation");
+
+    // 剪切不是正交变换，落到仿射分支并给出行列式
+    Matrix4D sheared;
+    sheared.setRow(0, Vector3d(1.0, 1.0, 0.0));
+    EXPECT_EQ(sheared.analyse(), "Affine with det= 1");
+}
+
+/**
+ * @brief 钉住 toString 与 fromString 互为逆运算，读不下的文本报错
+ */
+TEST(Matrix4D, TextRoundTripsAndRejectsGarbage)
+{
+    Matrix4D source;
+    source.scale(Vector3d(2.0, 3.0, 4.0));
+    source.move(Vector3d(5.0, -6.0, 7.0));
+
+    Matrix4D restored;
+    restored.fromString(source.toString());
+    EXPECT_TRUE(restored == source);
+
+    Matrix4D broken;
+    EXPECT_THROW(broken.fromString("1 2 3"), ValueError);
+}
+
+/**
+ * @brief 钉住反对称阵与并矢积只填左上 3x3，齐次分量保持单位阵
+ */
+TEST(Matrix4D, HatAndOuterFillOnlyTheThreeByThreeBlock)
+{
+    const Matrix4D crossOperator = Matrix4D().hat(Vector3d(0.0, 0.0, 1.0));
+    // [z]x * x = z × x = y
+    EXPECT_TRUE((crossOperator * Vector3d(1.0, 0.0, 0.0)) == Vector3d(0.0, 1.0, 0.0));
+    EXPECT_DOUBLE_EQ(crossOperator[3][3], 1.0);
+    // 与自身叉积为零
+    EXPECT_TRUE((crossOperator * Vector3d(0.0, 0.0, 2.0)) == Vector3d());
+
+    const Matrix4D dyadic = Matrix4D().outer(Vector3d(1.0, 0.0, 0.0), Vector3d(0.0, 1.0, 0.0));
+    EXPECT_DOUBLE_EQ(dyadic[0][1], 1.0);
+    EXPECT_DOUBLE_EQ(dyadic[1][1], 0.0);
+    EXPECT_DOUBLE_EQ(dyadic[3][3], 1.0);
+
+    EXPECT_EQ(Matrix4D::getMemSpace(), static_cast<unsigned long>(sizeof(Matrix4D)));
+}
