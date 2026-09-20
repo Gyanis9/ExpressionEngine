@@ -68,6 +68,35 @@ namespace ExpressionEngine::Expression
         }
 
         /**
+         * @brief 钉住：单位乘除只在后面确实跟着单位时才算单位乘除
+         */
+        TEST(ExpressionParserTest, UnitsAndOperandsShareStarAndSlash)
+        {
+            // 带单位的两个量相乘不该逼用户加括号
+            const Units::Quantity area = quantityOf("3 mm * 4 mm");
+            EXPECT_EQ(area.getUnit(), Units::Unit::Area);
+            EXPECT_DOUBLE_EQ(area.getValue(), 12.0);
+
+            const Units::Quantity velocity = quantityOf("(60 mm) / (4 s)");
+            EXPECT_EQ(velocity.getUnit(), Units::Unit::Velocity);
+            EXPECT_DOUBLE_EQ(velocity.getValue(), 15.0);
+
+            // 单位后置与 *、/ 同级：`60 mm / 4 s` 里的 s 贴在整段商上，得到长度×时间。
+            // 这与「1/2 mm 先算除法」是同一条约定，想要速度必须像上面那样写明两侧
+            const Units::Quantity carried = quantityOf("60 mm / 4 s");
+            EXPECT_EQ(carried.getUnit(), Units::Unit::Length * Units::Unit::TimeSpan);
+            EXPECT_DOUBLE_EQ(carried.getValue(), 15.0);
+
+            // 单位与单位之间仍然连写：2 m/s 是速度，1/mm 是倒数长度
+            EXPECT_EQ(quantityOf("2 m/s").getUnit(), Units::Unit::Velocity);
+            EXPECT_EQ(quantityOf("1/mm").getUnit(), Units::Unit::InverseLength);
+            EXPECT_EQ(quantityOf("3 mm^2").getUnit(), Units::Unit::Area);
+
+            // 单位后置之后接纯数
+            EXPECT_DOUBLE_EQ(quantityOf("2 mm * 3").getValue(), 6.0);
+        }
+
+        /**
          * @brief 钉住：一元负号比乘方结合更紧，-2^2 是 (-2)^2 而不是 -(2^2)
          */
         TEST(ExpressionParserTest, UnaryMinusBindsTighterThanPower)

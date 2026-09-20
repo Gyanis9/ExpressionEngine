@@ -539,6 +539,14 @@ namespace ExpressionEngine::Expression
 
             while (m_current.kind == ExpressionTokenKind::Star || m_current.kind == ExpressionTokenKind::Slash)
             {
+                // 只有下一段仍以单位开头时才是「单位之间的乘除」（如 m/s、mm*mm）；后面跟的是数字或
+                // 引用时，这个符号属于整个表达式，交回外层按二元运算处理，于是 3 mm * 4 mm 不用加括号
+                const bool nextStartsUnit = m_next.kind == ExpressionTokenKind::Unit || m_next.kind == ExpressionTokenKind::UsUnit || m_next.kind == ExpressionTokenKind::LeftParen;
+                if (!nextStartsUnit)
+                {
+                    return value;
+                }
+
                 const bool isMultiplication = m_current.kind == ExpressionTokenKind::Star;
                 advance();
                 value = makeBinary(isMultiplication ? OperatorExpression::Operator::Multiply : OperatorExpression::Operator::Divide, std::move(value), parseUnitPower());
