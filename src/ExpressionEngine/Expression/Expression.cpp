@@ -848,14 +848,9 @@ namespace ExpressionEngine::Expression
         /// 把单个标量取值喂给收集器
         void collectScalar(Collector &collector, const Value &value, std::string_view context)
         {
-            // 类型不符直接报错而不是跳过：静默跳过会让 sum() 悄悄给出偏小的结果
-            double magnitude = 0.0;
-            if (!numericMagnitude(value, magnitude))
-            {
-                throw Base::TypeError(std::format("聚合函数的实参需要数值，实际是{}；请改用数值属性，"
-                                                  "或改用 count() 之外的处理方式",
-                                                  valueTypeName(value)));
-            }
+            // 类型不符直接报错而不是跳过：静默跳过会让 sum() 悄悄给出偏小的结果。
+            // 取值口径统一交给 toQuantity，与单元格路径、算术操作数同一套规则：
+            // 能解析成数量的文本参与聚合，解析不了的报解析错。
             collector.collect(toQuantity(value, context));
         }
 

@@ -754,8 +754,11 @@ namespace ExpressionEngine::Expression
             // 单样本上样本标准差没有定义
             EXPECT_THROW(static_cast<void>(function(Function::StandardDeviation, number(1.0))->evaluate()), EvaluationError);
 
-            // 文本参与聚合是类型错，不静默跳过
-            EXPECT_THROW(static_cast<void>(function(Function::Sum, std::make_unique<StringExpression>(nullptr, "abc"))->evaluate()), Base::TypeError);
+            // 可解析成数量的文本参与聚合，与单元格路径、算术操作数同一口径；不可解析的仍报错而不是静默跳过
+            EXPECT_DOUBLE_EQ(quantityOf(function(Function::Sum, std::make_unique<StringExpression>(nullptr, "2"))->evaluate()).getValue(), 2.0);
+            EXPECT_THROW(static_cast<void>(function(Function::Sum, std::make_unique<StringExpression>(nullptr, "abc"))->evaluate()), Base::ParserError);
+            // 几何值仍按类型错拒绝，提示改用分量或向量函数
+            EXPECT_THROW(static_cast<void>(function(Function::Sum, vectorNode(1.0, 2.0, 3.0))->evaluate()), Base::TypeError);
         }
 
         /**
