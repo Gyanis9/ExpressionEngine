@@ -130,4 +130,44 @@ namespace ExpressionEngine::Base::Tools
 
         return result;
     }
+
+    std::size_t countUtf8Characters(const std::string_view text)
+    {
+        std::size_t count = 0;
+        for (const char byte: text)
+        {
+            // 续字节形如 10xxxxxx，不单独成字
+            if ((static_cast<unsigned char>(byte) & 0xC0U) != 0x80U)
+            {
+                ++count;
+            }
+        }
+        return count;
+    }
+
+    CharacterSpan locateUtf8Character(const std::string_view text, const std::size_t index)
+    {
+        std::size_t characterIndex = 0;
+        std::size_t offset         = 0;
+        while (offset < text.size())
+        {
+            std::size_t length = utf8SequenceLength(static_cast<unsigned char>(text[offset]));
+            if (length == 0)
+            {
+                // 非法前导字节按单字节算一个字符：既不会越界读，也能继续走完剩余文本
+                length = 1;
+            }
+            if (length > text.size() - offset)
+            {
+                length = text.size() - offset; // 尾部被截断：按剩余字节数取，substr 不会越界
+            }
+            if (characterIndex == index)
+            {
+                return CharacterSpan{.offset = offset, .length = length};
+            }
+            offset += length;
+            ++characterIndex;
+        }
+        return CharacterSpan{.offset = text.size(), .length = 0};
+    }
 } // namespace ExpressionEngine::Base::Tools

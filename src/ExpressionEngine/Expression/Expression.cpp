@@ -19,6 +19,7 @@
 #include <ExpressionEngine/Base/Placement.h>
 #include <ExpressionEngine/Base/Precision.h>
 #include <ExpressionEngine/Base/Rotation.h>
+#include <ExpressionEngine/Base/Tools.h>
 #include <ExpressionEngine/Base/Vector3D.h>
 #include <ExpressionEngine/Expression/ComponentAccess.h>
 #include <ExpressionEngine/Expression/Range.h>
@@ -268,6 +269,39 @@ namespace ExpressionEngine::Expression
                         throwArgumentCount(label, "至少 1 个参数", argumentCount);
                     }
                     return;
+                case Function::TextLength:
+                case Function::TextUpper:
+                case Function::TextLower:
+                case Function::TextTrim:
+                    if (argumentCount != 1)
+                    {
+                        throwArgumentCount(label, "恰好 1 个参数", argumentCount);
+                    }
+                    return;
+                case Function::TextContains:
+                    if (argumentCount != 2)
+                    {
+                        throwArgumentCount(label, "恰好 2 个参数", argumentCount);
+                    }
+                    return;
+                case Function::TextReplace:
+                    if (argumentCount != 3)
+                    {
+                        throwArgumentCount(label, "恰好 3 个参数", argumentCount);
+                    }
+                    return;
+                case Function::TextSubstring:
+                    if (argumentCount != 2 && argumentCount != 3)
+                    {
+                        throwArgumentCount(label, "2 个或 3 个参数", argumentCount);
+                    }
+                    return;
+                case Function::TextConcat:
+                    if (argumentCount == 0)
+                    {
+                        throwArgumentCount(label, "至少 1 个参数", argumentCount);
+                    }
+                    return;
                 case Function::List:
                     // list() 取任意个实参，零个即空序列
                     return;
@@ -322,6 +356,23 @@ namespace ExpressionEngine::Expression
                                                            label, index + 1, quantity.getUserString()));
             }
             return quantity.getValue();
+        }
+
+        /// 取第 index 个实参的文本，其它类型明确报错而不隐式转文本
+        std::string textArgument(const std::vector<ExpressionPtr> &arguments, const std::size_t index, std::string_view label)
+        {
+            const Value value = arguments[index]->evaluate();
+            if (const auto *text = std::get_if<std::string>(&value))
+            {
+                return *text;
+            }
+            throw Base::TypeError(std::format("{}() 的第 {} 个参数需要文本，实际是{}；请先用 str(...) 转成文本", label, index + 1, valueTypeName(value)));
+        }
+
+        /// 是否为文本的空白字符：空格（32）、水平制表（9）、回车（13）与换行（10）
+        constexpr bool isBlankCharacter(const char character)
+        {
+            return character == 32 || character == 9 || character == 13 || character == 10;
         }
 
         /// 取第 index 个实参的纯数值
@@ -2015,6 +2066,119 @@ namespace ExpressionEngine::Expression
         const std::string_view label = functionName(function);
         switch (function)
         {
+            case Function::TextLength:
+            {
+                const std::string text = textArgument(arguments, 0, label);
+                return Units::Quantity(static_cast<double>(Base::Tools::countUtf8Characters(text)));
+            }
+            case Function::TextUpper:
+            case Function::TextLower:
+            {
+                // 只映射 ASCII 字母，非 ASCII 字符原样保留：没有字符库时宁可少做，也不做半套 Unicode 折叠
+                const bool  toUpper = function == Function::TextUpper;
+                std::string text    = textArgument(arguments, 0, label);
+                for (char &character: text)
+                {
+                    if (toUpper && character >= 'a' && character <= 'z')
+                    {
+                        character = static_cast<char>(character - 32); // ASCII 大小写相差 32
+                    } else if (!toUpper && character >= 'A' && character <= 'Z')
+                    {
+                        character = static_cast<char>(character + 32);
+                    }
+                }
+                return text;
+            }
+            case Function::TextTrim:
+            {
+                const std::string text  = textArgument(arguments, 0, label);
+                std::size_t       begin = 0;
+                while (begin < text.size() && isBlankCharacter(text[begin]))
+                {
+                    ++begin;
+                }
+                std::size_t end = text.size();
+                while (end > begin && isBlankCharacter(text[end - 1]))
+                {
+                    --end;
+                }
+                return text.substr(begin, end - begin);
+            }
+            case Function::TextSubstring:
+            {
+                const std::string text       = textArgument(arguments, 0, label);
+                const std::size_t characters = Base::Tools::countUtf8Characters(text);
+
+                long start = static_cast<long>(numberArgument(arguments, 1, label));
+                if (start < 0)
+                {
+                    start += static_cast<long>(characters); // 负起点从末尾计数，与下标分量同一套约定
+                }
+                if (start < 0 || static_cast<std::size_t>(start) > characters)
+                {
+                    throw Base::IndexError(std::format("substr() 的起点越界（换算后为 {}）；文本共 {} 个字符，起点可为 0 到 {}，"
+                                                      "也可用负数从末尾计数",
+                                                      start, characters, characters));
+                }
+
+                std::size_t length = characters - static_cast<std::size_t>(start);
+                if (arguments.size() == 3)
+                {
+                    const long requested = static_cast<long>(numberArgument(arguments, 2, label));
+                    if (requested < 0)
+                    {
+                        throw Base::ValueError(std::format("substr() 的长度不能为负（收到 {}）；要取到文本末尾请省略长度参数", requested));
+                    }
+                    // 长度超出剩余字符数时按剩余截断，取到末尾不必先算长度
+                    length = std::min(length, static_cast<std::size_t>(requested));
+                }
+
+                const Base::Tools::CharacterSpan begin  = Base::Tools::locateUtf8Character(text, static_cast<std::size_t>(start));
+                const Base::Tools::CharacterSpan finish = Base::Tools::locateUtf8Character(text, static_cast<std::size_t>(start) + length);
+                return text.substr(begin.offset, finish.offset - begin.offset);
+            }
+            case Function::TextContains:
+            {
+                const std::string text   = textArgument(arguments, 0, label);
+                const std::string needle = textArgument(arguments, 1, label);
+                return text.find(needle) != std::string::npos;
+            }
+            case Function::TextReplace:
+            {
+                const std::string text = textArgument(arguments, 0, label);
+                const std::string from = textArgument(arguments, 1, label);
+                const std::string to   = textArgument(arguments, 2, label);
+                if (from.empty())
+                {
+                    // 空模式没有「全部匹配」可言：原样返回，不逐字符插入替换文本
+                    return text;
+                }
+
+                std::string result;
+                result.reserve(text.size());
+                for (std::size_t position = 0; position < text.size();)
+                {
+                    if (text.compare(position, from.size(), from) == 0)
+                    {
+                        result += to;
+                        position += from.size();
+                        continue;
+                    }
+                    result += text[position];
+                    ++position;
+                }
+                return result;
+            }
+            case Function::TextConcat:
+            {
+                // 每个实参都按可读文本拼接：数量走当前单位方案排版，与 str() 一致
+                std::string result;
+                for (const auto &argument: arguments)
+                {
+                    result += valueText(argument->evaluate());
+                }
+                return result;
+            }
             case Function::MatrixInvert:
             {
                 const Value target = arguments[0]->evaluate();
@@ -2747,6 +2911,22 @@ namespace ExpressionEngine::Expression
                 return "parsequant";
             case Function::TranslationMatrix:
                 return "translationm";
+            case Function::TextLength:
+                return "len";
+            case Function::TextUpper:
+                return "upper";
+            case Function::TextLower:
+                return "lower";
+            case Function::TextTrim:
+                return "trim";
+            case Function::TextSubstring:
+                return "substr";
+            case Function::TextContains:
+                return "contains";
+            case Function::TextReplace:
+                return "replace";
+            case Function::TextConcat:
+                return "concat";
             case Function::Vector:
                 return "vector";
             case Function::Address:
@@ -2817,6 +2997,14 @@ namespace ExpressionEngine::Expression
                 {.name = "tan", .function = Function::Tangent},
                 {.name = "tanh", .function = Function::HyperbolicTangent},
                 {.name = "trunc", .function = Function::Truncate},
+                {.name = "concat", .function = Function::TextConcat},
+                {.name = "contains", .function = Function::TextContains},
+                {.name = "len", .function = Function::TextLength},
+                {.name = "lower", .function = Function::TextLower},
+                {.name = "replace", .function = Function::TextReplace},
+                {.name = "substr", .function = Function::TextSubstring},
+                {.name = "trim", .function = Function::TextTrim},
+                {.name = "upper", .function = Function::TextUpper},
                 {.name = "vangle", .function = Function::VectorAngle},
                 {.name = "vcross", .function = Function::VectorCross},
                 {.name = "vdot", .function = Function::VectorDot},

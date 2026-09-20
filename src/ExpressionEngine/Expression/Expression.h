@@ -945,6 +945,16 @@ namespace ExpressionEngine::Expression
             HyperbolicTangent, ///< tanh：双曲正切
             Truncate,          ///< trunc：截断取整
 
+            // 文本函数
+            TextLength,    ///< len：文本的 UTF-8 字符个数
+            TextUpper,     ///< upper：ASCII 字母转大写，其余字符原样保留
+            TextLower,     ///< lower：ASCII 字母转小写，其余字符原样保留
+            TextTrim,      ///< trim：去掉首尾空白
+            TextSubstring, ///< substr：按字符下标取子串，起点可负（从末尾计数）
+            TextContains,  ///< contains：是否含有给定的子串
+            TextReplace,   ///< replace：把全部匹配的子串换成另一段文本
+            TextConcat,    ///< concat：把若干取值按顺序接成文本
+
             // 向量函数
             VectorAngle,               ///< vangle：两向量夹角，结果带角度单位
             VectorCross,               ///< vcross：叉积

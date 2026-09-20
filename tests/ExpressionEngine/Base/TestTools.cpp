@@ -59,5 +59,31 @@ namespace ExpressionEngine::Base::Tools
             EXPECT_NE(escaped.find('b'), std::string::npos);
         }
 
+        /**
+         * @brief 钉住：UTF-8 字符计数与定位；续字节不单独成字，截断与越界都不越界读
+         */
+        TEST(ToolsTest, CountsAndLocatesUtf8Characters)
+        {
+            EXPECT_EQ(countUtf8Characters(""), 0U);
+            EXPECT_EQ(countUtf8Characters("abc"), 3U);
+            EXPECT_EQ(countUtf8Characters("中文 a"), 4U);
+            EXPECT_EQ(countUtf8Characters(std::string("\xF0\x9F\x98\x80x", 5)), 2U); // 一个四字节省符加一个 ASCII
+
+            EXPECT_EQ(locateUtf8Character("abc", 0).offset, 0U);
+            EXPECT_EQ(locateUtf8Character("abc", 2).length, 1U);
+            EXPECT_EQ(locateUtf8Character("中文", 1).offset, 3U); // 第二个汉字的字节偏移
+            EXPECT_EQ(locateUtf8Character("中文", 1).length, 3U);
+
+            // 下标超出：偏移落在文本末尾、长度为零，由调用方按越界处理
+            const CharacterSpan beyond = locateUtf8Character("abc", 7);
+            EXPECT_EQ(beyond.offset, 3U);
+            EXPECT_EQ(beyond.length, 0U);
+
+            // 尾部被截断的多字节序列按剩余字节数取，不会越界读
+            const CharacterSpan truncated = locateUtf8Character(std::string("a\xE4\xB8", 3), 1);
+            EXPECT_EQ(truncated.offset, 1U);
+            EXPECT_EQ(truncated.length, 2U);
+        }
+
     } // namespace
 } // namespace ExpressionEngine::Base::Tools

@@ -407,5 +407,102 @@ namespace ExpressionEngine::Expression
             }
         }
 
+        /// 求值并取文本；非文本结果由用例报告
+        std::string textOf(const std::string &text)
+        {
+            const Value value = ExpressionParser::parse(nullptr, text)->evaluate();
+            if (const auto *result = std::get_if<std::string>(&value))
+            {
+                return *result;
+            }
+            ADD_FAILURE() << text << " 的结果不是文本，而是" << valueTypeName(value);
+            return {};
+        }
+
+        /// 求值并取纯数；带量纲或别的类型都由 toDouble 明确报错
+        double numberOf(const std::string &text)
+        {
+            return toDouble(ExpressionParser::parse(nullptr, text)->evaluate(), text);
+        }
+
+        /// 求值并取布尔
+        bool boolOf(const std::string &text)
+        {
+            const Value value = ExpressionParser::parse(nullptr, text)->evaluate();
+            if (const auto *result = std::get_if<bool>(&value))
+            {
+                return *result;
+            }
+            ADD_FAILURE() << text << " 的结果不是布尔，而是" << valueTypeName(value);
+            return false;
+        }
+
+        /**
+         * @brief 钉住：文本函数按字符而非字节计数与切片
+         */
+        TEST(ExpressionParserTest, TextFunctionsCountAndSliceByCharacter)
+        {
+            EXPECT_DOUBLE_EQ(numberOf("len(<<abc>>)"), 3.0);
+            EXPECT_DOUBLE_EQ(numberOf("len(<<中文 a>>)"), 4.0);
+
+            EXPECT_EQ(textOf("substr(<<abcdef>>; 2)"), "cdef");
+            EXPECT_EQ(textOf("substr(<<abcdef>>; 0; 2)"), "ab");
+            EXPECT_EQ(textOf("substr(<<中文ab>>; -2)"), "ab");
+            // 长度超出剩余字符数时按剩余截断
+            EXPECT_EQ(textOf("substr(<<中文abc>>; 2; 99)"), "abc");
+            EXPECT_EQ(textOf("substr(<<abc>>; 3)"), "");
+
+            // 起点越界与负长度各自明确报错，不静默给空串
+            EXPECT_THROW(static_cast<void>(ExpressionParser::parse(nullptr, "substr(<<abc>>; 9)")->evaluate()), Base::IndexError);
+            EXPECT_THROW(static_cast<void>(ExpressionParser::parse(nullptr, "substr(<<abc>>; 0; -1)")->evaluate()), Base::ValueError);
+        }
+
+        /**
+         * @brief 钉住：大小写只映射 ASCII，去空白覆盖四种控制码
+         */
+        TEST(ExpressionParserTest, TextCaseAndTrimFunctions)
+        {
+            EXPECT_EQ(textOf("upper(<<aB1中>>)"), "AB1中");
+            EXPECT_EQ(textOf("lower(<<aB1中>>)"), "ab1中");
+            EXPECT_EQ(textOf("trim(<<  x  >>)"), "x");
+            EXPECT_DOUBLE_EQ(numberOf("len(trim(<<  a  b  >>))"), 4.0); // 中间的两个空格保留
+            // << >> 里的 \t、\n 由词法器还原成真控制字符，trim 一并去掉
+            EXPECT_DOUBLE_EQ(numberOf("len(trim(<<\\t a \\n >>))"), 1.0);
+        }
+
+        /**
+         * @brief 钉住：查找、替换与拼接
+         */
+        TEST(ExpressionParserTest, TextSearchReplaceAndConcat)
+        {
+            EXPECT_TRUE(boolOf("contains(<<abc>>; <<bc>>)"));
+            EXPECT_FALSE(boolOf("contains(<<abc>>; <<cb>>)"));
+            EXPECT_TRUE(boolOf("contains(<<abc>>; <<>>)"));
+
+            EXPECT_EQ(textOf("replace(<<a-b-c>>; <<->>; <<+>>)"), "a+b+c");
+            EXPECT_EQ(textOf("replace(<<abc>>; <<b>>; <<>>)"), "ac");
+            // 空模式没有「全部匹配」可言，原样返回而不是逐字符插入
+            EXPECT_EQ(textOf("replace(<<abc>>; <<>>; <<x>>)"), "abc");
+
+            EXPECT_EQ(textOf("concat(<<x>>; <<y>>)"), "xy");
+            // 数字实参按 str() 的写法参与拼接，不预设排版小数位
+            EXPECT_DOUBLE_EQ(numberOf("len(concat(<<x>>; 1))"), numberOf("len(str(1))") + 1.0);
+        }
+
+        /**
+         * @brief 钉住：文本函数的拒绝面——参数个数在建节点时校验，类型不符不隐式转换
+         */
+        TEST(ExpressionParserTest, TextFunctionsRejectWrongArguments)
+        {
+            EXPECT_THROW(static_cast<void>(ExpressionParser::parse(nullptr, "len()")), EvaluationError);
+            EXPECT_THROW(static_cast<void>(ExpressionParser::parse(nullptr, "substr(<<abc>>)")), EvaluationError);
+            EXPECT_THROW(static_cast<void>(ExpressionParser::parse(nullptr, "contains(<<abc>>)")), EvaluationError);
+            EXPECT_THROW(static_cast<void>(ExpressionParser::parse(nullptr, "concat()")), EvaluationError);
+
+            EXPECT_THROW(static_cast<void>(ExpressionParser::parse(nullptr, "len(2 mm)")->evaluate()), Base::TypeError);
+            EXPECT_THROW(static_cast<void>(ExpressionParser::parse(nullptr, "upper(2)")->evaluate()), Base::TypeError);
+            EXPECT_THROW(static_cast<void>(ExpressionParser::parse(nullptr, "contains(<<abc>>; 1)")->evaluate()), Base::TypeError);
+        }
+
     } // namespace
 }     // namespace ExpressionEngine::Expression

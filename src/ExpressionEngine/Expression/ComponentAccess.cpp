@@ -9,6 +9,7 @@
 #include <vector>
 
 #include <ExpressionEngine/Base/Exception.h>
+#include <ExpressionEngine/Base/Tools.h>
 #include <ExpressionEngine/Base/Vector3D.h>
 #include <ExpressionEngine/Units/Quantity.h>
 
@@ -16,73 +17,6 @@ namespace ExpressionEngine::Expression
 {
     namespace
     {
-
-        /// 一个 UTF-8 字符在字节序列里的位置
-        struct CharacterSpan
-        {
-            std::size_t offset; ///< 起始字节偏移
-            std::size_t length; ///< 字节长度
-        };
-
-        /**
-         * @brief 定位文本里的第 index 个 UTF-8 字符
-         * @details 按前导字节推断字符长度，非法或截断的尾字节按单字节处理：文本里混入非
-         *          UTF-8 字节时也不会越界读，只是把坏字节当成一个字符。index 越界时返回
-         *          零长度，由调用方统一报越界错。
-         * @param text 文本
-         * @param index 字符下标
-         * @return 该字符的起始偏移与字节长度
-         */
-        [[nodiscard]] CharacterSpan locateCharacter(const std::string_view text, const std::size_t index)
-        {
-            std::size_t characterIndex = 0;
-            std::size_t offset         = 0;
-            while (offset < text.size())
-            {
-                const auto  leadByte = static_cast<unsigned char>(text[offset]);
-                std::size_t length   = 1;
-                if ((leadByte & 0xE0U) == 0xC0U)
-                {
-                    length = 2;
-                } else if ((leadByte & 0xF0U) == 0xE0U)
-                {
-                    length = 3;
-                } else if ((leadByte & 0xF8U) == 0xF0U)
-                {
-                    length = 4;
-                }
-                if (length > text.size() - offset)
-                {
-                    // 尾部被截断：按剩余字节数取，保证 substr 不越界
-                    length = text.size() - offset;
-                }
-                if (characterIndex == index)
-                {
-                    return CharacterSpan{.offset = offset, .length = length};
-                }
-                offset += length;
-                ++characterIndex;
-            }
-            return CharacterSpan{.offset = text.size(), .length = 0};
-        }
-
-        /**
-         * @brief 数文本里的 UTF-8 字符个数
-         * @param text 文本
-         * @return 字符个数；续字节（10xxxxxx）不计数
-         */
-        [[nodiscard]] std::size_t characterCount(const std::string_view text)
-        {
-            std::size_t count = 0;
-            for (const char byte: text)
-            {
-                if ((static_cast<unsigned char>(byte) & 0xC0U) != 0x80U)
-                {
-                    ++count;
-                }
-            }
-            return count;
-        }
 
         /**
          * @brief 求分量里常量下标表达式的整数值
@@ -159,14 +93,14 @@ namespace ExpressionEngine::Expression
             }
             if (const auto *text = std::get_if<std::string>(&value))
             {
-                const long characters = static_cast<long>(characterCount(*text));
+                const long characters = static_cast<long>(Base::Tools::countUtf8Characters(*text));
                 const long offset     = index < 0 ? index + characters : index;
                 if (offset < 0 || offset >= characters)
                 {
                     throw Base::IndexError(std::format("{}：文本下标 {} 越界；文本共 {} 个字符，"
                                                        "也支持负下标从末尾计数", context, index, characters));
                 }
-                const CharacterSpan span = locateCharacter(*text, static_cast<std::size_t>(offset));
+                const Base::Tools::CharacterSpan span = Base::Tools::locateUtf8Character(*text, static_cast<std::size_t>(offset));
                 return {text->substr(span.offset, span.length)};
             }
             if (const auto *sequence = std::get_if<ValueSequence>(&value))
