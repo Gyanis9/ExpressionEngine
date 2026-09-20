@@ -1,5 +1,6 @@
 // 覆盖 Rotation 的关键行为：单位旋转、四元数与轴角互转、旋转复合与取逆、归一化与零四元数
-// 拒绝面、矩阵往返、slerp、欧拉角（含非法序列拒绝）以及 makeRotationByAxes 的拒绝面。
+// 拒绝面、矩阵往返、slerp、欧拉角（含非法序列拒绝）、makeRotationByAxes 的拒绝面、
+// fromNormalVector 与 scaleAngle。
 
 #include <gtest/gtest.h>
 
@@ -340,4 +341,62 @@ TEST(RotationTest, EveryEulerSequenceRoundTrips)
         ASSERT_NE(name, nullptr) << "序列编号 " << value << " 没有名字";
         EXPECT_EQ(Rotation::eulerSequenceFromName(name), sequence) << name;
     }
+}
+
+/**
+ * @brief 钉住：fromNormalVector 把 Z 轴转到给定法向，反向与零向量都有确定处置
+ */
+TEST(Rotation, FromNormalVectorTurnsZToTheGivenDirection)
+{
+    for (const Vector3d &normal: {Vector3d(0.0, 0.0, 1.0), Vector3d(1.0, 0.0, 0.0), Vector3d(1.0, 2.0, 3.0), Vector3d(0.0, 0.0, -1.0),
+                                  Vector3d(0.0, 0.0, -5.0)})
+    {
+        const Vector3d turned = Rotation::fromNormalVector(normal).multiplyVector(Vector3d(0.0, 0.0, 1.0));
+        EXPECT_TRUE(turned == normal.normalized()) << "法向 " << normal.x << "," << normal.y << "," << normal.z;
+    }
+
+    // 反向：任一垂直轴转 180 度都可以，轴必须垂直于 Z 且为单位长
+    Vector3d axis{};
+    double   angle = 0.0;
+    Rotation::fromNormalVector(Vector3d(0.0, 0.0, -1.0)).getValue(axis, angle);
+    EXPECT_NEAR(angle, std::numbers::pi, 1e-12);
+    EXPECT_NEAR(axis.z, 0.0, 1e-12);
+    EXPECT_NEAR(axis.length(), 1.0, 1e-12);
+
+    // 零向量没有方向，报错而不是给出无意义的四元数
+    EXPECT_THROW(static_cast<void>(Rotation::fromNormalVector(Vector3d(0.0, 0.0, 0.0))), ValueError);
+}
+
+/**
+ * @brief 钉住：scaleAngle 只改转角不改转轴，恒等旋转乘任何倍仍是恒等
+ */
+TEST(Rotation, ScaleAngleMultipliesTheTurnAndKeepsTheAxis)
+{
+    const Vector3d axis(1.0, 1.0, 0.0);
+    const Rotation base(axis, std::numbers::pi / 6.0);
+
+    Rotation doubled = base;
+    doubled.scaleAngle(2.0);
+
+    Vector3d scaledAxis{};
+    double   scaledAngle = 0.0;
+    doubled.getValue(scaledAxis, scaledAngle);
+    EXPECT_NEAR(scaledAngle, std::numbers::pi / 3.0, 1e-12);
+    EXPECT_TRUE(scaledAxis == axis.normalized());
+    // 角度翻倍等价于把同一个旋转复合两次
+    EXPECT_TRUE(doubled.isSame(base * base, 1e-9));
+
+    Rotation halved = doubled;
+    halved.scaleAngle(0.5);
+    EXPECT_TRUE(halved.isSame(base, 1e-9));
+
+    Rotation flat = base;
+    flat.scaleAngle(0.0);
+    EXPECT_TRUE(flat.isSame(Rotation(), 1e-9));
+
+    // 恒等旋转没有可用的轴，缩放它不该产生 NaN 或零四元数
+    Rotation identity;
+    identity.scaleAngle(7.0);
+    EXPECT_FALSE(identity.isNull());
+    EXPECT_TRUE(identity.isSame(Rotation(), 1e-9));
 }
