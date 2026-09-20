@@ -70,6 +70,11 @@ namespace ExpressionEngine::Units
 
     double Quantity::getValueAs(const Quantity &other) const
     {
+        // 参照量必须与本量同量纲，否则「相对于参照量」的比值没有意义：与比较运算同一口径
+        if (m_unit != other.m_unit)
+        {
+            throw Base::UnitsMismatchError("取相对于参照量的数值时单位必须一致，请改用同量纲的参照量");
+        }
         return m_value / other.getValue();
     }
 

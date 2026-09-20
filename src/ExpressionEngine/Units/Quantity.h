@@ -344,8 +344,11 @@ namespace ExpressionEngine::Units
 
         /**
          * @brief 取本量相对于参照量的比值
-         * @param other 参照量，其数值不能为 0
-         * @return 本量的数值除以参照量数值
+         * @details 数值都以基准单位存储，所以相除就是换算比（1 m 相对 1 mm 得 1000）。
+         *          参照量数值为 0 时按 IEEE 得到无穷大，与 operator/ 同一口径，不额外抛错。
+         * @param other 参照量，量纲必须与本量一致
+         * @return 本量的数值除以参照量的数值
+         * @throws UnitsMismatchError 参照量与本量量纲不同
          */
         [[nodiscard]] double getValueAs(const Quantity &other) const;
 
