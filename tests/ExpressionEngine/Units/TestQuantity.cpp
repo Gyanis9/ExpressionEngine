@@ -1,10 +1,12 @@
-// 本文件覆盖 Quantity 的运算契约、格式排版与单位不匹配拒绝面。
+// 本文件覆盖 Quantity 的运算契约、格式排版、单位不匹配拒绝面，以及预定义常量表的换算关系。
 
 #include <gtest/gtest.h>
 
 #include <cmath>
 #include <memory>
+#include <numbers>
 #include <string>
+#include <vector>
 
 #include <ExpressionEngine/Base/Exception.h>
 #include <ExpressionEngine/Base/NumericFormatting.h>
@@ -28,6 +30,162 @@ namespace ExpressionEngine::Units
             EXPECT_DOUBLE_EQ(Quantity::Inch.getValue(), 25.4);
             EXPECT_DOUBLE_EQ(Quantity::Foot.getValue(), 304.8);
             EXPECT_EQ(Quantity::Metre.getUnit(), Unit::Length);
+        }
+
+        /**
+         * @brief 比对两个量：量纲指数必须相同，数值按相对容差判等
+         * @details 用恒等式而不是抄数值来查常量表，不同乘法路径上的末位差异不该算失败。
+         *          量纲按指数向量比，不比类型名——Work 与 Moment 同量纲不同名，乘出来的单位
+         *          没有显式名字，反查到的类型名与命名常量不同是设计如此。
+         */
+        void expectEquivalent(const Quantity &actual, const Quantity &expected, const std::string &label)
+        {
+            EXPECT_TRUE(actual.getUnit() == expected.getUnit()) << label;
+            EXPECT_NEAR(actual.getValue(), expected.getValue(), std::abs(expected.getValue()) * 1e-12) << label;
+        }
+
+        /**
+         * @brief 钉住：导出量等于各基本量按物理定义的组合
+         * @details 预定义量有 119 项，宿主按名字直接取用，表里一个指数写错就是静默错答；
+         *          这里按定义复核，不重复抄一遍实现里的数值。
+         */
+        TEST(QuantityTest, DerivedConstantsMatchTheirDefinitions)
+        {
+            expectEquivalent(Quantity::Newton, Quantity::KiloGram * Quantity::Metre / (Quantity::Second * Quantity::Second), "牛顿");
+            expectEquivalent(Quantity::Pascal, Quantity::Newton / (Quantity::Metre * Quantity::Metre), "帕斯卡");
+            expectEquivalent(Quantity::Joule, Quantity::Newton * Quantity::Metre, "焦耳");
+            expectEquivalent(Quantity::Watt, Quantity::Joule / Quantity::Second, "瓦特");
+            expectEquivalent(Quantity::Coulomb, Quantity::Ampere * Quantity::Second, "库仑");
+            expectEquivalent(Quantity::Volt, Quantity::Watt / Quantity::Ampere, "伏特");
+            expectEquivalent(Quantity::Ohm, Quantity::Volt / Quantity::Ampere, "欧姆");
+            expectEquivalent(Quantity::Siemens, Quantity::Ampere / Quantity::Volt, "西门子");
+            expectEquivalent(Quantity::Farad, Quantity::Coulomb / Quantity::Volt, "法拉");
+            expectEquivalent(Quantity::Henry, Quantity::Volt * Quantity::Second / Quantity::Ampere, "亨利");
+            expectEquivalent(Quantity::Weber, Quantity::Volt * Quantity::Second, "韦伯");
+            expectEquivalent(Quantity::Tesla, Quantity::Weber / (Quantity::Metre * Quantity::Metre), "特斯拉");
+            expectEquivalent(Quantity::Gauss, Quantity::Tesla / 1e4, "高斯");
+
+            // 牛·米作为力矩与作为能量量纲不同，数值相同
+            EXPECT_EQ(Quantity::NewtonMeter.getUnit().getTypeString(), "Moment");
+            EXPECT_DOUBLE_EQ(Quantity::NewtonMeter.getValue(), Quantity::Joule.getValue());
+
+            // 国际码磅与标准重力加速度
+            expectEquivalent(Quantity::Inch, Quantity::MilliMetre * 25.4, "英寸");
+            expectEquivalent(Quantity::Foot, Quantity::Inch * 12.0, "英尺");
+            expectEquivalent(Quantity::Yard, Quantity::Foot * 3.0, "码");
+            expectEquivalent(Quantity::Mile, Quantity::Yard * 1760.0, "英里");
+            expectEquivalent(Quantity::Thou, Quantity::Inch / 1000.0, "mil");
+            expectEquivalent(Quantity::SquareFoot, Quantity::Foot * Quantity::Foot, "平方英尺");
+            expectEquivalent(Quantity::CubicFoot, Quantity::Foot * Quantity::Foot * Quantity::Foot, "立方英尺");
+            expectEquivalent(Quantity::Pound, Quantity::KiloGram * 0.45359237, "磅");
+            expectEquivalent(Quantity::Ounce, Quantity::Pound / 16.0, "盎司");
+            expectEquivalent(Quantity::Stone, Quantity::Pound * 14.0, "斯通");
+            expectEquivalent(Quantity::Hundredweights, Quantity::Pound * 112.0, "长百磅");
+            expectEquivalent(Quantity::PoundForce, Quantity::Pound * (Quantity::Metre * 9.80665 / (Quantity::Second * Quantity::Second)), "磅力");
+            expectEquivalent(Quantity::PSI, Quantity::PoundForce / (Quantity::Inch * Quantity::Inch), "磅力每平方英寸");
+
+            expectEquivalent(Quantity::Bar, Quantity::Pascal * 1e5, "巴");
+            expectEquivalent(Quantity::Torr, Quantity::Bar * (1.01325 / 760.0), "托");
+            expectEquivalent(Quantity::KiloWattHour, Quantity::Joule * 3.6e6, "千瓦时");
+            expectEquivalent(Quantity::ElectronVolt, Quantity::Joule * 1.602176634e-19, "电子伏");
+            expectEquivalent(Quantity::Calorie, Quantity::Joule * 4.1868, "热化学卡");
+            expectEquivalent(Quantity::KiloCalorie, Quantity::Joule * 4186.8, "千卡");
+
+            expectEquivalent(Quantity::KMH, Quantity::KiloMetre / Quantity::Hour, "公里每小时");
+            expectEquivalent(Quantity::MPH, Quantity::Mile / Quantity::Hour, "英里每小时");
+            expectEquivalent(Quantity::MilePerHour, Quantity::MPH, "英里每小时别名");
+
+            // 角度以度为基准
+            expectEquivalent(Quantity::AngleMinute, Quantity::Degree / 60.0, "角分");
+            expectEquivalent(Quantity::AngleSecond, Quantity::Degree / 3600.0, "角秒");
+            expectEquivalent(Quantity::Radian, Quantity::Degree * (180.0 / std::numbers::pi), "弧度");
+            expectEquivalent(Quantity::Gon, Quantity::Degree * 0.9, "百分度");
+        }
+
+        /**
+         * @brief 钉住：同一量纲的前缀族按 10 的幂递推
+         */
+        TEST(QuantityTest, PrefixedConstantsFollowSIPrefixPowers)
+        {
+            struct Row
+            {
+                std::string    name;      ///< 报错时指出是哪一项
+                const Quantity *prefixed; ///< 带前缀的量
+                const Quantity *base;     ///< 同量纲的基准量
+                double          ratio;    ///< 前缀倍数
+            };
+
+            const std::vector<Row> rows{
+                    {"NanoMetre", &Quantity::NanoMetre, &Quantity::Metre, 1e-9},
+                    {"MicroMetre", &Quantity::MicroMetre, &Quantity::Metre, 1e-6},
+                    {"MilliMetre", &Quantity::MilliMetre, &Quantity::Metre, 1e-3},
+                    {"CentiMetre", &Quantity::CentiMetre, &Quantity::Metre, 1e-2},
+                    {"DeciMetre", &Quantity::DeciMetre, &Quantity::Metre, 1e-1},
+                    {"KiloMetre", &Quantity::KiloMetre, &Quantity::Metre, 1e3},
+                    {"Liter", &Quantity::Liter, &Quantity::MilliLiter, 1e3},
+                    {"MicroGram", &Quantity::MicroGram, &Quantity::Gram, 1e-6},
+                    {"MilliGram", &Quantity::MilliGram, &Quantity::Gram, 1e-3},
+                    {"Gram", &Quantity::Gram, &Quantity::KiloGram, 1e-3},
+                    {"Ton", &Quantity::Ton, &Quantity::KiloGram, 1e3},
+                    {"NanoAmpere", &Quantity::NanoAmpere, &Quantity::Ampere, 1e-9},
+                    {"MicroAmpere", &Quantity::MicroAmpere, &Quantity::Ampere, 1e-6},
+                    {"MilliAmpere", &Quantity::MilliAmpere, &Quantity::Ampere, 1e-3},
+                    {"KiloAmpere", &Quantity::KiloAmpere, &Quantity::Ampere, 1e3},
+                    {"MegaAmpere", &Quantity::MegaAmpere, &Quantity::Ampere, 1e6},
+                    {"MilliKelvin", &Quantity::MilliKelvin, &Quantity::Kelvin, 1e-3},
+                    {"MicroKelvin", &Quantity::MicroKelvin, &Quantity::Kelvin, 1e-6},
+                    {"NanoMole", &Quantity::NanoMole, &Quantity::Mole, 1e-9},
+                    {"MicroMole", &Quantity::MicroMole, &Quantity::Mole, 1e-6},
+                    {"MilliMole", &Quantity::MilliMole, &Quantity::Mole, 1e-3},
+                    {"KiloHertz", &Quantity::KiloHertz, &Quantity::Hertz, 1e3},
+                    {"MegaHertz", &Quantity::MegaHertz, &Quantity::Hertz, 1e6},
+                    {"GigaHertz", &Quantity::GigaHertz, &Quantity::Hertz, 1e9},
+                    {"TeraHertz", &Quantity::TeraHertz, &Quantity::Hertz, 1e12},
+                    {"MilliNewton", &Quantity::MilliNewton, &Quantity::Newton, 1e-3},
+                    {"KiloNewton", &Quantity::KiloNewton, &Quantity::Newton, 1e3},
+                    {"MegaNewton", &Quantity::MegaNewton, &Quantity::Newton, 1e6},
+                    {"MilliNewtonPerMeter", &Quantity::MilliNewtonPerMeter, &Quantity::NewtonPerMeter, 1e-3},
+                    {"KiloNewtonPerMeter", &Quantity::KiloNewtonPerMeter, &Quantity::NewtonPerMeter, 1e3},
+                    {"MegaNewtonPerMeter", &Quantity::MegaNewtonPerMeter, &Quantity::NewtonPerMeter, 1e6},
+                    {"KiloPascal", &Quantity::KiloPascal, &Quantity::Pascal, 1e3},
+                    {"MegaPascal", &Quantity::MegaPascal, &Quantity::Pascal, 1e6},
+                    {"GigaPascal", &Quantity::GigaPascal, &Quantity::Pascal, 1e9},
+                    {"MilliBar", &Quantity::MilliBar, &Quantity::Bar, 1e-3},
+                    {"mTorr", &Quantity::mTorr, &Quantity::Torr, 1e-3},
+                    {"uTorr", &Quantity::yTorr, &Quantity::Torr, 1e-6},
+                    {"KSI", &Quantity::KSI, &Quantity::PSI, 1e3},
+                    {"MPSI", &Quantity::MPSI, &Quantity::PSI, 1e6},
+                    {"NanoWatt", &Quantity::NanoWatt, &Quantity::Watt, 1e-9},
+                    {"MicroWatt", &Quantity::MicroWatt, &Quantity::Watt, 1e-6},
+                    {"MilliWatt", &Quantity::MilliWatt, &Quantity::Watt, 1e-3},
+                    {"KiloWatt", &Quantity::KiloWatt, &Quantity::Watt, 1e3},
+                    {"VoltAmpere", &Quantity::VoltAmpere, &Quantity::Watt, 1.0},
+                    {"MilliVolt", &Quantity::MilliVolt, &Quantity::Volt, 1e-3},
+                    {"KiloVolt", &Quantity::KiloVolt, &Quantity::Volt, 1e3},
+                    {"MilliSiemens", &Quantity::MilliSiemens, &Quantity::Siemens, 1e-3},
+                    {"MicroSiemens", &Quantity::MicroSiemens, &Quantity::Siemens, 1e-6},
+                    {"KiloSiemens", &Quantity::KiloSiemens, &Quantity::Siemens, 1e3},
+                    {"MegaSiemens", &Quantity::MegaSiemens, &Quantity::Siemens, 1e6},
+                    {"KiloOhm", &Quantity::KiloOhm, &Quantity::Ohm, 1e3},
+                    {"MegaOhm", &Quantity::MegaOhm, &Quantity::Ohm, 1e6},
+                    {"PicoFarad", &Quantity::PicoFarad, &Quantity::Farad, 1e-12},
+                    {"NanoFarad", &Quantity::NanoFarad, &Quantity::Farad, 1e-9},
+                    {"MicroFarad", &Quantity::MicroFarad, &Quantity::Farad, 1e-6},
+                    {"MilliFarad", &Quantity::MilliFarad, &Quantity::Farad, 1e-3},
+                    {"NanoHenry", &Quantity::NanoHenry, &Quantity::Henry, 1e-9},
+                    {"MicroHenry", &Quantity::MicroHenry, &Quantity::Henry, 1e-6},
+                    {"MilliHenry", &Quantity::MilliHenry, &Quantity::Henry, 1e-3},
+                    {"MilliJoule", &Quantity::MilliJoule, &Quantity::Joule, 1e-3},
+                    {"KiloJoule", &Quantity::KiloJoule, &Quantity::Joule, 1e3},
+                    {"KiloElectronVolt", &Quantity::KiloElectronVolt, &Quantity::ElectronVolt, 1e3},
+                    {"MegaElectronVolt", &Quantity::MegaElectronVolt, &Quantity::ElectronVolt, 1e6},
+                    {"MilliTesla", &Quantity::MilliTesla, &Quantity::Tesla, 1e-3},
+            };
+
+            for (const auto &row: rows)
+            {
+                expectEquivalent(*row.prefixed, (*row.base) * row.ratio, row.name);
+            }
         }
 
         /**
