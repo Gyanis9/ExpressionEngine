@@ -98,4 +98,16 @@ namespace ExpressionEngine::Expression
         std::size_t      m_offset{0}; ///< 下一个待读字节的偏移
         int              m_column{1}; ///< 下一个待读字符的列号
     };
+
+    /**
+     * @brief 判断一段文本能否被词法器识别为函数名
+     * @details 与函数记号的匹配规则同源，因此可作为「登记的名字是否永远调用不到」的判据：
+     *          首字符须是字母类字符（下划线开头只会识别成标识符），其后允许字母、数字、下划线
+     *          与非 ASCII 字母，但不允许 '@'（标识符专有）与 U+2212 减号（运算符）。
+     *          供函数注册表校验宿主给出的函数名。
+     * @param name 待判定的名字原文
+     * @return 整个名字都能被函数记号规则吃下时返回 true；空文本返回 false
+     */
+    [[nodiscard]] bool isFunctionNameText(std::string_view name);
+
 } // namespace ExpressionEngine::Expression

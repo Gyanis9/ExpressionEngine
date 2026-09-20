@@ -99,8 +99,7 @@ namespace ExpressionEngine::Expression
         class ExpressionParserImplementation
         {
         public:
-            ExpressionParserImplementation(IObjectResolver *resolver, const std::string_view text) :
-                m_resolver(resolver), m_lexer(text)
+            ExpressionParserImplementation(IObjectResolver *resolver, const std::string_view text, const FunctionRegistry &registry) : m_resolver(resolver), m_registry(registry), m_lexer(text)
             {
                 advance();
                 advance();
@@ -127,6 +126,9 @@ namespace ExpressionEngine::Expression
 
             [[nodiscard]] ExpressionPtr parseFunctionCall(const std::string &name);
 
+            /// 把后续的 .分量 与 [索引] 依次挂到给定节点上
+            [[nodiscard]] ExpressionPtr attachComponents(ExpressionPtr node);
+
             [[nodiscard]] ExpressionPtr parseArgument();
 
             [[nodiscard]] Expression::Component parseIndexer();
@@ -143,10 +145,11 @@ namespace ExpressionEngine::Expression
 
             [[nodiscard]] ExpressionPtr makeUnary(OperatorExpression::Operator operation, ExpressionPtr operand);
 
-            IObjectResolver *m_resolver; ///< 对象解析器，可为空
-            ExpressionLexer  m_lexer;    ///< 词法分析器
-            ExpressionToken  m_current;  ///< 当前记号
-            ExpressionToken  m_next;     ///< 下一记号，用于识别英制两段写法与文档引用
+            IObjectResolver        *m_resolver; ///< 对象解析器，可为空
+            const FunctionRegistry &m_registry; ///< 自定义函数注册表，内置表查不到时来此查询
+            ExpressionLexer         m_lexer;    ///< 词法分析器
+            ExpressionToken         m_current;  ///< 当前记号
+            ExpressionToken         m_next;     ///< 下一记号，用于识别英制两段写法与文档引用
         };
 
         void ExpressionParserImplementation::advance()
@@ -339,7 +342,7 @@ namespace ExpressionEngine::Expression
                 }
                 case ExpressionTokenKind::Function:
                     // 按值拷出函数名：advance() 会覆写 m_current，视图会立刻悬垂
-                    return parseFunctionCall(std::string{m_current.text});
+                    return attachComponents(parseFunctionCall(std::string{m_current.text}));
                 case ExpressionTokenKind::Unit:
                 case ExpressionTokenKind::UsUnit:
                     return parseUnitExpression();
@@ -417,6 +420,11 @@ namespace ExpressionEngine::Expression
             auto node = std::make_unique<VariableExpression>(m_resolver, std::move(reference));
 
             // 后续的 .分量 与 [索引] 都挂到同一条引用路径上
+            return attachComponents(std::move(node));
+        }
+
+        ExpressionPtr ExpressionParserImplementation::attachComponents(ExpressionPtr node)
+        {
             for (;;)
             {
                 if (m_current.kind == ExpressionTokenKind::Dot)
@@ -432,7 +440,6 @@ namespace ExpressionEngine::Expression
                 }
                 break;
             }
-
             return node;
         }
 
@@ -506,6 +513,15 @@ namespace ExpressionEngine::Expression
             expect(ExpressionTokenKind::RightParen, "函数实参后的右括号 ')'");
 
             const auto function = FunctionExpression::functionFromName(name);
+            if (function == FunctionExpression::Function::None)
+            {
+                // 内置表里没有这个名字时转向注册表；命中则建成自定义函数节点，
+                // 未命中仍交给 FunctionExpression 的构造函数报出「不是可求值的函数名」
+                if (const auto spec = m_registry.find(name); spec != nullptr)
+                {
+                    return std::make_unique<CustomFunctionExpression>(m_resolver, std::move(spec), std::move(arguments));
+                }
+            }
             return std::make_unique<FunctionExpression>(m_resolver, function, std::string{name}, std::move(arguments));
         }
 
@@ -599,21 +615,29 @@ namespace ExpressionEngine::Expression
 
     ExpressionPtr ExpressionParser::parse(IObjectResolver *resolver, const std::string_view text)
     {
-        ExpressionParserImplementation parser{resolver, text};
+        return parse(resolver, text, FunctionRegistry::global());
+    }
+
+    ExpressionPtr ExpressionParser::parse(IObjectResolver *resolver, const std::string_view text, const FunctionRegistry &registry)
+    {
+        ExpressionParserImplementation parser{resolver, text, registry};
         return parser.parseDocument();
     }
 
-    std::expected<ExpressionPtr, Base::ParseFailure> ExpressionParser::tryParse(
-            IObjectResolver *      resolver,
-            const std::string_view text
-            )
+    std::expected<ExpressionPtr, Base::ParseFailure> ExpressionParser::tryParse(IObjectResolver *resolver, const std::string_view text)
+    {
+        return tryParse(resolver, text, FunctionRegistry::global());
+    }
+
+    std::expected<ExpressionPtr, Base::ParseFailure> ExpressionParser::tryParse(IObjectResolver *resolver, const std::string_view text, const FunctionRegistry &registry)
     {
         try
         {
-            return parse(resolver, text);
-        } catch (const Base::ParserError &error)
+            return parse(resolver, text, registry);
+        } catch (const Base::Exception &error)
         {
-            // 输入非法属可恢复错误：转成值返回，文案与异常通道逐字一致
+            // 建树期抛出的都算「这条文本不能用」：语法错与函数的参数个数、可用性错都是
+            // 用户改一处文本就能修好的可恢复故障，统一转成值返回，文案与异常通道逐字一致
             return std::unexpected(Base::ParseFailure{error.message()});
         }
     }

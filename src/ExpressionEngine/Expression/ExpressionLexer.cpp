@@ -494,13 +494,18 @@ namespace ExpressionEngine::Expression
         /// 匹配「函数名 + 可选的空白 + 左括号」（Expression.l 的 FUNC 规则），名字须以字母开头
         FunctionMatch matchFunction(std::string_view text, const std::size_t offset)
         {
-            if (!isLetterLike(text[offset]))
+            if (!isLetterLike(text[offset]) || startsWithUnicodeMinus(text, offset))
             {
                 return {};
             }
             std::size_t position = offset + 1;
             while (position < text.size() && characterClasses.functionNameContinue[static_cast<unsigned char>(text[position])] != 0)
             {
+                // 与 matchIdentifier 同理：U+2212 减号是运算符，不能让「非 ASCII 一律当字母」把它吞进函数名
+                if (text[position] == unicodeMinusSignLeadByte && startsWithUnicodeMinus(text, position))
+                {
+                    break;
+                }
                 ++position;
             }
             const std::string_view name = text.substr(offset, position - offset);
@@ -757,5 +762,26 @@ namespace ExpressionEngine::Expression
                 break;
         }
         return token;
+    }
+
+    bool isFunctionNameText(const std::string_view name)
+    {
+        // 判据与 matchFunction 逐条对齐，否则会出现「登记得过、调不到」的函数
+        if (name.empty() || !isLetterLike(name.front()) || startsWithUnicodeMinus(name, 0))
+        {
+            return false;
+        }
+        for (std::size_t position = 1; position < name.size(); ++position)
+        {
+            if (name[position] == unicodeMinusSignLeadByte && startsWithUnicodeMinus(name, position))
+            {
+                return false;
+            }
+            if (characterClasses.functionNameContinue[static_cast<unsigned char>(name[position])] == 0)
+            {
+                return false;
+            }
+        }
+        return true;
     }
 } // namespace ExpressionEngine::Expression

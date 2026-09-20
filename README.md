@@ -7,7 +7,8 @@
   支持函数、条件运算、区间聚合与分量取值，并提供文本回写与依赖收集。
 - **单位**：预定义单位与换算、带单位的数量 `Quantity`、多套单位方案（如 Internal、ImperialDecimal），
   能解析 `1/2 mm`、`5' 6"`、`2 m/s` 这类写法。
-- **宿主解耦**：对象模型通过 4 个抽象接口接入，库不持有对象树的任何所有权。
+- **宿主解耦**：对象模型通过 4 个抽象接口接入，库不持有对象树的任何所有权；函数集也可由宿主
+  注册扩充，无需改库源码。
 - **工程性**：手写词法与 Pratt 解析器（无生成代码）、中文可操作报错、可恢复错误走 `std::expected`、
   零编译告警。
 
@@ -136,6 +137,29 @@ const ExpressionEngine::Expression::Value doubled = expression->evaluate();   //
 依赖收集用 `expression->collectReferences()`（返回全部变量引用），宿主据此建立重算依赖。
 完整可照抄的实现见 `tests/ExpressionEngine/Expression/TestExpression.cpp` 里的
 `FakeProperty` / `FakeObject` / `FakeResolver`。
+
+### 扩充函数集
+
+内置函数表之外的名字转向 `FunctionRegistry` 查询，宿主不改库源码就能加自己的函数：
+
+```cpp
+// 以下示例假定写在 ExpressionEngine::Expression 命名空间内
+FunctionRegistry registry;
+static_cast<void>(registry.registerFunction({.name         = "taxed",
+                                             .function     = [](const FunctionCall &call) {
+                                                 return Units::Quantity(1.13) * toQuantity(call.argumentValue(0), "taxed 的实参");
+                                             },
+                                             .minArguments = 1,
+                                             .maxArguments = 1}));
+
+const auto expression = ExpressionParser::parse(nullptr, "taxed(100 mm) + 2 mm", registry);
+```
+
+回调拿到的是 `FunctionCall`（实参表达式），可以只对自己需要的分支求值，从而做出条件与短路语义；
+不带 `registry` 参数的解析重载查询进程级 `FunctionRegistry::global()`。函数名须是词法器认可的
+函数名写法、区分大小写，且不与内置函数重名——登记失败以 `std::expected` 返回中文原因。
+
+完整可照抄的实现见 `tests/ExpressionEngine/Expression/TestFunctionRegistry.cpp`。
 
 ## 从源码构建
 
