@@ -5,6 +5,7 @@ set_property(GLOBAL APPEND PROPERTY ExpressionEngineBaseTestSources
         ${CMAKE_CURRENT_LIST_DIR}/TestNumericFormatting.cpp
         ${CMAKE_CURRENT_LIST_DIR}/TestNumericInput.cpp
         ${CMAKE_CURRENT_LIST_DIR}/TestPlacement.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/TestPrecision.cpp
         ${CMAKE_CURRENT_LIST_DIR}/TestRotation.cpp
         ${CMAKE_CURRENT_LIST_DIR}/TestTools.cpp
         ${CMAKE_CURRENT_LIST_DIR}/TestVector3D.cpp
