@@ -238,5 +238,19 @@ namespace ExpressionEngine::Units
             EXPECT_EQ(UnitsApi::count(), 10U);
         }
 
+        /**
+         * @brief 钉住：体积膨胀系数走方案里自己的换算条目，不被线膨胀条目抢走
+         * @details 类型名是方案查换算条目的键。体积膨胀系数曾借用线膨胀的名字，于是排成
+         *          mm/mm/K 而不是 m^3/m^3/K 那一档，方案里为它准备的一整条换算表永远读不到。
+         */
+        TEST(UnitsApiTest, VolumetricExpansionUsesItsOwnSchemaRows)
+        {
+            UnitsApi::setSchema("Internal");
+            UnitsApi::setDecimals(2);
+
+            EXPECT_EQ(UnitsApi::schemaTranslate(Quantity(1.0e-6, Unit::VolumetricThermalExpansionCoefficient)), "1000.00 mm^3/m^3/K");
+            EXPECT_EQ(UnitsApi::schemaTranslate(Quantity(1.0e-6, Unit::ThermalExpansionCoefficient)), "1.00 µm/m/K");
+        }
+
     }
 } // namespace ExpressionEngine::Units

@@ -153,7 +153,12 @@ namespace ExpressionEngine::Units
         /// 取单位的紧凑写法，如 "mm"、"mm^2"、"mm*kg/s^2"
         [[nodiscard]] std::string getString() const;
 
-        /// 取类型名，如 "Area"、"Length"；无法归类时返回空串
+        /**
+         * @brief 取类型名，如 "Area"、"Length"；无法归类时返回空串
+         * @details 构造时给了名字就用该名字；算出来的单位没有名字，按指数反查对照表并取最先命中的
+         *          一条——同指数在表里可以有多条（Work 与 Moment、两种膨胀系数），所以计算结果的
+         *          类型名取决于对照表的先后，不取决于它是从哪个量算出来的。
+         */
         [[nodiscard]] std::string getTypeString() const;
 
         /// 取带指数与类型名的完整描述，如 "Unit: mm (1,0,0,0,0,0,0,0) [Length]"

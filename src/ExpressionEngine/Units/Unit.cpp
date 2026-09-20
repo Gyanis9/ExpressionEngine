@@ -356,7 +356,7 @@ namespace ExpressionEngine::Units
     constexpr Unit Unit::Volume                                = makeUnit("Volume");
     constexpr Unit Unit::VolumeChargeDensity                   = makeUnit("VolumeChargeDensity");
     constexpr Unit Unit::VolumeFlowRate                        = makeUnit("VolumeFlowRate");
-    constexpr Unit Unit::VolumetricThermalExpansionCoefficient = makeUnit("ThermalExpansionCoefficient");
+    constexpr Unit Unit::VolumetricThermalExpansionCoefficient = makeUnit("VolumetricThermalExpansionCoefficient");
     constexpr Unit Unit::Work                                  = makeUnit("Work");
     constexpr Unit Unit::YieldStrength                         = makeUnit("Pressure");
     constexpr Unit Unit::YoungsModulus                         = makeUnit("Pressure");
