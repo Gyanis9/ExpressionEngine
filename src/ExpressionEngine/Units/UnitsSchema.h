@@ -69,12 +69,15 @@ namespace ExpressionEngine::Units
 
         /**
          * @brief 按指定区域上下文换算，并回传换算结果
+         * @details 条目换算因子写成 0 时，unitString 按特殊函数名解释：内置登记表优先，其次条目
+         *          自带的回调；非有限值不进这条通道，退回常规排版给出 nan/inf。
          * @param quant 待换算的量
          * @param formatting 区域快照
          * @param factor 输出参数，实际使用的换算因子
          * @param unitString 输出参数，实际使用的单位串
          * @return 排版后的文本
          * @throws ExpressionError 方案里没有匹配的换算条目且缺少阈值 0 的兜底条目
+         * @throws ValueError 特殊函数名未登记且条目没有回调
          */
         [[nodiscard]] std::string translate(const Quantity &quant, const Base::NumericLocaleContext &formatting, double &factor, std::string &unitString) const;
 

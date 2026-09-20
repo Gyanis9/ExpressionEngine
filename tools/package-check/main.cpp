@@ -159,6 +159,12 @@ namespace
         UnitsApi::setSchema("Internal");
         UnitsApi::setDecimals(2);
         check(UnitsApi::schemaTranslate(Quantity(100.0, Unit::Length)) == "100.00 mm", "内置方案按 mm 排版");
+
+        // 建筑/土木英制的角度走度分秒：负角按绝对值拆分再补符号
+        UnitsApi::setSchema("ImperialCivil");
+        check(UnitsApi::schemaTranslate(Quantity(-1.5, Unit::Angle)) == "-1°30′", "度分秒对负角取绝对值");
+
+        UnitsApi::setSchema("Internal");
     }
 
     /**

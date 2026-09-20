@@ -1,6 +1,7 @@
 #include <ExpressionEngine/Units/UnitsSchema.h>
 
 #include <algorithm>
+#include <cmath>
 #include <format>
 #include <utility>
 
@@ -66,23 +67,31 @@ namespace ExpressionEngine::Units
         // 换算因子为 0 表示 unitString 写的是特殊函数名而不是单位串，由特殊通道接管排版
         if (unitSpecification->factor == 0)
         {
-            // 内置登记表优先，宿主自带的方案数据也能直接复用 toDMS / toFractional
-            if (UnitsSchemasData::specials.contains(unitSpecification->unitString))
+            const bool nameIsRegistered = UnitsSchemasData::specials.contains(unitSpecification->unitString);
+            if (!nameIsRegistered && !unitSpecification->callback)
+            {
+                // 配置错了就要报出来：非有限值的兜底也不能把一个写错的函数名藏起来
+                throw Base::ValueError(std::format("单位方案 {} 的 {} 条目要求调用特殊函数 {}，但它既不在内置登记表里也没有回调；"
+                                                   "请改用 toDMS、toFractional 或为条目提供 callback",
+                                                   m_specification.name, unitTypeName, unitSpecification->unitString));
+            }
+
+            // 内置的分数与度分秒排版要把数值落成整数刻度，非有限值会撞上有未定义行为的转换；
+            // 这类值退回常规排版，与 toLocale 的 nan/inf 分支保持同一口径
+            if (!std::isfinite(value))
+            {
+                return toLocale(quant, formatting, factor, unitString);
+            }
+
+            if (nameIsRegistered)
             {
                 const QuantityFormat &format = quant.getFormat();
                 return UnitsSchemasData::runSpecial(unitSpecification->unitString, value, static_cast<std::size_t>(format.getPrecision()),
                                                     static_cast<std::size_t>(format.getDenominator()), factor, unitString);
             }
 
-            if (unitSpecification->callback)
-            {
-                // 回调自己负责整段文本，因此换算因子与单位串保持未换算的默认值
-                return unitSpecification->callback(value);
-            }
-
-            throw Base::ValueError(std::format("单位方案 {} 的 {} 条目要求调用特殊函数 {}，但它既不在内置登记表里也没有回调；"
-                                               "请改用 toDMS、toFractional 或为条目提供 callback",
-                                               m_specification.name, unitTypeName, unitSpecification->unitString));
+            // 回调自己负责整段文本，因此换算因子与单位串保持未换算的默认值
+            return unitSpecification->callback(value);
         }
 
         factor     = unitSpecification->factor;

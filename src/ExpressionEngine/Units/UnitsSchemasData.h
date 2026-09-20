@@ -779,7 +779,7 @@ inline const UnitsSchemaSpecification imperialCivilSchema
 
     /**
      * @brief 把十进制度数写成「度°分′秒″」的形式
-     * @param value 十进制度数
+     * @param value 十进制度数，可为负
      * @return 如 12°30′45″ 的文本，分秒为零时省略对应部分
      */
     inline std::string toDegreesMinutesSeconds(const double value)
@@ -793,8 +793,11 @@ inline const UnitsSchemaSpecification imperialCivilSchema
             return {static_cast<int>(whole), degreeMinuteSecondRatio * (total - whole)};
         };
 
-        const auto  [degrees, totalMinutes] = splitWholeAndRemainder(value);
-        std::string out                     = std::format("{}°", degrees);
+        // 先按绝对值拆分再补符号：直接对负数取整会把 -1.5° 拆成 -2° 加 30′，读出来比原值大一度
+        const bool isNegative = value < 0.0;
+
+        const auto  [degrees, totalMinutes] = splitWholeAndRemainder(std::abs(value));
+        std::string out                     = std::format("{}{}°", isNegative ? "-" : "", degrees);
 
         if (totalMinutes > 0)
         {
