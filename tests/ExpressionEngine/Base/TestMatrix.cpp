@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 
+#include <array>
+#include <cmath>
 #include <numbers>
 
 #include <ExpressionEngine/Base/Exception.h>
@@ -131,4 +133,130 @@ TEST(Matrix4D, FloatOverloadsMatchDoubleOnes)
     const Matrix4D constructed(Vector3f(0.0f, 0.0f, 0.0f), Vector3f(0.0f, 1.0f, 0.0f), 0.0f);
     EXPECT_TRUE(constructed == Matrix4D());
     EXPECT_TRUE((Matrix4D() * Vector3f(1.0f, 2.0f, 3.0f)) == Vector3f(1.0f, 2.0f, 3.0f));
+}
+
+namespace
+{
+
+    using ExpressionEngine::Base::ScaleType;
+
+    /// 逐元素比较两个矩阵，容差覆盖分解与求逆的数值误差
+    void expectClose(const Matrix4D &actual, const Matrix4D &expected, const double tolerance = 1e-9)
+    {
+        for (int row = 0; row < 4; ++row)
+        {
+            for (int column = 0; column < 4; ++column)
+            {
+                EXPECT_NEAR(actual[row][column], expected[row][column], tolerance) << row << ',' << column;
+            }
+        }
+    }
+
+} // namespace
+
+/**
+ * @brief 钉住 OpenGL 数组是列主序，平移落在 12..14
+ */
+TEST(Matrix4D, OpenGlMatrixUsesColumnMajorOrder)
+{
+    Matrix4D moved;
+    moved.move(Vector3d(1.0, 2.0, 3.0));
+
+    double values[16] = {};
+    moved.getOpenGlMatrix(values);
+    EXPECT_DOUBLE_EQ(values[12], 1.0);
+    EXPECT_DOUBLE_EQ(values[13], 2.0);
+    EXPECT_DOUBLE_EQ(values[14], 3.0);
+    // 对角元仍在 0、5、10、15 上，没有被整体转置
+    EXPECT_DOUBLE_EQ(values[0], 1.0);
+    EXPECT_DOUBLE_EQ(values[5], 1.0);
+    EXPECT_DOUBLE_EQ(values[3], 0.0);
+
+    Matrix4D restored;
+    restored.setOpenGlMatrix(values);
+    EXPECT_TRUE(restored == moved);
+}
+
+/**
+ * @brief 钉住缩放类型的判定：单位阵与旋转没有缩放，对角缩放按左右侧区分
+ */
+TEST(Matrix4D, ScaleTypeClassification)
+{
+    EXPECT_EQ(Matrix4D().hasScale(), ScaleType::NoScaling);
+
+    Matrix4D rotated;
+    rotated.rotateZ(std::asin(1.0));
+    EXPECT_EQ(rotated.hasScale(), ScaleType::NoScaling);
+
+    Matrix4D uniform;
+    uniform.scale(2.0);
+    EXPECT_EQ(uniform.hasScale(), ScaleType::Uniform);
+
+    Matrix4D stretched;
+    stretched.scale(Vector3d(2.0, 1.0, 1.0));
+    EXPECT_EQ(stretched.hasScale(), ScaleType::NonUniformLeft);
+}
+
+/**
+ * @brief 钉住分解出的四个因子按 move * rotation * scale * shear 乘回原矩阵
+ */
+TEST(Matrix4D, DecomposeMultipliesBackToTheOriginal)
+{
+    Matrix4D transform;
+    transform.scale(Vector3d(2.0, 3.0, 4.0));
+    Matrix4D rotated;
+    rotated.rotateX(std::asin(1.0) * 0.5);
+    transform = rotated * transform;
+    transform.move(Vector3d(1.0, -2.0, 0.5));
+
+    const std::array<Matrix4D, 4> parts = transform.decompose();
+    // 返回顺序是剪切、缩放、旋转、平移
+    expectClose(parts[3] * parts[2] * parts[1] * parts[0], transform);
+    // 平移分量整个落在 move 因子上
+    EXPECT_DOUBLE_EQ(parts[3].getCol(3).x, 1.0);
+    EXPECT_DOUBLE_EQ(parts[3].getCol(3).y, -2.0);
+    EXPECT_DOUBLE_EQ(parts[3].getCol(3).z, 0.5);
+}
+
+/**
+ * @brief 钉住正交求逆与高斯求逆一致，且逆乘回去是单位阵
+ */
+TEST(Matrix4D, InverseOrthogonalMatchesGauss)
+{
+    Matrix4D transform;
+    transform.rotateZ(std::asin(1.0));
+    transform.move(Vector3d(1.0, -2.0, 0.5));
+
+    Matrix4D orthogonalInverse = transform;
+    orthogonalInverse.inverseOrthogonal();
+
+    Matrix4D gaussInverse = transform;
+    gaussInverse.inverseGauss();
+
+    expectClose(orthogonalInverse, gaussInverse);
+    EXPECT_TRUE((transform * orthogonalInverse).isUnity(1e-9));
+}
+
+/**
+ * @brief 钉住行列读写与对角设置都落在同一格上
+ */
+TEST(Matrix4D, RowAndColumnAccessors)
+{
+    Matrix4D matrix;
+    // setDiagonal 只改 3x3 部分，齐次分量保持单位阵的 1
+    matrix.setDiagonal(Vector3d(2.0, 2.0, 3.0));
+    EXPECT_DOUBLE_EQ(matrix[0][0], 2.0);
+    EXPECT_DOUBLE_EQ(matrix[2][2], 3.0);
+    EXPECT_DOUBLE_EQ(matrix[3][3], 1.0);
+    EXPECT_DOUBLE_EQ(matrix[0][1], 0.0);
+
+    matrix.setRow(0, Vector3d(1.0, 2.0, 3.0));
+    EXPECT_TRUE(matrix.getRow(0) == Vector3d(1.0, 2.0, 3.0));
+    matrix.setCol(0, Vector3d(4.0, 5.0, 6.0));
+    EXPECT_TRUE(matrix.getCol(0) == Vector3d(4.0, 5.0, 6.0));
+
+    // 行列式与子行列式按当前内容计算
+    const Matrix4D unity;
+    EXPECT_DOUBLE_EQ(unity.determinant(), 1.0);
+    EXPECT_DOUBLE_EQ(unity.determinant3(), 1.0);
 }
