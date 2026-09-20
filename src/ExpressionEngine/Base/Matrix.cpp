@@ -453,12 +453,20 @@ namespace ExpressionEngine::Base
 
         // 3x3 子矩阵正交，按 R = I + sin(A)*P + (1-cos(A))*P^2 反解轴与角
         const double traceValue = m_matrix[0][0] + m_matrix[1][1] + m_matrix[2][2];
-        const double cosAngle   = 0.5 * (traceValue - 1.0);
-        angle                   = std::acos(cosAngle); // 落在 [0, pi]
+        // 夹到 acos 的定义域：旋转连乘之后的迹可以略大于 3，不夹就给出 NaN 角度，
+        // 而 NaN 让后面的 angle > 0 判定为假，函数会带着 NaN 静默返回成功
+        const double cosAngle = std::clamp(0.5 * (traceValue - 1.0), -1.0, 1.0);
+        angle                 = std::acos(cosAngle); // 落在 [0, pi]
+
+        // 转角贴近 pi 时两处同时退化：R - Rᵀ 的反对称部分趋于零读不出轴向，
+        // 基点公式里的 (1 + tr) / (2 sin A) 也成了 0/0（真实值是 cot(A/2) → 0，
+        // 但分子只剩舍入噪声）。此时改用对角线反解轴，基点取轴线的垂足。
+        constexpr double halfTurnTolerance{1e-9};
+        const bool       isHalfTurn = angle > std::numbers::pi - halfTurnTolerance;
 
         if (angle > 0.0)
         {
-            if (angle < std::numbers::pi)
+            if (!isHalfTurn)
             {
                 // 一般情形：R - R^T = 2*sin(A)*P，可直接读出轴向
                 direction.x = (m_matrix[2][1] - m_matrix[1][2]);
@@ -521,10 +529,18 @@ namespace ExpressionEngine::Base
         // 轴上的基点：由（1+tr(R)）/（2*sin A）与反对称部分组合得到
         if (angle > 0.0)
         {
-            const double factor = 0.5 * (1.0 + traceValue) / std::sin(angle);
-            base.x              = (0.5 * (translationPoint.x + factor * (direction.y * translationPoint.z - direction.z * translationPoint.y)));
-            base.y              = (0.5 * (translationPoint.y + factor * (direction.z * translationPoint.x - direction.x * translationPoint.z)));
-            base.z              = (0.5 * (translationPoint.z + factor * (direction.x * translationPoint.y - direction.y * translationPoint.x)));
+            if (isHalfTurn)
+            {
+                // 半圈时该因子的真实值 cot(A/2) 趋于 0，去掉噪声项后基点就是垂足的一半
+                base = 0.5 * translationPoint;
+            }
+            else
+            {
+                const double factor = 0.5 * (1.0 + traceValue) / std::sin(angle);
+                base.x              = (0.5 * (translationPoint.x + factor * (direction.y * translationPoint.z - direction.z * translationPoint.y)));
+                base.y              = (0.5 * (translationPoint.y + factor * (direction.z * translationPoint.x - direction.x * translationPoint.z)));
+                base.z              = (0.5 * (translationPoint.z + factor * (direction.x * translationPoint.y - direction.y * translationPoint.x)));
+            }
         }
 
         return true;

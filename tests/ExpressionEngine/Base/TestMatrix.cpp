@@ -375,3 +375,134 @@ TEST(Matrix4D, MultiplyVectorWritesToTheGivenDestination)
     scaledFloat.multiplyVector(sourceF, destinationF);
     EXPECT_TRUE(destinationF == Vector3f(2.0f, 6.0f, 12.0f));
 }
+
+namespace
+{
+
+    /// 逐元素比对两个矩阵
+    void expectMatricesClose(const Matrix4D &actual, const Matrix4D &expected)
+    {
+        for (int row = 0; row < 4; ++row)
+        {
+            for (int column = 0; column < 4; ++column)
+            {
+                EXPECT_NEAR(actual[row][column], expected[row][column], 1e-9) << "第 " << row << " 行第 " << column << " 列";
+            }
+        }
+    }
+
+} // namespace
+
+/**
+ * @brief 钉住：转置交换全部六对三角元素，setToUnity 把矩阵复位
+ */
+TEST(Matrix4D, TransposeAndSetToUnity)
+{
+    const double source[16] = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0};
+    Matrix4D     matrix;
+    matrix.setMatrix(source);
+
+    matrix.transpose();
+
+    const double transposedExpected[16] = {1.0, 5.0, 9.0, 13.0, 2.0, 6.0, 10.0, 14.0, 3.0, 7.0, 11.0, 15.0, 4.0, 8.0, 12.0, 16.0};
+    double       written[16]{};
+    matrix.getMatrix(written);
+    for (int index = 0; index < 16; ++index)
+    {
+        EXPECT_NEAR(written[index], transposedExpected[index], 1e-12) << "第 " << index << " 个元素";
+    }
+
+    // 转置两次回到原样
+    matrix.transpose();
+    matrix.getMatrix(written);
+    for (int index = 0; index < 16; ++index)
+    {
+        EXPECT_NEAR(written[index], source[index], 1e-12) << "第 " << index << " 个元素";
+    }
+
+    matrix.setToUnity();
+    EXPECT_TRUE(matrix.isUnity());
+    EXPECT_NEAR(matrix[0][3], 0.0, 1e-12);
+    EXPECT_NEAR(matrix[3][0], 0.0, 1e-12);
+}
+
+/**
+ * @brief 钉住：toAxisAngle 能反解出 rotateLine 造出的转轴、转角、基点与沿轴平移
+ */
+TEST(Matrix4D, AxisAngleRecoversWhatRotateLineBuilt)
+{
+    const Vector3d axis{1.0, 1.0, 0.0};
+    const Vector3d pivot{2.0, 3.0, 4.0};
+
+    // 90 度：转角落在 [0, pi]，轴朝向唯一
+    Matrix4D quarter;
+    quarter.rotateLine(pivot, axis, std::numbers::pi / 2.0);
+
+    Vector3d base{};
+    Vector3d direction{};
+    double   angle{};
+    double   slide{};
+    ASSERT_TRUE(quarter.toAxisAngle(base, direction, angle, slide));
+    EXPECT_NEAR(angle, std::numbers::pi / 2.0, 1e-9);
+    EXPECT_NEAR(direction.length(), 1.0, 1e-9);
+    EXPECT_NEAR(direction.dot(axis.normalized()), 1.0, 1e-9);
+    // 纯旋转没有沿轴平移，且基点落在给定轴线上
+    EXPECT_NEAR(slide, 0.0, 1e-9);
+    EXPECT_TRUE(direction.cross(base - pivot).length() < 1e-9);
+
+    // 用反解结果重建，应逐元素还原原矩阵
+    Matrix4D rebuilt;
+    rebuilt.rotateLine(base, direction, angle);
+    expectMatricesClose(rebuilt, quarter);
+
+    // 180 度：R - Rᵀ 为零，轴必须从对角线反解，此时 n 与 -n 表示同一旋转
+    Matrix4D halfTurn;
+    halfTurn.rotateLine(pivot, axis, std::numbers::pi);
+    ASSERT_TRUE(halfTurn.toAxisAngle(base, direction, angle, slide));
+    EXPECT_NEAR(angle, std::numbers::pi, 1e-6);
+    EXPECT_NEAR(std::abs(direction.dot(axis.normalized())), 1.0, 1e-6);
+    EXPECT_NEAR(slide, 0.0, 1e-9);
+    // 半圈时基点公式里的 (1+tr)/(2 sin A) 是 0/0，噪声会把基点甩到轴外：重建必须仍等于原矩阵
+    EXPECT_NEAR(direction.cross(base - pivot).length(), 0.0, 1e-9);
+    Matrix4D rebuiltHalf;
+    rebuiltHalf.rotateLine(base, direction, angle);
+    expectMatricesClose(rebuiltHalf, halfTurn);
+
+    // 沿轴推进的螺旋运动：平移量应被读成 slide
+    Matrix4D screw;
+    screw.rotateLine(Vector3d(0.0, 0.0, 0.0), Vector3d(0.0, 0.0, 1.0), std::numbers::pi / 2.0);
+    screw.move(Vector3d(0.0, 0.0, 4.0));
+    ASSERT_TRUE(screw.toAxisAngle(base, direction, angle, slide));
+    EXPECT_NEAR(angle, std::numbers::pi / 2.0, 1e-9);
+    EXPECT_NEAR(std::abs(direction.z), 1.0, 1e-9);
+    EXPECT_NEAR(slide, 4.0, 1e-9);
+}
+
+/**
+ * @brief 钉住：正交性不成立时拒绝；迹因舍入略超 3 时按零转角处理而不是给出 NaN
+ */
+TEST(Matrix4D, AxisAngleRejectsSkewedAndClampsRounding)
+{
+    Vector3d base{};
+    Vector3d direction{};
+    double   angle{};
+    double   slide{};
+
+    // 带缩放：列长不是 1，反解无意义
+    const Matrix4D scaled(2.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+    EXPECT_FALSE(scaled.toAxisAngle(base, direction, angle, slide));
+
+    // 连乘之后的单位阵迹会略大于 3：不夹 acos 的定义域就会返回 NaN 角度并静默报成功
+    const double drifted[16] = {1.0000000000000002, 0.0, 0.0, 0.0, 0.0, 1.0000000000000002, 0.0, 0.0, 0.0, 0.0, 1.0000000000000002,
+                                0.0, 0.0, 0.0, 0.0, 1.0};
+    Matrix4D     nearlyUnity;
+    nearlyUnity.setMatrix(drifted);
+
+    ASSERT_TRUE(nearlyUnity.toAxisAngle(base, direction, angle, slide));
+    EXPECT_FALSE(std::isnan(angle));
+    EXPECT_NEAR(angle, 0.0, 1e-9);
+    // 转角为 0 时轴约定取 X 轴、基点取原点
+    EXPECT_TRUE(direction == Vector3d(1.0, 0.0, 0.0));
+    EXPECT_TRUE(base == Vector3d(0.0, 0.0, 0.0));
+    EXPECT_NEAR(slide, 0.0, 1e-9);
+}

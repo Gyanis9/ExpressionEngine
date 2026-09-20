@@ -557,6 +557,8 @@ namespace ExpressionEngine::Base
 
         /**
          * @brief 从矩阵反解旋转轴、转角与沿轴平移量（单精度）
+         * @details 转角取 [0, pi]；转角为 0 时轴约定用 X 轴、基点取原点；贴近半圈时改用对角线
+         *          反解轴，基点取轴线的垂足。入参只在返回 true 时被改写。
          * @param base 输出：轴上一点
          * @param direction 输出：归一化的轴方向
          * @param angle 输出：旋转角（弧度）
@@ -567,6 +569,8 @@ namespace ExpressionEngine::Base
 
         /**
          * @brief 从矩阵反解旋转轴、转角与沿轴平移量（双精度）
+         * @details 转角取 [0, pi]；转角为 0 时轴约定用 X 轴、基点取原点；贴近半圈时改用对角线
+         *          反解轴，基点取轴线的垂足。舍入让迹略超 3 时按零转角处理，不会给出 NaN。
          * @param base 输出：轴上一点
          * @param direction 输出：归一化的轴方向
          * @param angle 输出：旋转角（弧度）
