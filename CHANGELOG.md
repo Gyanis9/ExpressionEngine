@@ -20,6 +20,8 @@
   支持 `Box.Length` 这类子字典、写回与只读标记。
 - **非异常错误通道**：`ExpressionParser::tryParse`、`Expression::tryEvaluate`、`QuantityParser::tryParse`
   以 `std::expected` 返回 `ParseFailure` / `EvaluationFailure`，文案与异常通道逐字相同。
+- **安装包随附更新日志**：`cmake --install` 把 `LICENSE` 与 `CHANGELOG.md` 一并装到
+  `share/doc/ExpressionEngine/`。
 - **可解析成数量的文本参与运算**：算术操作数、单元格读取与聚合函数都走 `toQuantity` 的文本通道，
   `sum(split(<<1 mm; 2 mm>>; <<; >>))` 直接可算。
 
@@ -35,6 +37,9 @@
 - **类型与配置口径收紧**：`Quantity::getValueAs` 要求参照量同量纲（此前跨量纲也给得出数）；
   分数分母为 0 时排版报错（此前把任何长度都写成 `0`）；`Base::convertTo` 的依赖类型名补齐
   `typename`，换严格按标准的编译器不再编译失败。
+- **欧拉角的第二解**（说明补写，实现未变）：真欧拉角（首末轴相同）取出的角度可能是
+  `(alpha+180, 180-beta, gamma+180)` 这一支，按同一序列存回去是同一旋转。宿主做双向编辑时
+  要比较旋转，不要逐位比较角度。
 - **单位书写优先级**：单位后置与 `*`、`/` 同级，`3 mm * 4 mm` 是面积、`60 mm / 4 s` 是长度×时间；
   单位乘除的前瞻只认真正的单位符号，`(2 m) / (4 s)` 可原样回读。
 
