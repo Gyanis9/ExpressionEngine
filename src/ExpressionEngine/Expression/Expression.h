@@ -37,17 +37,26 @@ namespace ExpressionEngine::Expression
     using ExpressionPtr = std::unique_ptr<Expression>;
 
     /**
-     * @brief 变量引用路径的临时表示
-     * @details 与 VariableExpression::Reference 是同一类型（后者是它的别名）；提升到命名
-     *          空间作用域，是因为 Expression::collectReferences 声明时 VariableExpression
-     *          尚未定义，无法在签名里写 VariableExpression::Reference。完整的标识符模型留给
-     *          后续 Identifier 模块替换。
+     * @brief 一条变量引用路径
+     * @details 语法只认三种槽位：[<<文档>>.]对象.属性，或裸属性名（对象由宿主的当前对象承担）。
+     *          比这更深的取值路径不靠拆名字实现：属性值本身带上分量写法（如 Box.Rotation[0]、
+     *          Part.<<a.b>>）由 Expression 的分量机制作用在取值上，宿主也可以把带点的名字整体
+     *          登记成一个属性名（Dictionary 就按 "Box.Length" 这样查子对象）。因此三格模型足以
+     *          表达引擎需要交给宿主解析的一切，不需要更大的标识符类型。
      */
     struct VariableReference
     {
         std::string documentName; ///< 文档名；空表示不限定文档
         std::string objectName;   ///< 对象名；空表示表达式所属的当前对象
         std::string propertyName; ///< 属性名，必填
+
+        /**
+         * @brief 判断两条引用是否指向同一格
+         * @details 宿主建依赖表时可以直接比较、去重，库内的 collectReferences 也用它。
+         * @param other 另一条引用
+         * @return 三个槽位都相同时为 true
+         */
+        [[nodiscard]] friend bool operator==(const VariableReference &left, const VariableReference &right) = default;
     };
 
     /**

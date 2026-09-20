@@ -228,5 +228,79 @@ namespace ExpressionEngine::Expression
             EXPECT_TRUE(ExpressionParser::parse(nullptr, "list(1; 2)[0]")->hasComponent());
         }
 
+        /// 取引用节点的路径三要素；根节点不是引用时让用例失败
+        VariableExpression::Reference referenceOf(const std::string &text)
+        {
+            const ExpressionPtr node = ExpressionParser::parse(nullptr, text);
+            const auto *variable = dynamic_cast<const VariableExpression *>(node.get());
+            if (variable == nullptr)
+            {
+                ADD_FAILURE() << text << " 的根节点不是变量引用，而是 " << node->nodeName();
+                return {};
+            }
+            return variable->getReference();
+        }
+
+        /**
+         * @brief 钉住：四种引用写法分别落到文档名、对象名与属性名的哪一格
+         */
+        TEST(ExpressionNodes, ReferenceFormsFillTheThreeFields)
+        {
+            // 裸名字与显式的当前对象写法都只给属性名，对象由宿主的当前对象承担
+            const VariableReference bare = referenceOf("Length");
+            EXPECT_TRUE(bare.documentName.empty());
+            EXPECT_TRUE(bare.objectName.empty());
+            EXPECT_EQ(bare.propertyName, "Length");
+            EXPECT_EQ(referenceOf(".Length").propertyName, "Length");
+
+            const VariableReference qualified = referenceOf("Box.Length");
+            EXPECT_TRUE(qualified.documentName.empty());
+            EXPECT_EQ(qualified.objectName, "Box");
+            EXPECT_EQ(qualified.propertyName, "Length");
+
+            const VariableReference documented = referenceOf("<<Part>>.Box.Length");
+            EXPECT_EQ(documented.documentName, "Part");
+            EXPECT_EQ(documented.objectName, "Box");
+            EXPECT_EQ(documented.propertyName, "Length");
+
+            // 带 # 的写法一次给出文档与目标，对象名留空
+            const VariableReference crossDocument = referenceOf("<<Sheet#A1>>");
+            EXPECT_EQ(crossDocument.documentName, "Sheet");
+            EXPECT_TRUE(crossDocument.objectName.empty());
+            EXPECT_EQ(crossDocument.propertyName, "A1");
+
+            // 引号文本可以落在对象名与属性名上，带点的名字整段交给宿主去查
+            const VariableReference quotedObject = referenceOf("<<Doc>>.<<a.b>>.Length");
+            EXPECT_EQ(quotedObject.documentName, "Doc");
+            EXPECT_EQ(quotedObject.objectName, "a.b");
+            EXPECT_EQ(quotedObject.propertyName, "Length");
+
+            const VariableReference quotedProperty = referenceOf("Box.<<a.b>>");
+            EXPECT_EQ(quotedProperty.objectName, "Box");
+            EXPECT_EQ(quotedProperty.propertyName, "a.b");
+        }
+
+        /**
+         * @brief 钉住：引用的文本写法能解析回同一条路径，改路径要经 setReference
+         */
+        TEST(ExpressionNodes, ReferenceTextRoundTrips)
+        {
+            for (const std::string &text: {"Length", "Box.Length", "<<Part>>.Box.Length", "<<Sheet#A1>>"})
+            {
+                const ExpressionPtr node = ExpressionParser::parse(nullptr, text);
+                const std::string written = node->toString();
+                EXPECT_EQ(referenceOf(written), referenceOf(text)) << written << " 没能解析回原路径";
+            }
+
+            auto variable = std::make_unique<VariableExpression>(nullptr, VariableReference{"", "", "Length"});
+            EXPECT_EQ(variable->pathText(), "Length");
+            EXPECT_EQ(variable->name(), "Length");
+
+            variable->setReference(VariableReference{"Doc", "Box", "Length"});
+            EXPECT_EQ(variable->pathText(), "<<Doc>>.Box.Length");
+            EXPECT_EQ(variable->toString(), "<<Doc>>.Box.Length");
+            EXPECT_EQ(variable->copy()->toString(), "<<Doc>>.Box.Length");
+        }
+
     } // namespace
 }     // namespace ExpressionEngine::Expression

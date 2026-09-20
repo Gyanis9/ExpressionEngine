@@ -1099,16 +1099,7 @@ namespace ExpressionEngine::Expression
         unique.reserve(references.size());
         for (const auto &reference: references)
         {
-            bool seen = false;
-            for (const auto &existing: unique)
-            {
-                if (existing.documentName == reference.documentName && existing.objectName == reference.objectName && existing.propertyName == reference.propertyName)
-                {
-                    seen = true;
-                    break;
-                }
-            }
-            if (!seen)
+            if (std::ranges::find(unique, reference) == unique.end())
             {
                 unique.push_back(reference);
             }
@@ -3183,8 +3174,14 @@ namespace ExpressionEngine::Expression
     {
         if (m_reference.objectName.empty())
         {
-            // 未限定对象：按局部作用域的写法显示
-            return m_reference.propertyName;
+            if (m_reference.documentName.empty())
+            {
+                // 未限定对象与文档：按局部作用域的写法显示
+                return m_reference.propertyName;
+            }
+            // 只给了文档与目标（跨文档读单元格）：必须回到 <<文档#目标>> 的写法，
+            // 否则文本丢了文档，再解析就落到当前文档上
+            return "<<" + m_reference.documentName + "#" + m_reference.propertyName + ">>";
         }
         if (m_reference.documentName.empty())
         {

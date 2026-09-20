@@ -108,8 +108,11 @@ namespace ExpressionEngine::Expression
 
         /**
          * @brief 按文档名与对象名解析对象
+         * @details 库把引用文本切段后原样传进来，不做拆分也不归一大小写：对象名可以含点
+         *          （写成 <<Doc>>.<<a.b>>.Length），宿主按整段名字查即可。空 objectName 表示
+         *          「表达式所属的当前对象」，区间聚合读单元格也按这条约定取容器。
          * @param documentName 文档名；为空表示不限文档（取宿主认为合适的那一个）
-         * @param objectName 对象名
+         * @param objectName 对象名；为空表示当前对象
          * @return 对象；找不到时返回 nullptr，由调用方给出中文报错
          */
         [[nodiscard]] virtual IObject *resolve(std::string_view documentName, std::string_view objectName) = 0;
