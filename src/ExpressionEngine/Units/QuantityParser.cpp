@@ -623,6 +623,14 @@ namespace ExpressionEngine::Units
         }
 
         /**
+         * @brief 允许的嵌套层数上限
+         * @details 解析按递归下降进行，层数过深会撞穿调用方的线程栈，而栈溢出不是异常、try 不住。
+         *          与表达式解析器同一口径取 100 层：实测 500 层括号还能返回、2000 层就没命，
+         *          正常单位写法（m/s、kg/(m*s)）远用不到这个额度。
+         */
+        constexpr int maxNestingDepth = 100;
+
+        /**
          * @brief 数量语法分析器
          * @details 递归下降实现，优先级自低到高为：加减、乘除、一元正负、乘方、括号与函数，
          *          单位表达式单独一棵子树，单位与数值的结合按「相邻即相乘」处理。
@@ -640,6 +648,19 @@ namespace ExpressionEngine::Units
             [[nodiscard]] Quantity parseInput();
 
         private:
+            /// 一层递归的计数守卫：数值链与单位链共用额度，用尽即报可显示的解析错
+            class NestingGuard
+            {
+            public:
+                explicit NestingGuard(QuantityParserImplementation &parser);
+                NestingGuard(const NestingGuard &)            = delete;
+                NestingGuard &operator=(const NestingGuard &) = delete;
+                ~NestingGuard();
+
+            private:
+                QuantityParserImplementation &m_parser;
+            };
+
             void advance();
 
             [[nodiscard]] bool startsNumber() const;
@@ -671,12 +692,31 @@ namespace ExpressionEngine::Units
             QuantityLexer m_lexer;     ///< 词法分析器
             Token         m_current;   ///< 当前记号
             Token         m_lookahead; ///< 下一记号，用于区分 "1/mm" 与 "1/2"
+            int           m_nestingDepth{}; ///< 已占用的嵌套额度，只用于限深
         };
 
         void QuantityParserImplementation::advance()
         {
             m_current   = m_lookahead;
             m_lookahead = m_lexer.next();
+        }
+
+        QuantityParserImplementation::NestingGuard::NestingGuard(QuantityParserImplementation &parser) : m_parser(parser)
+        {
+            // 额度不够时先报错再计数，异常往上抛的途中不用归还本层
+            if (m_parser.m_nestingDepth >= maxNestingDepth)
+            {
+                throw Base::ParserError(std::format("数量文本第 {} 个字符处起嵌套超过 {} 层，已停止解析；请减少括号层数，"
+                                                    "单位的连除可改写成 m/s^2 这样的幂次形式",
+                                                    m_parser.m_current.offset + 1,
+                                                    maxNestingDepth));
+            }
+            ++m_parser.m_nestingDepth;
+        }
+
+        QuantityParserImplementation::NestingGuard::~NestingGuard()
+        {
+            --m_parser.m_nestingDepth;
         }
 
         bool QuantityParserImplementation::startsNumber() const
@@ -801,6 +841,8 @@ namespace ExpressionEngine::Units
 
         Quantity QuantityParserImplementation::parseUnary()
         {
+            const NestingGuard guard(*this); // 括号与函数实参也经由这一层往下递归，限深即可护住整棵数值树
+
             if (m_current.kind == TokenKind::Plus)
             {
                 advance();
@@ -905,6 +947,8 @@ namespace ExpressionEngine::Units
 
         Quantity QuantityParserImplementation::parseUnitAtom()
         {
+            const NestingGuard guard(*this); // 单位链的括号自成一条递归路（如 m/(m/s)），与数值链共用同一份额度
+
             switch (m_current.kind)
             {
                 case TokenKind::Unit:

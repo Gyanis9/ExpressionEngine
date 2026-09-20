@@ -4,6 +4,8 @@
 
 #include <limits>
 #include <numbers>
+#include <string>
+#include <vector>
 
 #include <ExpressionEngine/Base/Exception.h>
 #include <ExpressionEngine/Units/QuantityParser.h>
@@ -178,6 +180,53 @@ namespace ExpressionEngine::Units
             {
                 EXPECT_EQ(failed.error().message, error.message());
             }
+        }
+
+        /// 造 levels 层嵌套的文本：每层写 opening，中间放 core，再补 levels 个 closing
+        std::string nestText(const std::string &opening, const std::string &core, const std::string &closing, const int levels)
+        {
+            std::string text;
+            for (int level = 0; level < levels; ++level)
+            {
+                text += opening;
+            }
+            text += core;
+            for (int level = 0; level < levels; ++level)
+            {
+                text += closing;
+            }
+            return text;
+        }
+
+        /**
+         * @brief 钉住：超深嵌套按解析错拒绝，而不是撞穿调用方的线程栈
+         * @details 数值链（括号、负号）与单位链（m/(s/(…）各走一条递归路，两条都得钉住。
+         *          栈溢出不可捕获，用例能跑到断言就说明解析器活着返回了。
+         */
+        TEST(QuantityParserTest, OverlyDeepNestingIsRejected)
+        {
+            const std::vector<std::string> samples{
+                    nestText("(", "1", ")", 2000) + " m",
+                    nestText("-", "1", "", 2000) + " m",
+                    "m" + nestText("/(s", "", ")", 2000),
+            };
+
+            for (const std::string &sample: samples)
+            {
+                const auto parsed = QuantityParser::tryParse(sample);
+                ASSERT_FALSE(parsed.has_value()) << "超深嵌套应当被拒绝";
+                EXPECT_NE(parsed.error().message.find("嵌套"), std::string::npos) << parsed.error().message;
+            }
+        }
+
+        /**
+         * @brief 钉住：上限内的括号、负号与单位嵌套照常解析，限深不该伤到正常写法
+         */
+        TEST(QuantityParserTest, DeepNestingWithinTheLimitStillWorks)
+        {
+            EXPECT_DOUBLE_EQ(QuantityParser::parse(nestText("(", "1", ")", 20) + " m").getValue(), 1000.0);
+            EXPECT_DOUBLE_EQ(QuantityParser::parse(nestText("-", "1", "", 20) + " m").getValue(), 1000.0);
+            EXPECT_TRUE(QuantityParser::tryParse("m" + nestText("/(s", "", ")", 20)).has_value());
         }
 
     } // namespace

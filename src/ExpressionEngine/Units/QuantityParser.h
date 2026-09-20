@@ -31,7 +31,8 @@ namespace ExpressionEngine::Units
          * @brief 解析数量文本
          * @param text 待解析文本，可为空（空输入得到「最小正数」量，与原文法一致）
          * @return 解析结果
-         * @throws ParserError 文本存在词法或语法错误，消息中带出错位置
+         * @throws ParserError 文本存在词法或语法错误，消息中带出错位置；括号与单位的嵌套超过
+         *         100 层同样走这条文案，深到来不及报错就会撞穿调用方的线程栈
          */
         [[nodiscard]] static Quantity parse(std::string_view text);
 
