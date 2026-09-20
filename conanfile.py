@@ -15,7 +15,7 @@ class ExpressionEngineRecipe(ConanFile):
     """
 
     name = "expressionengine"
-    version = "1.0.0"
+    version = "0.0.1"
     description = "表达式引擎与单位模块：解析并求值带单位的表达式，可脱离宿主文档模型使用"
     license = "LGPL-2.1-or-later"
     package_type = "static-library"

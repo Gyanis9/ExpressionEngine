@@ -3,7 +3,7 @@
  * @brief 内置的名字到取值字典，替宿主实现属性容器与解析器接口
  * @author Gyanis
  * @date 2026-09-20
- * @version 1.0.0
+ * @version 0.0.1
  * @copyright Copyright (c) 2026 Gyanis. LGPL-2.1-or-later
  */
 

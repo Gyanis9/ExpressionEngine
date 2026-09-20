@@ -3,7 +3,7 @@
  * @brief 内置单位方案的原始数据表与特殊换算函数
  * @author Gyanis
  * @date 2026-09-19
- * @version 1.0.0
+ * @version 0.0.1
  * @copyright Copyright (c) 2026 Gyanis. LGPL-2.1-or-later
  */
 

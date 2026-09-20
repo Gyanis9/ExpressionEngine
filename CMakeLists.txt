@@ -2,7 +2,7 @@
 # 避免在一处维护全部文件名而在增删文件时漏改。
 cmake_minimum_required(VERSION 3.28)
 
-project(ExpressionEngine VERSION 1.0.0 LANGUAGES CXX)
+project(ExpressionEngine VERSION 0.0.1 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -115,10 +115,12 @@ configure_package_config_file(
         INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/ExpressionEngine
 )
 
+# 0.x 阶段按语义化版本不承诺兼容，兼容判定收到「主次版本都相同」这一档；
+# 用 SameMajorVersion 会让 find_package 把 0.9.0 当成 0.0.1 的兼容版本接受。
 write_basic_package_version_file(
         ${CMAKE_CURRENT_BINARY_DIR}/cmake/ExpressionEngineConfigVersion.cmake
         VERSION ${PROJECT_VERSION}
-        COMPATIBILITY SameMajorVersion
+        COMPATIBILITY SameMinorVersion
 )
 
 install(

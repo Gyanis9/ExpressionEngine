@@ -3,7 +3,7 @@
  * @brief 电子表格式单元格地址与区间迭代
  * @author Gyanis
  * @date 2026-09-19
- * @version 1.0.0
+ * @version 0.0.1
  * @copyright Copyright (c) 2026 Gyanis. LGPL-2.1-or-later
  */
 

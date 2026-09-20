@@ -3,7 +3,7 @@
  * @brief 4x4 齐次变换矩阵 Matrix4D 与缩放类型枚举
  * @author Gyanis
  * @date 2026-09-19
- * @version 1.0.0
+ * @version 0.0.1
  * @copyright Copyright (c) 2026 Gyanis. LGPL-2.1-or-later
  */
 

@@ -18,7 +18,8 @@ project(ExpressionEngineConsumerCheck CXX)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(ExpressionEngine CONFIG REQUIRED)
+# 带上版本号，包配置的兼容判定（COMPATIBILITY）才会被走到；不带版本时它根本不被读取。
+find_package(ExpressionEngine 0.0.1 CONFIG REQUIRED)
 
 add_executable(consumerCheck main.cpp)
 target_link_libraries(consumerCheck PRIVATE ExpressionEngine::ExpressionEngine)

@@ -3,7 +3,7 @@
  * @brief 刚体位姿（位置 + 旋转），可与矩阵、对偶四元数互转
  * @author Gyanis
  * @date 2026-09-19
- * @version 1.0.0
+ * @version 0.0.1
  * @copyright Copyright (c) 2026 Gyanis. LGPL-2.1-or-later
  */
 

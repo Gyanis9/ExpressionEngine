@@ -3,7 +3,7 @@
  * @brief 对偶四元数：旋转与平移的统一表示，用于位姿插值
  * @author Gyanis
  * @date 2026-09-19
- * @version 1.0.0
+ * @version 0.0.1
  * @copyright Copyright (c) 2026 Gyanis. LGPL-2.1-or-later
  */
 

@@ -3,7 +3,7 @@
  * @brief 几何算法通用的推荐精度常量（口径与 OCC 的 Precision 类一致）
  * @author Gyanis
  * @date 2026-09-19
- * @version 1.0.0
+ * @version 0.0.1
  * @copyright Copyright (c) 2026 Gyanis. LGPL-2.1-or-later
  */
 
