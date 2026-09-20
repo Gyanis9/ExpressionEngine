@@ -289,3 +289,4 @@ cmake/           find_package 的配置模板
 装到 `share/doc/ExpressionEngine/`。
 
 本文件不承担 API 文档职责：接口契约以 `src/ExpressionEngine/**` 头文件里的 Doxygen 注释为准。
+版本变更与迁移事项见 [`CHANGELOG.md`](CHANGELOG.md)。
