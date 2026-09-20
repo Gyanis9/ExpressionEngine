@@ -1,6 +1,7 @@
 # 构建产物
 /build/
 /out/
+/tools/package-check/build/
 cmake-build-*/
 
 # IDE 配置

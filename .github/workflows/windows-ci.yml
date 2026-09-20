@@ -71,6 +71,23 @@ jobs:
           path: build/debug/Testing/Temporary/LastTest.log
           if-no-files-found: ignore
 
+      # 安装包的接线只有仓库外的消费者工程才看得见：库内用例直接从源码树 include，
+      # 导出头漏装、cmake 配置包写错、中文注释缺 /utf-8 这些都不会让它们红。
+      # 装的是上面那份带 ASan 插桩的构建，所以运行消费者要照 ctest 那一步补同一行 PATH。
+      - name: 安装到临时前缀
+        run: cmake --install build/debug --prefix "${{ runner.temp }}/ee-install"
+
+      - name: 编译包消费者
+        run: |
+          cmake -S tools/package-check -B tools/package-check/build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH="${{ runner.temp }}/ee-install"
+          cmake --build tools/package-check/build
+
+      - name: 运行包消费者
+        run: |
+          $env:PATH = "$(Split-Path (Get-Command cl.exe).Source);$env:PATH"
+          tools/package-check/build/consumerCheck.exe
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       # 基准默认不开（EXPRESSIONENGINE_BUILD_BENCHMARKS=OFF），没有任何构建会碰
       # benchmarks/ 下的代码。这里单独配置一个 Release 构建目录（基准只在 Release
       # 下有意义，见 benchmarks/CMakeLists.txt）并只编译不运行——跑数字要同源语料

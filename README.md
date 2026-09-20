@@ -221,6 +221,10 @@ ctest --test-dir build/release --output-on-failure
 - 开关：`EXPRESSIONENGINE_BUILD_TESTS`（默认 ON）、`EXPRESSIONENGINE_BUILD_BENCHMARKS`（默认 OFF）。
 - 告警口径：MSVC 用 `/W4 /permissive- /utf-8 /Zc:__cplusplus`，其它编译器用
   `-Wall -Wextra -Wpedantic`；零告警是提交硬判据。
+- `tools/package-check/` 是安装包的仓库外消费者：先 `cmake --install`，再用 `find_package` 起一个
+  独立工程编译并跑宿主可见行为断言。库内用例看不见导出头与安装规则的接线缺陷（中文注释的导出头
+  会让不带 `/utf-8` 的 MSVC 消费者直接编不过），这道门只在装出来的包上才成立，跑法见该目录的
+  `CMakeLists.txt` 顶部注释。
 
 ## 性能
 
