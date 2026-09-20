@@ -102,5 +102,18 @@ namespace ExpressionEngine::Units
             EXPECT_EQ(custom.getTypeString(), "CustomLength");
         }
 
+        /**
+         * @brief 钉住：完整描述文本同时给出符号、指数与类型名；立方根是开三次方
+         */
+        TEST(UnitTest, DescriptionAndCubeRoot)
+        {
+            EXPECT_EQ(Unit::Length.representation(), "Unit: mm (1,0,0,0,0,0,0,0) [Length]");
+
+            EXPECT_EQ(Unit::Volume.cbrt(), Unit::Length);
+            EXPECT_EQ(Unit::Length.pow(3).cbrt(), Unit::Length);
+            // 指数不能被 3 整除时立方根无法表示，报错而不是给近似单位
+            EXPECT_THROW(static_cast<void>(Unit::Length.cbrt()), Base::UnitsMismatchError);
+        }
+
     } // namespace
 }     // namespace ExpressionEngine::Units
