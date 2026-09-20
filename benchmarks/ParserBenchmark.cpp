@@ -18,11 +18,17 @@
 #include <new>
 #include <string>
 #include <string_view>
+#include <type_traits>
+#include <variant>
 #include <vector>
 
+#include <ExpressionEngine/Expression/Dictionary.h>
 #include <ExpressionEngine/Expression/ExpressionLexer.h>
 #include <ExpressionEngine/Expression/ExpressionParser.h>
+#include <ExpressionEngine/Expression/FunctionRegistry.h>
+#include <ExpressionEngine/Units/Quantity.h>
 #include <ExpressionEngine/Units/QuantityParser.h>
+#include <ExpressionEngine/Units/Unit.h>
 
 #include "LegacyQuantityParser.h"
 
@@ -276,6 +282,61 @@ namespace
         return reinterpret_cast<std::uintptr_t>(expression.get());
     }
 
+    /// 取值的位模式，只为把求值结果交给防止优化用的汇聚点
+    [[nodiscard]] std::uintptr_t sinkOf(const ExpressionEngine::Expression::Value &value)
+    {
+        return std::visit(
+                []<typename Alternative>(const Alternative &item) -> std::uintptr_t
+                {
+                    using Type = std::decay_t<Alternative>;
+                    if constexpr (std::is_same_v<Type, ExpressionEngine::Units::Quantity>)
+                    {
+                        return static_cast<std::uintptr_t>(std::bit_cast<std::uint64_t>(item.getValue()));
+                    } else if constexpr (std::is_same_v<Type, double>)
+                    {
+                        return static_cast<std::uintptr_t>(std::bit_cast<std::uint64_t>(item));
+                    } else if constexpr (std::is_same_v<Type, bool>)
+                    {
+                        return static_cast<std::uintptr_t>(item);
+                    } else if constexpr (std::is_same_v<Type, std::string>)
+                    {
+                        return item.size();
+                    } else if constexpr (std::is_same_v<Type, ExpressionEngine::Expression::ValueSequence>)
+                    {
+                        return item.size();
+                    } else
+                    {
+                        // 几何取值不参与数值比较，借排版给一个依赖内容的稳定量
+                        return ExpressionEngine::Expression::toString(ExpressionEngine::Expression::Value(item)).size();
+                    }
+                },
+                value);
+    }
+
+    /// 求值用例共用的宿主：字典给名字，注册表给自定义函数
+    ExpressionEngine::Expression::Dictionary       g_evaluationDictionary; ///< 求值用例的名字来源
+    ExpressionEngine::Expression::FunctionRegistry g_evaluationRegistry;   ///< 求值用例的自定义函数来源
+
+    /// 装配求值夹具；放在 main 开头，保证计时前字典与注册表都已就绪
+    void prepareEvaluationFixtures()
+    {
+        static_cast<void>(g_evaluationRegistry.registerFunction(
+                {.name         = "taxed",
+                 .function     = [](const ExpressionEngine::Expression::FunctionCall &call) { return ExpressionEngine::Units::Quantity(1.13) * ExpressionEngine::Expression::toQuantity(call.argumentValue(0), "taxed 的实参"); },
+                 .minArguments = 1,
+                 .maxArguments = 1}));
+        g_evaluationDictionary.define("Length", ExpressionEngine::Units::Quantity(3000.0, ExpressionEngine::Units::Unit::Length));
+        g_evaluationDictionary.define("Width", ExpressionEngine::Units::Quantity(2000.0, ExpressionEngine::Units::Unit::Length));
+    }
+
+    /// 解析并求值一次，返回取值的位模式；建树与求值都在计时区间内
+    [[nodiscard]] std::uintptr_t parseAndEvaluate(const std::string_view text)
+    {
+        const ExpressionEngine::Expression::ExpressionPtr expression =
+                ExpressionEngine::Expression::ExpressionParser::parse(&g_evaluationDictionary, text, g_evaluationRegistry);
+        return sinkOf(expression->evaluate());
+    }
+
     /// 只跑表达式词法直到 End，不建 AST
     [[nodiscard]] std::uintptr_t lexExpression(std::string_view text)
     {
@@ -306,6 +367,8 @@ namespace
 
 int main()
 {
+    prepareEvaluationFixtures();
+
     std::printf("== ExpressionEngine 解析器吞吐基准 ==\n");
     std::printf("CPU: %s\n", cpuBrandString().c_str());
 #ifdef BENCH_BUILD_TYPE
@@ -343,6 +406,18 @@ int main()
             {"表达式解析/多参数 max(1;5,3)", "max(1; 5, 3)"},
             {"表达式解析/长链(>300 字符)", repeatToLength("1+2*3-4/5+6^2+7%3+8", "+", 300)},
             {"表达式解析/括号嵌套 50 层", std::string(50, '(') + "1+2*3" + std::string(50, ')')},
+    };
+
+    // 求值语料：解析 + 求值整条链路，覆盖内置函数、自定义函数、序列与字典引用
+    const std::vector<BenchmarkCase> evaluationCases = {
+            {"求值/纯算术 1+2*3", "1 + 2 * 3"},
+            {"求值/数量加法 2 mm + 3 mm", "2 mm + 3 mm"},
+            {"求值/内置函数 sqrt+abs", "sqrt(16) + abs(-7)"},
+            {"求值/自定义函数 taxed(100 mm)", "taxed(100 mm)"},
+            {"求值/序列构建与下标", "list(1; 2; 3)[1]"},
+            {"求值/序列区间聚合", "sum(list(1; 2; 3; 4)[0:2])"},
+            {"求值/字典引用 Length * 2", "Length * 2"},
+            {"求值/字典多名字", "Length + Width * 2"},
     };
 
     // 词法语料：只取短式与长链两条，用来区分词法与语法分析的开销
@@ -397,6 +472,13 @@ int main()
         if (validate(entry.label, [&entry] { return parseExpression(entry.text); }))
         {
             runCase(entry.label, entry.text, [&entry] { return parseExpression(entry.text); });
+        }
+    }
+    for (const BenchmarkCase &entry: evaluationCases)
+    {
+        if (validate(entry.label, [&entry] { return parseAndEvaluate(entry.text); }))
+        {
+            runCase(entry.label, entry.text, [&entry] { return parseAndEvaluate(entry.text); });
         }
     }
     for (const BenchmarkCase &entry: lexerCases)
