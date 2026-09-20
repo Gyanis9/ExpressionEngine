@@ -2563,13 +2563,13 @@ namespace ExpressionEngine::Expression
                     case Function::VectorLineSegmentDistance:
                         return firstVector.distanceToLineSegment(secondVector, thirdVector);
                     case Function::VectorLineProjection:
-                        // 垂足 = 直线上一点 + 位移在直线方向上的分量。
-                        // 不用 Vector3d::projectToLine：该函数的公式不读取自身，结果与待投影的点无关。
+                        // 方向为零向量时垂足不存在，先把用户输入挡住，再交给向量层投影
                         if (thirdVector.squaredLength() == 0.0)
                         {
                             throw Base::ValueError("vlineproj() 的直线方向是零向量，无法确定直线；请给出非零方向");
                         }
-                        return secondVector + (((firstVector - secondVector) * thirdVector) / thirdVector.squaredLength()) * thirdVector;
+                        firstVector.projectToLine(secondVector, thirdVector);
+                        return firstVector;
                     case Function::VectorPlaneDistance:
                         return Units::Quantity(firstVector.distanceToPlane(secondVector, thirdVector), Units::Unit::Length);
                     case Function::VectorPlaneProjection:

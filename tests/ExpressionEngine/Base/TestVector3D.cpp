@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 
+#include <cmath>
+
 #include <ExpressionEngine/Base/Exception.h>
 #include <ExpressionEngine/Base/Vector3D.h>
 
@@ -8,6 +10,7 @@ namespace
 
     using ExpressionEngine::Base::distance;
     using ExpressionEngine::Base::IndexError;
+    using ExpressionEngine::Base::squaredDistance;
     using ExpressionEngine::Base::ValueError;
     using ExpressionEngine::Base::Vector3d;
 
@@ -96,4 +99,52 @@ TEST(Vector3D, ZeroVectorAngleIsNaN)
 
     EXPECT_TRUE(Vector3d::UnitX.isParallel(Vector3d::UnitX, 1e-9));
     EXPECT_TRUE(Vector3d::UnitX.isNormal(Vector3d::UnitY, 1e-9));
+}
+
+/**
+ * @brief 钉住点到直线、线段与平面的距离、投影与线段包含判定
+ */
+TEST(Vector3D, DistancesAndProjections)
+{
+    const Vector3d point(2.0, 3.0, 4.0);
+    EXPECT_DOUBLE_EQ(point.squaredLength(), 29.0);
+    EXPECT_DOUBLE_EQ(squaredDistance(Vector3d(1.0, 0.0, 0.0), Vector3d(4.0, 0.0, 0.0)), 9.0);
+
+    // 到无限长直线的距离只看方向，垂足落在线段内外都算
+    EXPECT_DOUBLE_EQ(Vector3d(2.0, 3.0, 0.0).distanceToLine(Vector3d(), Vector3d(1.0, 0.0, 0.0)), 3.0);
+
+    // 到线段的位移向量：垂足在线段内取垂足，落在外面取最近端点
+    const Vector3d inside  = Vector3d(5.0, 1.0, 0.0).distanceToLineSegment(Vector3d(), Vector3d(10.0, 0.0, 0.0));
+    const Vector3d outside = Vector3d(5.0, 1.0, 0.0).distanceToLineSegment(Vector3d(), Vector3d(2.0, 0.0, 0.0));
+    EXPECT_TRUE(inside == Vector3d(0.0, -1.0, 0.0));
+    EXPECT_TRUE(outside == Vector3d(-3.0, -1.0, 0.0));
+
+    // 平面投影只去掉法向分量，距离按法向取
+    Vector3d projected = point;
+    projected.projectToPlane(Vector3d(), Vector3d(0.0, 0.0, 1.0));
+    EXPECT_TRUE(projected == Vector3d(2.0, 3.0, 0.0));
+    EXPECT_DOUBLE_EQ(point.distanceToPlane(Vector3d(), Vector3d(0.0, 0.0, 1.0)), 4.0);
+
+    // 直线投影与平面投影同一条路：把本点投到「过 point、方向 line」的直线上，垂足就地写回
+    Vector3d onLine(point);
+    onLine.projectToLine(Vector3d(), Vector3d(1.0, 0.0, 0.0));
+    EXPECT_TRUE(onLine == Vector3d(2.0, 0.0, 0.0));
+    // 直线不过原点时以 point 为准
+    Vector3d anchored = point;
+    anchored.projectToLine(Vector3d(0.0, 1.0, 0.0), Vector3d(1.0, 0.0, 0.0));
+    EXPECT_TRUE(anchored == Vector3d(2.0, 1.0, 0.0));
+    EXPECT_TRUE(point.perpendicular(Vector3d(), Vector3d(1.0, 0.0, 0.0)) == Vector3d(2.0, 0.0, 0.0));
+
+    // 线段包含判定是闭区间，偏出直线方向就不算
+    EXPECT_TRUE(Vector3d(1.0, 0.0, 0.0).isOnLineSegment(Vector3d(), Vector3d(2.0, 0.0, 0.0)));
+    EXPECT_TRUE(Vector3d(2.0, 0.0, 0.0).isOnLineSegment(Vector3d(), Vector3d(2.0, 0.0, 0.0)));
+    EXPECT_FALSE(Vector3d(3.0, 0.0, 0.0).isOnLineSegment(Vector3d(), Vector3d(2.0, 0.0, 0.0)));
+    EXPECT_FALSE(Vector3d(1.0, 1.0, 0.0).isOnLineSegment(Vector3d(), Vector3d(2.0, 0.0, 0.0)));
+
+    // 带方向的夹角按法向定旋向，结果折进 [0, 2*pi)：反向不是负角而是 270°
+    const double quarterTurn = std::asin(1.0);
+    EXPECT_NEAR(Vector3d(1.0, 0.0, 0.0).getAngleOriented(Vector3d(0.0, 1.0, 0.0), Vector3d(0.0, 0.0, 1.0)), quarterTurn, 1e-12);
+    EXPECT_NEAR(Vector3d(0.0, 1.0, 0.0).getAngleOriented(Vector3d(1.0, 0.0, 0.0), Vector3d(0.0, 0.0, 1.0)), 3.0 * quarterTurn, 1e-12);
+    // 参考法向反过来，同一个转向就落到另一侧
+    EXPECT_NEAR(Vector3d(1.0, 0.0, 0.0).getAngleOriented(Vector3d(0.0, 1.0, 0.0), Vector3d(0.0, 0.0, -1.0)), 3.0 * quarterTurn, 1e-12);
 }

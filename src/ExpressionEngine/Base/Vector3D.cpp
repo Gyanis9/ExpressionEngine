@@ -278,7 +278,8 @@ namespace ExpressionEngine::Base
     template<class FloatingType>
     Vector3<FloatingType> &Vector3<FloatingType>::projectToLine(const Vector3 &point, const Vector3 &line)
     {
-        return (*this = ((((point * line) / line.squaredLength()) * line) - point));
+        // 与 projectToPlane 同一条路：把本点投到「过 point、方向 line」的直线上，垂足就地写回
+        return *this = perpendicular(point, line);
     }
 
     template<class FloatingType>

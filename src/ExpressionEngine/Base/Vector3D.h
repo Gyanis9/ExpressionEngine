@@ -478,11 +478,12 @@ namespace ExpressionEngine::Base
         void projectToPlane(const Vector3 &base, const Vector3 &normal, Vector3 &projection) const;
 
         /**
-         * @brief 就地把点投影到直线
-         * @details 结果是「本点到直线上垂足」的向量；本方法并不依赖当前向量的内容。
+         * @brief 就地把本点投影到直线，结果写回自身
+         * @details 与 projectToPlane() 对称：本点是被投影的点，point 与 line 只确定直线
+         *          （过 point、方向 line）。方向为零向量时结果不定，调用方需自行把关。
          * @param point 直线所过的点
          * @param line 直线方向
-         * @return 自身引用
+         * @return 自身引用，内容为垂足
          */
         Vector3 &projectToLine(const Vector3 &point, const Vector3 &line);
 
