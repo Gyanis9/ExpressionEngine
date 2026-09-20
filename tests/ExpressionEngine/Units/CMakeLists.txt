@@ -4,4 +4,5 @@ set_property(GLOBAL APPEND PROPERTY ExpressionEngineUnitsTestSources
         ${CMAKE_CURRENT_LIST_DIR}/TestQuantityParser.cpp
         ${CMAKE_CURRENT_LIST_DIR}/TestUnit.cpp
         ${CMAKE_CURRENT_LIST_DIR}/TestUnitsSchema.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/TestUnitsSchemas.cpp
 )

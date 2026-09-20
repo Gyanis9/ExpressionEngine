@@ -48,11 +48,17 @@ namespace ExpressionEngine::Units
         /**
          * @brief 按序号选中方案
          * @param schemaNumber 方案编号
-         * @throws IndexError 找不到该编号的方案
+         * @throws NameError 找不到该编号的方案
          */
         void select(std::size_t schemaNumber);
 
-        /// 取默认方案（标记 isDefault 的方案，没有标记时取第一个）
+        /**
+         * @brief 取默认方案
+         * @details 标记 isDefault 的方案优先；一个都没标记时按列表顺序取第一个，
+         *          因此只提供单个方案的宿主不必补标记也能构造。
+         * @return 方案定义
+         * @throws NameError 数据包里没有任何方案
+         */
         [[nodiscard]] UnitsSchemaSpecification specification();
 
         /**
@@ -67,7 +73,7 @@ namespace ExpressionEngine::Units
          * @brief 按序号取方案
          * @param schemaNumber 方案编号
          * @return 方案定义
-         * @throws IndexError 找不到该编号的方案
+         * @throws NameError 找不到该编号的方案
          */
         [[nodiscard]] UnitsSchemaSpecification specification(std::size_t schemaNumber);
 
@@ -96,8 +102,13 @@ namespace ExpressionEngine::Units
         /// 把各方案按取值函数投影成字符串列表，供名字与描述两处复用
         [[nodiscard]] std::vector<std::string> collect(const std::function<std::string(UnitsSchemaSpecification)> &projector) const;
 
-        /// 按判定函数查找第一个匹配的方案
-        [[nodiscard]] UnitsSchemaSpecification findSpecification(const std::function<bool(UnitsSchemaSpecification)> &predicate);
+        /**
+         * @brief 按判定函数查找第一个匹配的方案
+         * @param predicate 判定函数
+         * @param subject 报错文本里对查找条件的描述，如「名为 "MKS"」
+         * @throws NameError 没有任何方案匹配
+         */
+        [[nodiscard]] UnitsSchemaSpecification findSpecification(const std::function<bool(UnitsSchemaSpecification)> &predicate, const std::string &subject);
 
         /// 把方案设为当前方案
         void makeCurrent(const UnitsSchemaSpecification &specification);

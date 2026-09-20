@@ -92,13 +92,14 @@ namespace ExpressionEngine::Units
         m_currentSchema = std::make_unique<UnitsSchema>(specification);
     }
 
-    UnitsSchemaSpecification UnitsSchemas::findSpecification(const std::function<bool(UnitsSchemaSpecification)> &predicate)
+    UnitsSchemaSpecification UnitsSchemas::findSpecification(const std::function<bool(UnitsSchemaSpecification)> &predicate, const std::string &subject)
     {
         const auto found = std::ranges::find_if(m_pack.specifications, predicate);
 
         if (found == m_pack.specifications.end())
         {
-            throw Base::NameError("找不到匹配的单位方案，请用 names() 取可用方案名后重试");
+            // 报错文本要带上查的是什么，否则宿主拿到一段「找不到」也不知道自己传错了哪个名字或编号
+            throw Base::NameError(std::format("找不到{}的单位方案，请用 names() 取可用方案名、count() 取方案总数后重试", subject));
         }
 
         return *found;
@@ -106,10 +107,24 @@ namespace ExpressionEngine::Units
 
     UnitsSchemaSpecification UnitsSchemas::specification()
     {
-        return findSpecification([](const UnitsSchemaSpecification &specification)
+        const auto isMarkedDefault = [](const UnitsSchemaSpecification &specification)
         {
             return specification.isDefault;
-        });
+        };
+
+        if (const auto defaultSpecification = std::ranges::find_if(m_pack.specifications, isMarkedDefault);
+            defaultSpecification != m_pack.specifications.end())
+        {
+            return *defaultSpecification;
+        }
+
+        // 一个 isDefault 都没有标记时按列表顺序取第一个：宿主只提供单个方案时不必为了构造成功而补标记
+        if (m_pack.specifications.empty())
+        {
+            throw Base::NameError("单位方案数据包里没有任何方案，请至少给出一个方案后重试");
+        }
+
+        return m_pack.specifications.front();
     }
 
     UnitsSchemaSpecification UnitsSchemas::specification(const std::string_view name)
@@ -117,7 +132,7 @@ namespace ExpressionEngine::Units
         return findSpecification([name](const UnitsSchemaSpecification &specification)
         {
             return specification.name == name;
-        });
+        }, std::format("名为 \"{}\"", name));
     }
 
     UnitsSchemaSpecification UnitsSchemas::specification(const std::size_t schemaNumber)
@@ -125,6 +140,6 @@ namespace ExpressionEngine::Units
         return findSpecification([schemaNumber](const UnitsSchemaSpecification &specification)
         {
             return specification.number == schemaNumber;
-        });
+        }, std::format("编号为 {}", schemaNumber));
     }
 } // namespace ExpressionEngine::Units

@@ -63,12 +63,26 @@ namespace ExpressionEngine::Units
                                                     m_specification.name, unitTypeName));
         }
 
-        // 换算因子为 0 表示 unitString 写的是特殊函数名，交给特殊函数接管
+        // 换算因子为 0 表示 unitString 写的是特殊函数名而不是单位串，由特殊通道接管排版
         if (unitSpecification->factor == 0)
         {
-            const QuantityFormat &format = quant.getFormat();
-            return UnitsSchemasData::runSpecial(unitSpecification->unitString, value, static_cast<std::size_t>(format.getPrecision()),
-                                                static_cast<std::size_t>(format.getDenominator()), factor, unitString);
+            // 内置登记表优先，宿主自带的方案数据也能直接复用 toDMS / toFractional
+            if (UnitsSchemasData::specials.contains(unitSpecification->unitString))
+            {
+                const QuantityFormat &format = quant.getFormat();
+                return UnitsSchemasData::runSpecial(unitSpecification->unitString, value, static_cast<std::size_t>(format.getPrecision()),
+                                                    static_cast<std::size_t>(format.getDenominator()), factor, unitString);
+            }
+
+            if (unitSpecification->callback)
+            {
+                // 回调自己负责整段文本，因此换算因子与单位串保持未换算的默认值
+                return unitSpecification->callback(value);
+            }
+
+            throw Base::ValueError(std::format("单位方案 {} 的 {} 条目要求调用特殊函数 {}，但它既不在内置登记表里也没有回调；"
+                                               "请改用 toDMS、toFractional 或为条目提供 callback",
+                                               m_specification.name, unitTypeName, unitSpecification->unitString));
         }
 
         factor     = unitSpecification->factor;

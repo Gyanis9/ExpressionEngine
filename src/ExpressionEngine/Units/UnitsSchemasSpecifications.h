@@ -19,14 +19,15 @@ namespace ExpressionEngine::Units
     /**
      * @brief 单个单位的换算与显示规则
      * @details 适用规则：在一组候选里取第一个「阈值大于待换算值」的条目；阈值为 0 表示兜底条目；
-     *          换算因子为 0 表示 unitString 里写的是要调用的特殊函数名而不是单位串。
+     *          换算因子为 0 表示 unitString 里写的是要调用的特殊函数名而不是单位串，此时内置登记表
+     *          （toDMS、toFractional）优先，未登记的名字转向本条目的 callback。
      */
     struct UnitTranslationSpecification
     {
         double                             threshold{1}; ///< 适用阈值
         std::string                        unitString;   ///< 目标单位串，或特殊函数名
         double                             factor{1};    ///< 从基准单位到该单位的换算因子
-        std::function<std::string(double)> callback;     ///< 特殊函数为 0 时使用的自定义转换
+        std::function<std::string(double)> callback;     ///< 特殊函数名未登记时的自定义排版：入参是基准值，返回整段文本
     };
 
     /**
