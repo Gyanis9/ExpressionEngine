@@ -33,7 +33,16 @@ namespace ExpressionEngine::Units
 
     int QuantityFormat::getDenominator() const
     {
-        return m_denominator < 0 ? UnitsApi::getDenominator() : m_denominator;
+        const int denominator = m_denominator < 0 ? UnitsApi::getDenominator() : m_denominator;
+        // 分母为 0 时分数写法会把任何长度都排成 "0"，等于静默把值丢了；
+        // 只有需要分数刻度的排版会读到这里，定点与科学记数法不受影响。
+        if (denominator < 1)
+        {
+            throw Base::ValueError(std::format("分数分母至少为 1（它表示一英寸要分成几份），当前是 {}；请给 setDenominator() "
+                                               "传 8、16 这类值，或传负数恢复方案默认分母",
+                                               denominator));
+        }
+        return denominator;
     }
 
     Quantity::Quantity() :

@@ -2,8 +2,12 @@
 
 #include <gtest/gtest.h>
 
+#include <memory>
+
 #include <ExpressionEngine/Base/Exception.h>
+#include <ExpressionEngine/Units/Quantity.h>
 #include <ExpressionEngine/Units/UnitsApi.h>
+#include <ExpressionEngine/Units/UnitsSchema.h>
 
 namespace ExpressionEngine::Units
 {
@@ -104,6 +108,78 @@ namespace ExpressionEngine::Units
             EXPECT_FALSE(UnitsApi::isMultiUnitLength());
 
             UnitsApi::setSchema(UnitsApi::getDefaultSchemaNumber());
+        }
+
+        /**
+         * @brief 钉住：建筑英制把长度写成「英尺' 英寸" + 分数"」，分数约到最简
+         */
+        TEST(UnitsApiTest, FractionalLengthShowsFeetInchesAndRemainder)
+        {
+            UnitsApi::setSchema("ImperialBuilding");
+            UnitsApi::setDenominator(16);
+
+            // 100 mm = 3.937 in，按 1/16 英寸落进 3" + 15/16"
+            EXPECT_EQ(UnitsApi::schemaTranslate(Quantity(100.0, Unit::Length)), "3\" + 15/16\"");
+            // 4/16 要约成 1/4
+            EXPECT_EQ(UnitsApi::schemaTranslate(Quantity(25.4 * 1.25, Unit::Length)), "1\" + 1/4\"");
+            // 整英尺只剩英尺段，英寸与分数都省略
+            EXPECT_EQ(UnitsApi::schemaTranslate(Quantity(304.8, Unit::Length)), "1'");
+            // 不足一英寸时只写分数
+            UnitsApi::setDenominator(8);
+            EXPECT_EQ(UnitsApi::schemaTranslate(Quantity(25.4 * 0.375, Unit::Length)), "3/8\"");
+            // 负值把符号放在最前，余量用减号连接
+            UnitsApi::setDenominator(16);
+            EXPECT_EQ(UnitsApi::schemaTranslate(Quantity(-100.0, Unit::Length)), "-3\" - 15/16\"");
+            // 零就是零
+            EXPECT_EQ(UnitsApi::schemaTranslate(Quantity(0.0, Unit::Length)), "0");
+        }
+
+        /**
+         * @brief 钉住：分母为 0 会把任何长度都排成 "0"，必须报错而不是静默出零
+         */
+        TEST(UnitsApiTest, ZeroFractionDenominatorIsRejected)
+        {
+            UnitsApi::setSchema("ImperialBuilding");
+            UnitsApi::setDenominator(0);
+
+            const Quantity value{100.0, Unit::Length};
+            EXPECT_THROW(static_cast<void>(UnitsApi::schemaTranslate(value)), Base::ValueError);
+
+            // 传负数恢复方案默认分母（建筑英制默认 1/8 英寸），排版照常用
+            UnitsApi::setDenominator(-1);
+            EXPECT_GT(UnitsApi::getDenominator(), 1);
+            EXPECT_EQ(UnitsApi::schemaTranslate(value), "3\" + 7/8\"");
+        }
+
+        /**
+         * @brief 钉住：精度与分母未显式设置时回落到方案默认，方案清单三张表同序
+         */
+        TEST(UnitsApiTest, FormatSettingsFallBackToSchemaDefaults)
+        {
+            UnitsApi::setSchema("Internal");
+            UnitsApi::setDecimals(-1);
+            UnitsApi::setDenominator(-1);
+
+            // 默认格式自己不存精度与分母，读到的就是当前方案的默认值
+            EXPECT_EQ(QuantityFormat().getPrecision(), UnitsApi::getDecimals());
+            EXPECT_EQ(QuantityFormat().getDenominator(), UnitsApi::getDenominator());
+
+            UnitsApi::setDecimals(4);
+            EXPECT_EQ(UnitsApi::getDecimals(), 4);
+            EXPECT_EQ(QuantityFormat().getPrecision(), 4);
+            UnitsApi::setDecimals(-1);
+
+            const auto names        = UnitsApi::getNames();
+            const auto descriptions = UnitsApi::getDescriptions();
+            ASSERT_EQ(descriptions.size(), names.size());
+            EXPECT_FALSE(descriptions.front().empty());
+
+            // 单个方案的元数据可以按编号取出来，供宿主自己列表展示
+            const std::unique_ptr<UnitsSchema> schema = UnitsApi::createSchema(0);
+            ASSERT_NE(schema, nullptr);
+            EXPECT_EQ(schema->getNumber(), 0U);
+            EXPECT_EQ(schema->getName(), "Internal");
+            EXPECT_FALSE(schema->getDescription().empty());
         }
 
     }

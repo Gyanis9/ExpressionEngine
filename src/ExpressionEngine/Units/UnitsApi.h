@@ -83,7 +83,7 @@ namespace ExpressionEngine::Units
         /// 取显示精度，未设置时为方案默认值
         [[nodiscard]] static int getDecimals();
 
-        /// 设置分数分母；传入负数表示恢复为方案默认值
+        /// 设置分数分母；传入负数表示恢复为方案默认值；0 会在需要分数的排版阶段报错，而不是把长度排成 "0"
         static void setDenominator(int denominator);
 
         /// 取分数分母，未设置时为方案默认值

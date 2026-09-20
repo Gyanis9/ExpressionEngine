@@ -49,10 +49,17 @@ namespace ExpressionEngine::Units
             m_precision = precision;
         }
 
-        /// 取分数分母，未显式设置时回落到全局默认值
+        /**
+         * @brief 取分数分母，未显式设置时回落到全局默认值
+         * @details 只有需要分数刻度的排版（如建筑英制的 3" + 15/16"）会读它。
+         * @throws Base::ValueError 分母小于 1：那种排版会把任何长度都写成 "0"，静默把值丢掉
+         */
         [[nodiscard]] int getDenominator() const;
 
-        /// 设置分数分母
+        /**
+         * @brief 设置分数分母
+         * @param denominator 一英寸分成几份，至少为 1；负数表示恢复方案默认值。为 0 时在排版阶段报错
+         */
         void setDenominator(int denominator)
         {
             m_denominator = denominator;
