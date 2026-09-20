@@ -302,6 +302,13 @@ namespace ExpressionEngine::Expression
                         throwArgumentCount(label, "至少 1 个参数", argumentCount);
                     }
                     return;
+                case Function::ListJoin:
+                case Function::TextSplit:
+                    if (argumentCount != 2)
+                    {
+                        throwArgumentCount(label, "恰好 2 个参数", argumentCount);
+                    }
+                    return;
                 case Function::List:
                     // list() 取任意个实参，零个即空序列
                     return;
@@ -2174,6 +2181,56 @@ namespace ExpressionEngine::Expression
                 }
                 return result;
             }
+            case Function::ListJoin:
+            {
+                // 序列元素按可读文本接起来，与 concat、str() 同一套排版
+                const Value   target   = arguments[0]->evaluate();
+                const auto *  sequence = std::get_if<ValueSequence>(&target);
+                if (sequence == nullptr)
+                {
+                    throw Base::TypeError(std::format("join() 的第一个参数需要序列，实际是{}；请先用 list(...) 给出序列，"
+                                                      "或用 concat(...) 直接接多个取值",
+                                                      valueTypeName(target)));
+                }
+
+                const std::string        separator = textArgument(arguments, 1, label);
+                const std::vector<Value> &values   = sequenceValues(*sequence);
+                std::string              result;
+                for (std::size_t index = 0; index < values.size(); ++index)
+                {
+                    if (index != 0)
+                    {
+                        result += separator;
+                    }
+                    result += valueText(values[index]);
+                }
+                return result;
+            }
+            case Function::TextSplit:
+            {
+                const std::string text      = textArgument(arguments, 0, label);
+                const std::string separator = textArgument(arguments, 1, label);
+                if (separator.empty())
+                {
+                    throw Base::ValueError("split() 的分隔符不能为空；要按字符取用文本请直接用下标分量（如 t[0]），或给出真实分隔符");
+                }
+
+                // 连续分隔符与末尾分隔符都会产生空段，与按字节切开的直觉一致，也让 join 与 split 能互为逆运算
+                std::vector<Value> parts;
+                std::size_t        start = 0;
+                for (;;)
+                {
+                    const std::size_t position = text.find(separator, start);
+                    if (position == std::string::npos)
+                    {
+                        parts.emplace_back(text.substr(start));
+                        break;
+                    }
+                    parts.emplace_back(text.substr(start, position - start));
+                    start = position + separator.size();
+                }
+                return makeValueSequence(std::move(parts));
+            }
             case Function::MatrixInvert:
             {
                 const Value target = arguments[0]->evaluate();
@@ -2922,6 +2979,10 @@ namespace ExpressionEngine::Expression
                 return "replace";
             case Function::TextConcat:
                 return "concat";
+            case Function::TextSplit:
+                return "split";
+            case Function::ListJoin:
+                return "join";
             case Function::Vector:
                 return "vector";
             case Function::Address:
@@ -2994,9 +3055,11 @@ namespace ExpressionEngine::Expression
                 {.name = "trunc", .function = Function::Truncate},
                 {.name = "concat", .function = Function::TextConcat},
                 {.name = "contains", .function = Function::TextContains},
+                {.name = "join", .function = Function::ListJoin},
                 {.name = "len", .function = Function::TextLength},
                 {.name = "lower", .function = Function::TextLower},
                 {.name = "replace", .function = Function::TextReplace},
+                {.name = "split", .function = Function::TextSplit},
                 {.name = "substr", .function = Function::TextSubstring},
                 {.name = "trim", .function = Function::TextTrim},
                 {.name = "upper", .function = Function::TextUpper},

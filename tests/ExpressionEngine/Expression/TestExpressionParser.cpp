@@ -5,6 +5,7 @@
 #include <memory>
 #include <string>
 #include <variant>
+#include <vector>
 
 #include <ExpressionEngine/Base/Exception.h>
 #include <ExpressionEngine/Expression/ExpressionParser.h>
@@ -541,6 +542,69 @@ namespace ExpressionEngine::Expression
             const std::string velocityText = ExpressionParser::parse(nullptr, "(2 m) / (4 s)")->toString(true, true);
             EXPECT_EQ(velocityText, "(2 * m / (4 * s))");
             EXPECT_EQ(std::get<Units::Quantity>(ExpressionParser::parse(nullptr, velocityText)->evaluate()).getUnit(), Units::Unit::Velocity);
+        }
+
+        /// 求值并取序列元素文本；不是序列或非文本元素由用例报告
+        std::vector<std::string> textListOf(const std::string &text)
+        {
+            const Value value = ExpressionParser::parse(nullptr, text)->evaluate();
+            const auto *list  = std::get_if<ValueSequence>(&value);
+            if (list == nullptr)
+            {
+                ADD_FAILURE() << text << " 的结果不是序列，而是" << valueTypeName(value);
+                return {};
+            }
+            std::vector<std::string> parts;
+            for (const Value &item: sequenceValues(*list))
+            {
+                const auto *part = std::get_if<std::string>(&item);
+                if (part == nullptr)
+                {
+                    ADD_FAILURE() << text << " 的元素不是文本，而是" << valueTypeName(item);
+                    return {};
+                }
+                parts.push_back(*part);
+            }
+            return parts;
+        }
+
+        /**
+         * @brief 钉住：join 与 split 把序列和文本连成一条路，两者互为逆运算
+         */
+        TEST(ExpressionParserTest, JoinAndSplitBridgeSequencesAndText)
+        {
+            // 分隔符里的空白字符靠 <<…>> 引号保留
+            EXPECT_EQ(textOf("join(list(<<a>>; <<b>>; <<c>>); <<, >>)"), "a, b, c");
+            EXPECT_EQ(textOf("join(list(); <<,>>)"), "");
+            // 元素排版与 concat、str() 同源，因此两种写法结果一致
+            EXPECT_EQ(textOf("join(list(1; 2); <<,>>)"), textOf("concat(1; <<,>>; 2)"));
+
+            EXPECT_EQ(textListOf("split(<<a,b,c>>; <<,>>)"), (std::vector<std::string>{"a", "b", "c"}));
+            // 连续与末尾分隔符都留下空段
+            EXPECT_EQ(textListOf("split(<<a,,b>>; <<,>>)"), (std::vector<std::string>{"a", "", "b"}));
+            EXPECT_EQ(textListOf("split(<<a,>>; <<,>>)"), (std::vector<std::string>{"a", ""}));
+            // 分隔符不存在时整段就是一个元素；空文本同理
+            EXPECT_EQ(textListOf("split(<<abc>>; <<,>>)"), (std::vector<std::string>{"abc"}));
+            EXPECT_EQ(textListOf("split(<<>>; <<,>>)"), (std::vector<std::string>{""}));
+            // 分隔符可以是多字符
+            EXPECT_EQ(textListOf("split(<<a::b>>; <<::>>)"), (std::vector<std::string>{"a", "b"}));
+
+            // 拆开的文本再拼回去等于原文
+            EXPECT_EQ(textOf("join(split(<<a,b,c>>; <<,>>); <<,>>)"), "a,b,c");
+            // 拆分结果直接喂聚合函数：每段是文本，数量解析走 toQuantity 的文本通道
+            EXPECT_DOUBLE_EQ(quantityOf("sum(split(<<1 mm; 2 mm>>; <<; >>))").getValue(), 3.0);
+        }
+
+        /**
+         * @brief 钉住：join 与 split 的拒绝面
+         */
+        TEST(ExpressionParserTest, JoinAndSplitRejectWrongArguments)
+        {
+            EXPECT_THROW(static_cast<void>(ExpressionParser::parse(nullptr, "join(1; <<,>>)")->evaluate()), Base::TypeError);
+            EXPECT_THROW(static_cast<void>(ExpressionParser::parse(nullptr, "split(1; <<,>>)")->evaluate()), Base::TypeError);
+            EXPECT_THROW(static_cast<void>(ExpressionParser::parse(nullptr, "split(<<abc>>; <<>>)")->evaluate()), Base::ValueError);
+            EXPECT_THROW(static_cast<void>(ExpressionParser::parse(nullptr, "join()")), EvaluationError);
+            EXPECT_THROW(static_cast<void>(ExpressionParser::parse(nullptr, "split(<<abc>>)")), EvaluationError);
         }
 
     } // namespace

@@ -5,7 +5,8 @@
 
 - **表达式**：`Box.Length * 2`、`cells[0:5]`、`<<Part>>.Box.Length` 这类引用与运算都能解析求值，
   支持函数、条件运算、区间聚合、序列取值（`list(1; 2 mm)[0]`）、文本函数（`len`、`substr`、
-  `contains`、`replace`、`concat` 等，按 UTF-8 字符计）与分量取值，并提供文本回写与依赖收集。
+  `contains`、`replace`、`concat` 等，按 UTF-8 字符计）、序列与文本互转（`join`、`split`）与分量取值，
+  并提供文本回写与依赖收集。
 - **单位**：预定义单位与换算、带单位的数量 `Quantity`、多套单位方案（如 Internal、ImperialDecimal），
   能解析 `1/2 mm`、`5' 6"`、`2 m/s` 这类写法。单位后置与 `*`、`/` 同级，所以
   `3 mm * 4 mm` 是面积，而 `60 mm / 4 s` 是长度×时间——要速度请写 `(60 mm) / (4 s)`。

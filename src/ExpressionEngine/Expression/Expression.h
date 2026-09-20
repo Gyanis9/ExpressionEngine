@@ -954,6 +954,7 @@ namespace ExpressionEngine::Expression
             TextContains,  ///< contains：是否含有给定的子串
             TextReplace,   ///< replace：把全部匹配的子串换成另一段文本
             TextConcat,    ///< concat：把若干取值按顺序接成文本
+            TextSplit,     ///< split：按分隔符把文本拆成序列（含连续与末尾的空段）
 
             // 向量函数
             VectorAngle,               ///< vangle：两向量夹角，结果带角度单位
@@ -981,6 +982,7 @@ namespace ExpressionEngine::Expression
 
             // 构造函数
             List,              ///< list：造序列取值，可含任意类型的元素；tuple 是它的别名
+            ListJoin,          ///< join：把序列按分隔符接成文本
             Matrix,            ///< matrix：造矩阵
             Placement,         ///< placement：造位姿
             Rotation,          ///< rotation：造旋转
