@@ -1,5 +1,6 @@
 #include <ExpressionEngine/Base/Tools.h>
 
+#include <algorithm>
 #include <cstdint>
 #include <format>
 
@@ -43,6 +44,22 @@ namespace ExpressionEngine::Base::Tools
                 default:
                     return std::format("\\u{:04X}", static_cast<std::uint32_t>(byte));
             }
+        }
+
+        /**
+         * @brief 从 offset 起的一个字符占多少字节
+         * @details 计数与定位共用这一条规则：非法前导字节（含孤立的续字节）按单字节成字，
+         *          尾部被截断的序列按剩余字节数取，因此两者数出来的字符个数不可能不一致。
+         * @param text 待切分文本，可含任意字节
+         * @param offset 起始字节偏移，须小于文本长度
+         * @return 字节长度，至少为 1 且不超过剩余字节数
+         */
+        [[nodiscard]] std::size_t characterSpanLength(const std::string_view text, const std::size_t offset)
+        {
+            const std::size_t sequenceLength = utf8SequenceLength(static_cast<unsigned char>(text[offset]));
+            const std::size_t remaining      = text.size() - offset;
+
+            return sequenceLength == 0 ? 1 : std::min(sequenceLength, remaining);
         }
     } // namespace
 
@@ -133,15 +150,15 @@ namespace ExpressionEngine::Base::Tools
 
     std::size_t countUtf8Characters(const std::string_view text)
     {
-        std::size_t count = 0;
-        for (const char byte: text)
+        // 走与 locateUtf8Character 相同的切分规则，逐字前进直到走完文本
+        std::size_t count  = 0;
+        std::size_t offset = 0;
+        while (offset < text.size())
         {
-            // 续字节形如 10xxxxxx，不单独成字
-            if ((static_cast<unsigned char>(byte) & 0xC0U) != 0x80U)
-            {
-                ++count;
-            }
+            offset += characterSpanLength(text, offset);
+            ++count;
         }
+
         return count;
     }
 
@@ -151,21 +168,11 @@ namespace ExpressionEngine::Base::Tools
         std::size_t offset         = 0;
         while (offset < text.size())
         {
-            std::size_t length = utf8SequenceLength(static_cast<unsigned char>(text[offset]));
-            if (length == 0)
-            {
-                // 非法前导字节按单字节算一个字符：既不会越界读，也能继续走完剩余文本
-                length = 1;
-            }
-            if (length > text.size() - offset)
-            {
-                length = text.size() - offset; // 尾部被截断：按剩余字节数取，substr 不会越界
-            }
             if (characterIndex == index)
             {
-                return CharacterSpan{.offset = offset, .length = length};
+                return CharacterSpan{.offset = offset, .length = characterSpanLength(text, offset)};
             }
-            offset += length;
+            offset += characterSpanLength(text, offset);
             ++characterIndex;
         }
         return CharacterSpan{.offset = text.size(), .length = 0};

@@ -43,8 +43,9 @@ namespace ExpressionEngine::Base::Tools
 
     /**
      * @brief 统计文本里的 UTF-8 字符个数
-     * @details 按前导字节计数，续字节（10xxxxxx）不单独成字，所以混入的非 UTF-8 字节会被
-     *          并入前一个字符，不会多计。
+     * @details 从前往后切分：合法前导字节按序列长度成字，非法前导字节（含没有归属的孤立续字节）
+     *          与尾部被截断的序列各算一个字符。规则与 locateUtf8Character 共用同一份实现，
+     *          因此「个数」与「按下标定位」不可能对不上。
      * @param text 待统计文本，可含任意字节
      * @return 字符个数
      */
@@ -52,8 +53,8 @@ namespace ExpressionEngine::Base::Tools
 
     /**
      * @brief 定位文本里第 index 个 UTF-8 字符
-     * @details 按前导字节推断长度，尾部被截断时按剩余字节数取，保证 substr 不越界；
-     *          非法字节序列不会越界读，只是被当成前一个字符的一部分。
+     * @details 尾部被截断时按剩余字节数取，保证 substr 不越界；非法字节序列不会越界读，
+     *          孤立的续字节自成一个单字节字符。
      * @param text 待定位文本，可含任意字节
      * @param index 字符下标，0 起；允许等于字符个数（指到文本末尾之后）
      * @return 该字符的起始偏移与字节长度；下标超出时 length 为 0、offset 为文本长度

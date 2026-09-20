@@ -87,6 +87,12 @@ namespace ExpressionEngine::Expression
         EXPECT_EQ(std::get<std::string>(applyComponent(text, makeIndexComponent(1.0), "测试")), "中");
         EXPECT_EQ(std::get<std::string>(applyComponent(text, makeIndexComponent(2.0), "测试")), "b");
         EXPECT_EQ(std::get<std::string>(applyComponent(text, makeIndexComponent(-1.0), "测试")), "b");
+
+        // 混进孤立续字节的文本（宿主从外部数据拿到的字节串）：末字符还是最后一个字符，
+        // 不是那个孤立字节——计数与定位必须按同一套规则切分才做得到
+        const Value withStray(std::string("\x80" "A", 2));
+        EXPECT_EQ(std::get<std::string>(applyComponent(withStray, makeIndexComponent(-1.0), "测试")), "A");
+        EXPECT_EQ(std::get<std::string>(applyComponent(withStray, makeIndexComponent(0.0), "测试")), std::string("\x80", 1));
     }
 
     /**
