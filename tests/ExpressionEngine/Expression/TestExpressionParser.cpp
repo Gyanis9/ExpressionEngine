@@ -2,7 +2,9 @@
 
 #include <gtest/gtest.h>
 
+#include <memory>
 #include <string>
+#include <variant>
 
 #include <ExpressionEngine/Base/Exception.h>
 #include <ExpressionEngine/Expression/ExpressionParser.h>
@@ -203,6 +205,39 @@ namespace ExpressionEngine::Expression
             EXPECT_THROW(static_cast<void>(ExpressionParser::parse(nullptr, "[1:]")), Base::ParserError);
             // 实参个数错误由 AST 构造期报出，类型是引擎错误而不是语法错误
             EXPECT_THROW(static_cast<void>(ExpressionParser::parse(nullptr, "sin()")), Base::Exception);
+        }
+
+        /**
+         * @brief 钉住：文本取值的持久化文本能原样解析回同一个值
+         */
+        TEST(ExpressionParserTest, TextValueRoundTripsThroughPersistentText)
+        {
+            for (const std::string &text: {"", "abc", "a'b", "a\"b", "a>b", "a>>b", "a#b", "a\\b", "<<x>>", "中文 1.5", "a\nb"})
+            {
+                SCOPED_TRACE(text);
+                // 从 AST 侧出发：文本节点的持久化写法必须能被词法器读回同一个值
+                const StringExpression node(nullptr, text);
+                const std::string      printed = node.toString(true, true);
+
+                const ExpressionPtr reparsed = ExpressionParser::parse(nullptr, printed);
+                const Value         value    = reparsed->evaluate();
+                const auto *        parsed   = std::get_if<std::string>(&value);
+                ASSERT_NE(parsed, nullptr) << "持久化文本 " << printed << " 没解析回文本取值";
+                EXPECT_EQ(*parsed, text);
+            }
+        }
+
+        /**
+         * @brief 钉住：映射键分量的持久化文本同样能解析回同一结构
+         */
+        TEST(ExpressionParserTest, MapKeyComponentRoundTrips)
+        {
+            auto keyed = std::make_unique<VariableExpression>(nullptr, VariableReference{.objectName = "Box", .propertyName = "Cells"});
+            keyed->addComponent(Expression::Component::mapKey("Length"));
+
+            const std::string   printed  = keyed->toString(true, true);
+            const ExpressionPtr reparsed = ExpressionParser::parse(nullptr, printed);
+            EXPECT_TRUE(keyed->isSame(*reparsed)) << printed;
         }
 
         /**

@@ -170,7 +170,7 @@ namespace ExpressionEngine::Expression
                 return {text->substr(span.offset, span.length)};
             }
             throw Base::TypeError(std::format("{}：{}不支持下标分量；下标只支持向量（如 v[0] 取 x 分量）"
-                                              "与文本（如 'abc'[0] 取首字符）", context, valueTypeName(value)));
+                                              "与文本（如 <<abc>>[0] 取首字符）", context, valueTypeName(value)));
         }
 
     } // namespace

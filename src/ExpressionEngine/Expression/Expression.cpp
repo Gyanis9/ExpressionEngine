@@ -19,7 +19,6 @@
 #include <ExpressionEngine/Base/Placement.h>
 #include <ExpressionEngine/Base/Precision.h>
 #include <ExpressionEngine/Base/Rotation.h>
-#include <ExpressionEngine/Base/Tools.h>
 #include <ExpressionEngine/Base/Vector3D.h>
 #include <ExpressionEngine/Expression/ComponentAccess.h>
 #include <ExpressionEngine/Expression/Range.h>
@@ -78,10 +77,47 @@ namespace ExpressionEngine::Expression
             return std::format("{:.{}g}", value, std::numeric_limits<double>::digits10);
         }
 
-        /// 文本的表达式写法，用单引号定界并转义内部的引号
+        /// 把文本写成词法器 << >> 字符串的正文；反斜杠、结束符、文档分隔符与控制字符都要转义
+        [[nodiscard]] std::string escapeStringBody(const std::string &text)
+        {
+            std::string result;
+            result.reserve(text.size());
+            for (const char character: text)
+            {
+                switch (character)
+                {
+                    case '\\':
+                        result += "\\\\";
+                        break;
+                    case '>':
+                        // 正文里单独的 '>' 不是结束符的一部分，词法器会在此断开
+                        result += "\\>";
+                        break;
+                    case '#':
+                        // 未转义的 '#' 会把整段文本当成 <<文档#单元格>> 引用
+                        result += "\\#";
+                        break;
+                    case '\n':
+                        result += "\\n";
+                        break;
+                    case '\r':
+                        result += "\\r";
+                        break;
+                    case '\t':
+                        result += "\\t";
+                        break;
+                    default:
+                        result += character;
+                        break;
+                }
+            }
+            return result;
+        }
+
+        /// 文本的表达式写法：词法器只认 << >> 一种文本定界符，单引号是英尺单位
         std::string quoteText(const std::string &text)
         {
-            return "'" + Base::Tools::escapeQuotesFromString(text) + "'";
+            return "<<" + escapeStringBody(text) + ">>";
         }
 
         /// 取值的可读文本；单独包一层是为了在成员函数里也能解析到这个自由函数

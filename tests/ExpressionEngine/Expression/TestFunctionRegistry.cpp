@@ -451,7 +451,7 @@ namespace ExpressionEngine::Expression
 
             const ExpressionPtr expression = ExpressionParser::parse(nullptr, "makeVector(1; 2; 3)[1]", registry);
             const Value         value      = expression->evaluate();
-            const auto         *number     = std::get_if<double>(&value);
+            const auto *number = std::get_if<double>(&value);
             ASSERT_NE(number, nullptr) << "向量下标应取到纯数分量，实际是" << valueTypeName(value);
             EXPECT_DOUBLE_EQ(*number, 2.0);
 

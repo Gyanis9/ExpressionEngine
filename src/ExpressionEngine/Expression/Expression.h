@@ -79,7 +79,7 @@ namespace ExpressionEngine::Expression
             Name,  ///< 属性路径上的一段名字，如 .Rotation
             Index, ///< 数组下标，如 [0]
             Range, ///< 区间，如 [1:3]
-            MapKey ///< 映射键，如 ['Length']
+            MapKey ///< 映射键，如 [<<Length>>]
         };
 
         /**
@@ -137,7 +137,7 @@ namespace ExpressionEngine::Expression
             static Component arrayIndex(ExpressionPtr indexExpression);
 
             /**
-             * @brief 造一个映射键分量，如 ['Length']
+             * @brief 造一个映射键分量，如 [<<Length>>]
              * @param key 映射键文本
              * @return 映射键分量
              */
@@ -1294,8 +1294,8 @@ namespace ExpressionEngine::Expression
 
         /**
          * @brief 追加本节点的文本
-         * @details 重写 Expression::appendText()：用单引号定界并转义内部引号，使文本可被
-         *          词法分析器原样读回。
+         * @details 重写 Expression::appendText()：用 << >> 定界，正文里的反斜杠、'>'、'#' 与
+         *          控制字符一并转义，使文本可被词法分析器原样读回。
          * @param text 输出：在末尾追加本节点文本
          * @param persistent true 时生成可回填、可持久化的文本
          * @param indent 缩进层级，预留给多行排版
@@ -1311,7 +1311,7 @@ namespace ExpressionEngine::Expression
 
         /**
          * @brief 本节点后面能否直接跟分量
-         * @details 重写 Expression::isIndexable()：文本可按 UTF-8 字符下标取子值，如 'abc'[1]，
+         * @details 重写 Expression::isIndexable()：文本可按 UTF-8 字符下标取子值，如 <<abc>>[1]，
          *          因此返回 true（基类默认为 false）。
          * @return 恒为 true
          */

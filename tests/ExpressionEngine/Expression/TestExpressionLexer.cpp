@@ -407,3 +407,22 @@ TEST(ExpressionLexerTest, WhitespaceOnlyInput)
     EXPECT_EQ(spaced[1].column, 6);
     EXPECT_EQ(spaced[2].column, 9);
 }
+
+/// @brief 钉住字符串正文的转义：\# 不算跨文档分隔符，\> 不算结束符
+TEST(ExpressionLexerTest, EscapedHashAndGreaterSignInStringBody)
+{
+    const std::vector<ExpressionToken> escapedHash = tokenize(R"(<<a\#b>>)");
+    ASSERT_EQ(escapedHash.size(), 1U);
+    EXPECT_EQ(escapedHash[0].kind, ExpressionTokenKind::String);
+    EXPECT_EQ(escapedHash[0].text, "a#b");
+
+    const std::vector<ExpressionToken> escapedGreater = tokenize(R"(<<x\>>>)");
+    ASSERT_EQ(escapedGreater.size(), 1U);
+    EXPECT_EQ(escapedGreater[0].kind, ExpressionTokenKind::String);
+    EXPECT_EQ(escapedGreater[0].text, "x>");
+
+    // 未转义的 # 仍按跨文档引用对待
+    const std::vector<ExpressionToken> reference = tokenize("<<Doc#A1>>");
+    ASSERT_EQ(reference.size(), 1U);
+    EXPECT_EQ(reference[0].kind, ExpressionTokenKind::DocumentRef);
+}

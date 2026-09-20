@@ -75,16 +75,6 @@ namespace ExpressionEngine::Expression
             }
         }
 
-        /// 去掉 << >> 定界符；词法已剥离时原样返回（避免把文本自身的引号误当成定界符）
-        [[nodiscard]] std::string unquoteReference(const std::string_view raw)
-        {
-            if (raw.size() >= 4 && raw.starts_with("<<") && raw.ends_with(">>"))
-            {
-                return std::string{raw.substr(2, raw.size() - 4)};
-            }
-            return std::string{raw};
-        }
-
         /// 把记号写成报错文案里的定位前缀
         [[nodiscard]] std::string locationOf(const ExpressionToken &token)
         {
@@ -179,7 +169,9 @@ namespace ExpressionEngine::Expression
                 throw Base::ParserError(std::format("{}：需要{}，请检查引用路径的写法", locationOf(m_current), description));
             }
 
-            std::string text = m_current.kind == ExpressionTokenKind::String ? unquoteReference(m_current.text) : m_current.text;
+            // String 记号的 text 已由词法器去定界并处理转义，这里不能再剥一层，否则正文本身形如
+            // <<...>> 的文本会被啃掉定界符
+            std::string text = m_current.text;
             advance();
             return text;
         }
@@ -313,7 +305,7 @@ namespace ExpressionEngine::Expression
                     {
                         return parseReference();
                     }
-                    const std::string text = unquoteReference(m_current.text);
+                    const std::string text = m_current.text;
                     advance();
                     return std::make_unique<StringExpression>(m_resolver, text);
                 }
@@ -370,7 +362,7 @@ namespace ExpressionEngine::Expression
             if (m_current.kind == ExpressionTokenKind::DocumentRef)
             {
                 // <<文档#单元格>>：一次性给出文档与目标；没有 # 时按文档名前缀处理
-                const std::string raw = unquoteReference(m_current.text);
+                const std::string raw = m_current.text;
                 advance();
                 const auto separator = raw.find('#');
                 if (separator == std::string::npos)
@@ -391,7 +383,7 @@ namespace ExpressionEngine::Expression
             } else if (m_current.kind == ExpressionTokenKind::String && m_next.kind == ExpressionTokenKind::Dot)
             {
                 // <<文档>>.对象.属性
-                reference.documentName = unquoteReference(m_current.text);
+                reference.documentName = m_current.text;
                 advance();
                 expect(ExpressionTokenKind::Dot, "文档名后的 '.'");
                 reference.objectName = takeIdentifierLike("文档中的对象名");

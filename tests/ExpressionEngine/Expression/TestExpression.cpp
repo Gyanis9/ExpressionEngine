@@ -511,7 +511,7 @@ namespace ExpressionEngine::Expression
                                                                        std::make_unique<StringExpression>(nullptr, "yes"), std::make_unique<StringExpression>(nullptr, "no"));
             EXPECT_EQ(textOf(conditional->evaluate()), "yes");
             EXPECT_EQ(conditional->priority(), 2);
-            EXPECT_EQ(conditional->toString(), "1 < 2 ? 'yes' : 'no'");
+            EXPECT_EQ(conditional->toString(), "1 < 2 ? <<yes>> : <<no>>");
 
             auto falseBranch = std::make_unique<ConditionalExpression>(nullptr, number(0.0), number(1.0), number(2.0));
             EXPECT_DOUBLE_EQ(quantityOf(falseBranch->evaluate()).getValue(), 2.0);
@@ -529,7 +529,7 @@ namespace ExpressionEngine::Expression
                                                                              std::make_unique<StringExpression>(nullptr, "no"));
             ExpressionPtr simplified = constantCondition->simplify();
             EXPECT_EQ(simplified->nodeName(), "String");
-            EXPECT_EQ(simplified->toString(), "'no'");
+            EXPECT_EQ(simplified->toString(), "<<no>>");
 
             // 构造期拒绝缺分支
             EXPECT_THROW(static_cast<void>(std::make_unique<ConditionalExpression>(nullptr, number(1.0), number(2.0), nullptr)), EvaluationError);
@@ -894,7 +894,7 @@ namespace ExpressionEngine::Expression
             // 名字、映射键与区间的文本写法
             auto keyed = std::make_unique<NumberExpression>(nullptr, Units::Quantity(1.0));
             keyed->addComponent(Expression::Component::mapKey("Length"));
-            EXPECT_EQ(keyed->toString(), "(1)['Length']");
+            EXPECT_EQ(keyed->toString(), "(1)[<<Length>>]");
             auto ranged = std::make_unique<NumberExpression>(nullptr, Units::Quantity(1.0));
             ranged->addComponent(Expression::Component::rangeComponent(std::make_unique<NumberExpression>(nullptr, Units::Quantity(1.0)),
                                                                        std::make_unique<NumberExpression>(nullptr, Units::Quantity(3.0))));

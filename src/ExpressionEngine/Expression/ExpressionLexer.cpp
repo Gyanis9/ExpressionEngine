@@ -379,7 +379,7 @@ namespace ExpressionEngine::Expression
         struct StringMatch
         {
             std::size_t length{0};                ///< 含 << 与 >> 的字节数
-            bool        documentReference{false}; ///< 内容含 '#'，按 <<文档#单元格>> 跨文档引用对待
+            bool        documentReference{false}; ///< 内容含未转义的 '#'，按 <<文档#单元格>> 跨文档引用对待
             std::string content;                  ///< 去掉定界符并处理转义后的内容
         };
 
@@ -415,6 +415,25 @@ namespace ExpressionEngine::Expression
             return result;
         }
 
+        /// 正文里是否有未转义的 '#'：它是 <<文档#单元格>> 的分隔符，写成 \# 时属于文本本身
+        constexpr bool hasUnescapedSeparator(const std::string_view body)
+        {
+            for (std::size_t index = 0; index < body.size(); ++index)
+            {
+                if (body[index] == '\\')
+                {
+                    // 反斜杠连同其后一个字符整体属于正文，不参与分隔符判定
+                    ++index;
+                    continue;
+                }
+                if (body[index] == '#')
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         /// 匹配 <<...>>；<< 之后找不到配对的 >> 时直接报错，避免退化成一串 '<' 记号
         StringMatch matchString(const std::string_view text, const std::size_t offset, const int column)
         {
@@ -436,7 +455,7 @@ namespace ExpressionEngine::Expression
                     if (position + 1 < text.size() && text[position + 1] == '>')
                     {
                         const std::string_view rawBody           = text.substr(offset + 2, position - offset - 2);
-                        const bool             documentReference = rawBody.find('#') != std::string_view::npos;
+                        const bool             documentReference = hasUnescapedSeparator(rawBody);
                         return {.length = position + 2 - offset, .documentReference = documentReference, .content = unescapeStringBody(rawBody)};
                     }
                     break; // 内容里不允许单个 '>'，它不可能是结束符的一部分
