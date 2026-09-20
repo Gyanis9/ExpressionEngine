@@ -1154,7 +1154,8 @@ namespace ExpressionEngine::Expression
      *          解析成对象，再经 IPropertyContainer::findProperty 与 IProperty 读写取值。
      *          解析到基属性后分量按值语义逐段取值：下标与区间分别取元素与子序列（区间得到
      *          序列取值），映射键与名字分量在取值路径上给出明确报错（值模型没有映射类型、
-     *          名字指向对象子属性），完整标识符模型留给后续 Identifier 模块。
+     *          名字指向对象子属性）。更深的路径不靠拆名字表达：带点的名字整段交给宿主解析，
+     *          槽位划分见 VariableReference 的说明。
      */
     class VariableExpression : public UnitExpression
     {
