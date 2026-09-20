@@ -13,6 +13,7 @@ namespace
     using ExpressionEngine::Base::Matrix4D;
     using ExpressionEngine::Base::ValueError;
     using ExpressionEngine::Base::Vector3d;
+    using ExpressionEngine::Base::Vector3f;
 
 } // namespace
 
@@ -102,4 +103,32 @@ TEST(Matrix4D, InverseAndSingularRejection)
     Matrix4D zeroMatrix;
     zeroMatrix.nullify();
     EXPECT_THROW(zeroMatrix.inverseGauss(), ValueError);
+}
+
+/**
+ * @brief 钉住 float 入口与 double 入口给出同一个变换
+ * @details 这些重载只把分量换成 double 再走同一条路，因此选 float 能精确表示的数值，
+ *          旋转角取 0 以避开三角函数的精度差，两侧就应当逐位一致。
+ */
+TEST(Matrix4D, FloatOverloadsMatchDoubleOnes)
+{
+    Matrix4D byDouble;
+    byDouble.move(Vector3d(1.5, -2.25, 3.0));
+    byDouble.scale(Vector3d(2.0, 0.5, 4.0));
+
+    Matrix4D byFloat;
+    byFloat.move(Vector3f(1.5f, -2.25f, 3.0f));
+    byFloat.scale(Vector3f(2.0f, 0.5f, 4.0f));
+    EXPECT_TRUE(byFloat == byDouble);
+
+    Matrix4D rotatedDouble;
+    rotatedDouble.rotateLine(Vector3d(0.0, 0.0, 1.0), 0.0);
+    Matrix4D rotatedFloat;
+    rotatedFloat.rotateLine(Vector3f(0.0f, 0.0f, 1.0f), 0.0f);
+    EXPECT_TRUE(rotatedFloat == rotatedDouble);
+
+    // 三元组构造与向量变换同样各有 float 入口
+    const Matrix4D constructed(Vector3f(0.0f, 0.0f, 0.0f), Vector3f(0.0f, 1.0f, 0.0f), 0.0f);
+    EXPECT_TRUE(constructed == Matrix4D());
+    EXPECT_TRUE((Matrix4D() * Vector3f(1.0f, 2.0f, 3.0f)) == Vector3f(1.0f, 2.0f, 3.0f));
 }
