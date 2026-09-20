@@ -302,5 +302,50 @@ namespace ExpressionEngine::Expression
             EXPECT_EQ(variable->copy()->toString(), "<<Doc>>.Box.Length");
         }
 
+        /**
+         * @brief 钉住：分量的拷贝构造与拷贝赋值都深拷贝子表达式，自赋值不踩内存
+         */
+        TEST(ExpressionNodes, ComponentsCopyTheirSubExpressions)
+        {
+            auto range = Expression::Component::rangeComponent(numberNode(1.0), numberNode(3.0), numberNode(2.0));
+            const Expression::Component copied{range};
+            Expression::Component assigned;
+            assigned = range;
+
+            EXPECT_TRUE(range.isSame(copied));
+            EXPECT_TRUE(range.isSame(assigned));
+            // 深拷贝：子表达式各一份，宿主改一侧不会影响另一侧
+            ASSERT_NE(range.index, nullptr);
+            EXPECT_NE(range.index.get(), copied.index.get());
+            EXPECT_NE(range.index.get(), assigned.index.get());
+            EXPECT_NE(range.endIndex.get(), copied.endIndex.get());
+            EXPECT_NE(range.step.get(), copied.step.get());
+
+            // 自赋值要先接住再释放，否则子表达式会被自己清掉
+            Expression::Component       *self = &assigned;
+            assigned                          = *self;
+            EXPECT_TRUE(assigned.isSame(range));
+            EXPECT_NE(assigned.index, nullptr);
+        }
+
+        /**
+         * @brief 钉住：区间节点保留首尾文本，取出的区间已按左上到右下整理
+         */
+        TEST(ExpressionNodes, RangeNodeKeepsEndpointText)
+        {
+            const auto range = std::make_unique<RangeExpression>(nullptr, "A1", "B2");
+            EXPECT_EQ(range->nodeName(), "Range");
+            EXPECT_EQ(range->getBegin(), "A1");
+            EXPECT_EQ(range->getEnd(), "B2");
+            EXPECT_EQ(range->toString(), "A1:B2");
+            EXPECT_EQ(range->getRange().rangeText(), "A1:B2");
+            EXPECT_EQ(range->getRange().size(), 4);
+
+            // 反向拖选：文本按原写法回写，取出的区间整理成正向
+            const auto reversed = std::make_unique<RangeExpression>(nullptr, "B2", "A1");
+            EXPECT_EQ(reversed->toString(), "B2:A1");
+            EXPECT_EQ(reversed->getRange().rangeText(), "A1:B2");
+        }
+
     } // namespace
 }     // namespace ExpressionEngine::Expression
