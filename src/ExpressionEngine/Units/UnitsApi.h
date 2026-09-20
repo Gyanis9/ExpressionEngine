@@ -23,8 +23,8 @@ namespace ExpressionEngine::Units
     /**
      * @brief 单位模块的门面
      * @details 以静态成员维护「当前方案」与显示精度，供数量排版与宿主设置界面使用。
-     *          方案数据内置为默认值，宿主可调用 setSchema() 切换，也可自行构造 UnitsSchema
-     *          绕开这里的全局状态。
+     *          方案数据内置为默认值，宿主可调用 setSchema() 切换，可用 applyPack() 整体换成
+     *          自带的数据包，也可以自行构造 UnitsSchema 绕开这里的全局状态。
      * @note 当前方案与精度是进程级共享状态：多线程读取前应先完成设置，运行期切换需自行加锁。
      */
     class UnitsApi
@@ -51,6 +51,15 @@ namespace ExpressionEngine::Units
          * @throws NameError 找不到该编号的方案
          */
         static void setSchema(std::size_t schemaNumber);
+
+        /**
+         * @brief 用宿主自带的方案数据包整体替换进程级方案集合
+         * @details 替换后当前方案、默认小数位数与默认分数分母都取自新数据包，排版随之改变；
+         *          宿主显式设置过的精度与分母保持不动，与 setSchema() 同一口径。
+         * @param pack 方案数据包
+         * @throws NameError 数据包里没有任何方案
+         */
+        static void applyPack(const UnitsSchemasDataPack &pack);
 
         /**
          * @brief 按当前方案换算并排版

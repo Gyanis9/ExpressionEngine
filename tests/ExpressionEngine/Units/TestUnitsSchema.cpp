@@ -3,11 +3,13 @@
 #include <gtest/gtest.h>
 
 #include <memory>
+#include <vector>
 
 #include <ExpressionEngine/Base/Exception.h>
 #include <ExpressionEngine/Units/Quantity.h>
 #include <ExpressionEngine/Units/UnitsApi.h>
 #include <ExpressionEngine/Units/UnitsSchema.h>
+#include <ExpressionEngine/Units/UnitsSchemasData.h>
 
 namespace ExpressionEngine::Units
 {
@@ -180,6 +182,60 @@ namespace ExpressionEngine::Units
             EXPECT_EQ(schema->getNumber(), 0U);
             EXPECT_EQ(schema->getName(), "Internal");
             EXPECT_FALSE(schema->getDescription().empty());
+        }
+
+        /**
+         * @brief 钉住：宿主自带的方案数据包能整体装进门面，默认精度与分母随之生效
+         * @details 门面没有替换入口时，「宿主可整体替换方案数据」这句承诺只能靠绕开门面自己构造
+         *          UnitsSchema 兑现，而排版的默认精度与分母仍然读门面上的全局状态。
+         */
+        TEST(UnitsApiTest, HostPackReplacesTheGlobalSchemaCollection)
+        {
+            UnitsSchemaSpecification custom;
+            custom.number                 = 42;
+            custom.name                   = "Custom";
+            custom.basicLengthUnitString  = "in";
+            custom.description            = "host pack";
+            custom.translationSpecifications["Length"] = {{0, "in", 1.0}};
+
+            const UnitsSchemasDataPack pack{.specifications = {custom}, .defaultDecimals = 5, .defaultDenominator = 32};
+
+            UnitsApi::setDecimals(-1);
+            UnitsApi::setDenominator(-1);
+            UnitsApi::applyPack(pack);
+
+            EXPECT_EQ(UnitsApi::count(), 1U);
+            EXPECT_EQ(UnitsApi::getNames(), (std::vector<std::string>{"Custom"}));
+            // 数据包没标记 isDefault，门面的当前方案就是列表第一个
+            EXPECT_EQ(UnitsApi::getDefaultSchemaNumber(), 42U);
+            EXPECT_EQ(UnitsApi::getBasicLengthUnit(), "in");
+
+            // 未显式设置时，精度与分母都取自新数据包
+            EXPECT_EQ(UnitsApi::getDecimals(), 5);
+            EXPECT_EQ(UnitsApi::getDenominator(), 32);
+            EXPECT_EQ(UnitsApi::schemaTranslate(Quantity(2.0, Unit::Length)), "2.00000 in");
+
+            // 显式设置过的精度跨数据包保留，不被替换悄悄改掉
+            UnitsApi::setDecimals(1);
+            UnitsApi::applyPack(pack);
+            EXPECT_EQ(UnitsApi::getDecimals(), 1);
+
+            UnitsApi::applyPack(UnitsSchemasData::unitSchemasDataPack);
+            UnitsApi::setDecimals(-1);
+            UnitsApi::setDenominator(-1);
+            EXPECT_EQ(UnitsApi::count(), 10U);
+        }
+
+        /**
+         * @brief 钉住：空数据包不能装进门面
+         */
+        TEST(UnitsApiTest, EmptyHostPackIsRejected)
+        {
+            const UnitsSchemasDataPack emptyPack{.specifications = {}, .defaultDecimals = 2, .defaultDenominator = 8};
+
+            EXPECT_THROW(UnitsApi::applyPack(emptyPack), Base::NameError);
+            // 抛错后门面上的方案集合原样可用
+            EXPECT_EQ(UnitsApi::count(), 10U);
         }
 
     }

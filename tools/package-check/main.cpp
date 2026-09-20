@@ -21,6 +21,7 @@
 #include <ExpressionEngine/Units/UnitsApi.h>
 #include <ExpressionEngine/Units/UnitsSchema.h>
 #include <ExpressionEngine/Units/UnitsSchemas.h>
+#include <ExpressionEngine/Units/UnitsSchemasData.h>
 
 namespace
 {
@@ -253,6 +254,16 @@ namespace
         format.setDenominator(16);
         fractional.setFormat(format);
         check(UnitsSchema{lengthSchema(0, "Custom", {fractionalRow})}.translate(fractional) == "3\" + 15/16\"", "内置特殊函数优先于回调");
+
+        // 宿主数据包整体装进门面：默认精度随之生效，之后换回内置包
+        UnitsApi::applyPack(pack);
+        UnitsApi::setDecimals(-1);
+        UnitsApi::setDenominator(-1);
+        check(UnitsApi::count() == 2U && UnitsApi::getDecimals() == 3 && UnitsApi::getDenominator() == 16, "宿主数据包能装进门面");
+        check(UnitsApi::getNames() == (std::vector<std::string>{"Beta", "Delta"}), "门面的方案清单跟着数据包走");
+
+        UnitsApi::applyPack(ExpressionEngine::Units::UnitsSchemasData::unitSchemasDataPack);
+        check(UnitsApi::count() == 10U && UnitsApi::getDecimals() == 2, "换回内置数据包");
     }
 } // namespace
 

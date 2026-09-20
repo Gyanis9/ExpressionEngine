@@ -1,5 +1,7 @@
 #include <ExpressionEngine/Units/UnitsApi.h>
 
+#include <memory>
+
 namespace ExpressionEngine::Units
 {
     std::vector<std::string> UnitsApi::getDescriptions()
@@ -66,6 +68,13 @@ namespace ExpressionEngine::Units
     void UnitsApi::setSchema(const std::size_t schemaNumber)
     {
         s_schemas->select(schemaNumber);
+    }
+
+    void UnitsApi::applyPack(const UnitsSchemasDataPack &pack)
+    {
+        // 整体重建方案集合：当前方案与默认精度、默认分母都取自新数据包。
+        // 宿主显式设置过的精度与分母保持不动，与 setSchema() 同一口径。
+        s_schemas = std::make_unique<UnitsSchemas>(pack);
     }
 
     std::string UnitsApi::schemaTranslate(const Quantity &quant, double &factor, std::string &unitString)
