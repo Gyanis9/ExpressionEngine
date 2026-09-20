@@ -1024,6 +1024,19 @@ namespace ExpressionEngine::Expression
         return result;
     }
 
+    std::expected<Value, EvaluationFailure> Expression::tryEvaluate() const
+    {
+        try
+        {
+            return evaluate();
+        } catch (const Base::Exception &error)
+        {
+            // 库内的求值故障都可以靠改表达式或改取值解决，转成值返回；
+            // 宿主的 IProperty 与自定义函数回调抛出的非库异常不在捕获之列
+            return std::unexpected(EvaluationFailure{error.message()});
+        }
+    }
+
     ExpressionPtr Expression::evaluateToConstantNode() const
     {
         return makeValueExpression(m_resolver, evaluate());

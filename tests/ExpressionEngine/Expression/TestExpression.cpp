@@ -5,6 +5,7 @@
 
 #include <memory>
 #include <numbers>
+#include <stdexcept>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -959,6 +960,115 @@ namespace ExpressionEngine::Expression
             EXPECT_EQ(wrapped->toString(), "vector(1; 2; 3)");
             EXPECT_EQ(toString(Value(Base::Vector3d(1.0, 2.0, 3.0))), "(1, 2, 3)");
             EXPECT_TRUE(vectorOf(wrapped->evaluate()).isEqual(Base::Vector3d(1.0, 2.0, 3.0), 1e-12));
+        }
+
+        /// 求值时抛出非库异常的节点，模拟宿主回调里的故障
+        class HostFaultExpression : public Expression
+        {
+        public:
+            HostFaultExpression() : Expression(nullptr)
+            {
+            }
+
+            /**
+             * @brief 化简本节点
+             * @details 重写 Expression::simplify()：只为满足基类纯虚接口，本用例不经过化简。
+             * @return 本节点的副本
+             */
+            [[nodiscard]] ExpressionPtr simplify() const override
+            {
+                return copy();
+            }
+
+            /**
+             * @brief 节点种类名
+             * @details 重写 Expression::nodeName()：固定返回 "HostFault"。
+             * @return "HostFault"
+             */
+            [[nodiscard]] std::string_view nodeName() const override
+            {
+                return "HostFault";
+            }
+
+        protected:
+            /**
+             * @brief 节点自身的求值
+             * @details 重写 Expression::evaluateNode()：抛 std::runtime_error，代表宿主自己的
+             *          故障而不是库内可恢复错误。
+             * @return 不返回
+             */
+            [[nodiscard]] Value evaluateNode() const override
+            {
+                throw std::runtime_error("宿主回调故障");
+            }
+
+            /**
+             * @brief 追加本节点的文本
+             * @details 重写 Expression::appendText()：本用例不检查文本，留空即可。
+             * @param text 输出缓冲区
+             * @param persistent true 时生成可持久化文本
+             * @param indent 缩进层级
+             */
+            void appendText(std::string &text, bool, int) const override
+            {
+                text += "hostFault";
+            }
+
+            /**
+             * @brief 生成同类型的空壳副本
+             * @details 重写 Expression::copyNode()：本节点没有自有数据。
+             * @return 同类型节点的新副本
+             */
+            [[nodiscard]] ExpressionPtr copyNode() const override
+            {
+                return std::make_unique<HostFaultExpression>();
+            }
+        };
+
+        /**
+         * @brief 钉住：tryEvaluate 成功路径给出与 evaluate 一致的取值
+         */
+        TEST(ExpressionTest, TryEvaluateReturnsTheSameValue)
+        {
+            const ExpressionPtr expression = binary(Operator::Add, quantity(2.0, Units::Unit::Length), quantity(3.0, Units::Unit::Length));
+            const auto          evaluated  = expression->tryEvaluate();
+            ASSERT_TRUE(evaluated.has_value()) << evaluated.error().message;
+            EXPECT_DOUBLE_EQ(quantityOf(*evaluated).getValue(), 5.0);
+        }
+
+        /**
+         * @brief 钉住：求值故障以值返回，且文案与异常通道逐字一致
+         */
+        TEST(ExpressionTest, TryEvaluateReportsLibraryFailuresAsValues)
+        {
+            const ExpressionPtr mismatch = binary(Operator::Add, number(2.0), quantity(3.0, Units::Unit::Length));
+            const auto          failed   = mismatch->tryEvaluate();
+            ASSERT_FALSE(failed.has_value());
+            EXPECT_FALSE(failed.error().message.empty());
+
+            // 两个通道必须给出同一份文案，否则调用方换通道时行为会变
+            try
+            {
+                static_cast<void>(mismatch->evaluate());
+                FAIL() << "量纲不符应当报错";
+            } catch (const Base::Exception &error)
+            {
+                EXPECT_EQ(failed.error().message, error.message());
+            }
+
+            // 引用解析不到、函数收到不参与的取值，都走同一条非异常通道
+            const VariableExpression unbound(nullptr, VariableReference{.objectName = "Box", .propertyName = "Length"});
+            EXPECT_FALSE(unbound.tryEvaluate().has_value());
+            EXPECT_FALSE(function(Function::Sine, vectorNode(1.0, 0.0, 0.0))->tryEvaluate().has_value());
+        }
+
+        /**
+         * @brief 钉住：宿主自己抛出的非库异常不被 tryEvaluate 吞掉
+         */
+        TEST(ExpressionTest, TryEvaluatePropagatesHostExceptions)
+        {
+            const HostFaultExpression fault;
+            EXPECT_THROW(static_cast<void>(fault.tryEvaluate()), std::runtime_error);
         }
 
     } // namespace

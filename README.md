@@ -41,6 +41,23 @@ int main()
 }
 ```
 
+求值同样有两条通道，文案一致：
+
+```cpp
+const ExpressionEngine::Expression::Value value = expression->evaluate();          // 失败抛 Base::Exception
+
+if (const auto evaluated = expression->tryEvaluate())
+{
+    use(*evaluated);
+}
+else
+{
+    showError(evaluated.error().message);   // 量纲不符、引用解析不到等可恢复故障以值返回
+}
+```
+
+`tryEvaluate()` 只兜库自己的异常；宿主实现（`IProperty`、自定义函数回调）抛出的异常照旧向上传播。
+
 只想解析一条数量文本时，可以直接用 `Units::Quantity::parse("5' 6\"")`。
 
 解析失败有两条通道、文案完全一致，按场景选用：

@@ -9,6 +9,7 @@
 
 #pragma once
 
+#include <expected>
 #include <memory>
 #include <optional>
 #include <string>
@@ -59,6 +60,17 @@ namespace ExpressionEngine::Expression
     {
     public:
         using Base::ExpressionError::ExpressionError;
+    };
+
+    /**
+     * @brief 可恢复的求值失败
+     * @details 供 Expression::tryEvaluate() 的 std::expected 通道使用：量纲不符、引用解析不到、
+     *          函数收到不参与该运算的类型等都是「换个取值或改下表达式」就能解决的故障，
+     *          调用方拿到它即可分支或降级，无需 try/catch。异常通道承载同一份文案，两者只差传递方式。
+     */
+    struct EvaluationFailure
+    {
+        std::string message; ///< 中文可操作文案，与异常通道的消息逐字相同
     };
 
     /**
@@ -203,6 +215,15 @@ namespace ExpressionEngine::Expression
          * @throws Base::Exception 各类求值失败；调用方可用 Base::Exception 统一兜住
          */
         [[nodiscard]] Value evaluate() const;
+
+        /**
+         * @brief 求值，失败时以值返回错误
+         * @details 与 evaluate() 同语义但不抛异常，供宿主校验用户输入这类场景使用：捕获范围是
+         *          库自己的 Base::Exception（类型、量纲、名字、属性、下标、求值等），文案与异常
+         *          通道逐字相同。宿主实现抛出的非库异常不在此列，照旧向上传播。
+         * @return 成功返回取值；失败返回 EvaluationFailure
+         */
+        [[nodiscard]] std::expected<Value, EvaluationFailure> tryEvaluate() const;
 
         /**
          * @brief 求值并把结果包装成常量节点
