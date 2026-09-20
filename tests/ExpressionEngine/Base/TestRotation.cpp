@@ -313,3 +313,31 @@ TEST(RotationTest, FloatVectorOverloadMatchesDoublePath)
     EXPECT_NEAR(floatResult.y, doubleResult.y, 1e-5);
     EXPECT_NEAR(floatResult.z, doubleResult.z, 1e-5);
 }
+
+/**
+ * @brief 钉住：全部欧拉序列取出的角度存回去得到同一旋转，序列名与枚举一一对应
+ * @details 真欧拉角（首末轴相同）有等价第二组解（alpha+180、180-beta、gamma+180），
+ *          所以断言的是「表示可以换、旋转不能变」，不是原角度回原角度。
+ */
+TEST(RotationTest, EveryEulerSequenceRoundTrips)
+{
+    for (int value = Rotation::EulerAngles; value < Rotation::EulerSequenceLast; ++value)
+    {
+        const auto     sequence = static_cast<Rotation::EulerSequence>(value);
+        const Rotation rotation   = Rotation::fromEulerAngles(sequence, 30.0, 40.0, 50.0);
+
+        double alpha = 0.0;
+        double beta  = 0.0;
+        double gamma = 0.0;
+        rotation.getEulerAngles(sequence, alpha, beta, gamma);
+
+        // 取出的角度存回去必须落在同一个旋转上
+        EXPECT_TRUE(Rotation::fromEulerAngles(sequence, alpha, beta, gamma).isSame(rotation, 1e-9)) << "序列编号 " << value;
+
+
+        // 名字表与枚举必须一一对应，否则宿主存档里的序列名会读成另一个序列
+        const char *name = Rotation::eulerSequenceName(sequence);
+        ASSERT_NE(name, nullptr) << "序列编号 " << value << " 没有名字";
+        EXPECT_EQ(Rotation::eulerSequenceFromName(name), sequence) << name;
+    }
+}

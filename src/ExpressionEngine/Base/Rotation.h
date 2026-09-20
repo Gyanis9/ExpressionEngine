@@ -252,6 +252,10 @@ namespace ExpressionEngine::Base
 
         /**
          * @brief 取欧拉角
+         * @details 真欧拉角（首末轴相同，如 XZX/ZXZ）存在第二组等价解：取出的角度可能
+         *          是 (alpha+180, 180-beta, gamma+180) 这一支，不等于存进去的三个角，
+         *          但按同一序列存回去得到的是同一个旋转。宿主做双向编辑时要按旋转比较，
+         *          不要按角度逐位比较。
          * @param order 欧拉角序列
          * @param alpha 输出第一转角，单位度
          * @param beta 输出第二转角，单位度
