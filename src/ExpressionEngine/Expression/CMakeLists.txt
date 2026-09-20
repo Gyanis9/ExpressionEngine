@@ -2,6 +2,8 @@
 set_property(GLOBAL APPEND PROPERTY ExpressionEngineExpressionSources
         ${CMAKE_CURRENT_LIST_DIR}/ComponentAccess.cpp
         ${CMAKE_CURRENT_LIST_DIR}/ComponentAccess.h
+        ${CMAKE_CURRENT_LIST_DIR}/Dictionary.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/Dictionary.h
         ${CMAKE_CURRENT_LIST_DIR}/Expression.cpp
         ${CMAKE_CURRENT_LIST_DIR}/Expression.h
         ${CMAKE_CURRENT_LIST_DIR}/ExpressionLexer.cpp

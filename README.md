@@ -121,6 +121,8 @@ conan create . -s build_type=Release --build=missing    # 产出包 expressionen
 
 库通过四个抽象接口读写你的对象树：
 
+（想省掉整套对象模型，见下一节「不想自己实现接口时」。）
+
 | 接口 | 职责 |
 | --- | --- |
 | `IProperty` | 单个属性的读（`value()`）与写（`setValue()`） |
@@ -138,6 +140,30 @@ const ExpressionEngine::Expression::Value doubled = expression->evaluate();   //
 依赖收集用 `expression->collectReferences()`（返回全部变量引用），宿主据此建立重算依赖。
 完整可照抄的实现见 `tests/ExpressionEngine/Expression/TestExpression.cpp` 里的
 `FakeProperty` / `FakeObject` / `FakeResolver`。
+
+### 不想自己实现接口时
+
+只想给表达式喂几个变量，直接用内置的 `Dictionary`：它把上面四个接口都实现好了。
+
+```cpp
+using namespace ExpressionEngine;
+
+Units::Quantity millimetre(double value)
+{
+    return Units::Quantity(value, Units::Unit::Length);
+}
+
+Expression::Dictionary dictionary;
+dictionary.define("Length", millimetre(3.0));
+auto &box = dictionary.addObject("Box", std::make_unique<Expression::Dictionary>());
+box.define("Length", millimetre(4.0));
+
+const auto expression = Expression::ExpressionParser::parse(&dictionary, "Length + Box.Length");
+```
+
+条目默认可写，宿主经 `VariableExpression::assignValue()` 写回时就落在条目上；
+`setReadOnly(true)` 的名字即普通常量（`pi`、`e`、`True` 这些引擎内置常量在词法阶段识别，
+字典不能覆盖它们）。
 
 ### 扩充函数集
 
