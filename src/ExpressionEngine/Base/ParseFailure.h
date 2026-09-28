@@ -9,6 +9,7 @@
 
 #pragma once
 
+#include <optional>
 #include <string>
 
 namespace ExpressionEngine::Base
@@ -21,7 +22,8 @@ namespace ExpressionEngine::Base
      */
     struct ParseFailure
     {
-        std::string message; ///< 中文可操作文案，已含出错位置（列号）
+        std::string         message;          ///< 中文可操作文案，带位置时已含列号
+        std::optional<int>  column;           ///< 出错列，1 起，按 UTF-8 码点计数；文案里没有位置时为空
     };
 
 } // namespace ExpressionEngine::Base

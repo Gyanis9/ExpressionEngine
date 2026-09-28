@@ -83,12 +83,6 @@ namespace ExpressionEngine::Expression
             }
         }
 
-        /// 把记号写成报错文案里的定位前缀
-        [[nodiscard]] std::string locationOf(const ExpressionToken &token)
-        {
-            return std::format("表达式第 {} 列", token.column);
-        }
-
         /**
          * @brief 表达式语法分析器
          * @details 优先级自低到高：三元、比较、加减、乘除取余、单位后置、乘方、一元正负、原子。
@@ -104,6 +98,18 @@ namespace ExpressionEngine::Expression
             }
 
             [[nodiscard]] ExpressionPtr parseDocument();
+
+            /**
+             * @brief 取最近一次报错定位到的列
+             * @details 只有文案里写了「第 N 列」的报错才会记下这里；没有位置的报错（空表达式、
+             *          单位表里没有的符号、运算层数超限）保持为空，所以这个值与文案始终一致，
+             *          宿主可以直接用它高亮，不必再从中文里解析一遍。
+             * @return 1 起的列号，按 UTF-8 码点计数；文案无位置时为空
+             */
+            [[nodiscard]] std::optional<int> failureColumn() const noexcept
+            {
+                return m_failureColumn;
+            }
 
         private:
             void advance();
@@ -144,6 +150,14 @@ namespace ExpressionEngine::Expression
             [[nodiscard]] ExpressionPtr makeUnary(OperatorExpression::Operator operation, ExpressionPtr operand);
 
             /**
+             * @brief 把记号写成报错文案里的定位前缀，并记下这一列
+             * @details 只在抛出前调用，因此记下的就是文案里那一个列号；无位置的报错不经过这里。
+             * @param token 出错的记号
+             * @return 「表达式第 N 列」
+             */
+            [[nodiscard]] std::string locationOf(const ExpressionToken &token) const;
+
+            /**
              * @brief 一层递归的计数守卫
              * @details 进入嵌套构造时占一层额度，离开时归还；额度用尽立刻抛解析错，
              *          让宿主拿到可显示的文案而不是撞上 try 不住的栈溢出。
@@ -166,6 +180,7 @@ namespace ExpressionEngine::Expression
             ExpressionToken         m_current;  ///< 当前记号
             ExpressionToken         m_next;     ///< 下一记号，用于识别英制两段写法与文档引用
             int                     m_nestingDepth{}; ///< 已占用的嵌套额度，只用于限深
+            mutable std::optional<int> m_failureColumn; ///< 最近一次写进报错文案的定位列，供非异常通道取出
         };
 
         void ExpressionParserImplementation::advance()
@@ -181,7 +196,7 @@ namespace ExpressionEngine::Expression
             {
                 throw Base::ParserError(std::format("{}：表达式嵌套超过 {} 层，已停止解析；请把长表达式拆成几个属性，"
                                                     "或减少括号与函数的层数",
-                                                    locationOf(m_parser.m_current),
+                                                    m_parser.locationOf(m_parser.m_current),
                                                     maxNestingDepth));
             }
             ++m_parser.m_nestingDepth;
@@ -190,6 +205,12 @@ namespace ExpressionEngine::Expression
         ExpressionParserImplementation::NestingGuard::~NestingGuard()
         {
             --m_parser.m_nestingDepth;
+        }
+
+        std::string ExpressionParserImplementation::locationOf(const ExpressionToken &token) const
+        {
+            m_failureColumn = token.column;
+            return std::format("表达式第 {} 列", token.column);
         }
 
         bool ExpressionParserImplementation::startsUnit() const
@@ -679,14 +700,16 @@ namespace ExpressionEngine::Expression
 
     std::expected<ExpressionPtr, Base::ParseFailure> ExpressionParser::tryParse(IObjectResolver *resolver, const std::string_view text, const FunctionRegistry &registry)
     {
+        // 语料器留在 catch 够得着的作用域里：出错的那一列记在它身上，转成值返回时才取到
+        ExpressionParserImplementation parser{resolver, text, registry};
         try
         {
-            return parse(resolver, text, registry);
+            return parser.parseDocument();
         } catch (const Base::Exception &error)
         {
             // 建树期抛出的都算「这条文本不能用」：语法错与函数的参数个数、可用性错都是
             // 用户改一处文本就能修好的可恢复故障，统一转成值返回，文案与异常通道逐字一致
-            return std::unexpected(Base::ParseFailure{error.message()});
+            return std::unexpected(Base::ParseFailure{error.message(), parser.failureColumn()});
         }
     }
 

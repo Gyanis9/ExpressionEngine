@@ -60,7 +60,8 @@ namespace ExpressionEngine::Expression
          *          不符、函数不可用这类同样只靠改文本解决的故障也走值返回。
          * @param resolver 对象解析器，可为空；为空时变量引用仍能解析出结构，求值时才会报错
          * @param text 待解析文本，可为空（空文本报错：表达式不能为空）
-         * @return 成功返回解析结果；失败返回 ParseFailure，其 message 为中文原因与出错列号
+         * @return 成功返回解析结果；失败返回 ParseFailure：message 是中文原因，column 是文案里
+         *         那个「第 N 列」的列号，文案没有位置时（空文本、单位表缺词、层数超限）为空
          */
         [[nodiscard]] static std::expected<ExpressionPtr, Base::ParseFailure> tryParse(IObjectResolver *resolver, std::string_view text);
 
@@ -69,7 +70,8 @@ namespace ExpressionEngine::Expression
          * @param resolver 对象解析器，可为空
          * @param text 待解析文本
          * @param registry 自定义函数注册表
-         * @return 成功返回解析结果；失败返回 ParseFailure，其 message 与异常通道逐字一致
+         * @return 成功返回解析结果；失败返回 ParseFailure，其 message 与异常通道逐字一致，
+         *         column 见上一个重载
          */
         [[nodiscard]] static std::expected<ExpressionPtr, Base::ParseFailure> tryParse(IObjectResolver *resolver, std::string_view text, const FunctionRegistry &registry);
     };

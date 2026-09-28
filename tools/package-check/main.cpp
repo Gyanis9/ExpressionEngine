@@ -113,6 +113,12 @@ namespace
 
         check(!ExpressionParser::tryParse(nullptr, "1 +").has_value(), "坏文本走非异常通道报错");
 
+        // 出错列号是数据而不是中文文案的一部分：宿主直接拿它高亮，不必再解析一遍消息
+        const auto misplaced = ExpressionParser::tryParse(nullptr, "1 +");
+        check(!misplaced.has_value() && misplaced.error().column.value_or(-1) == 4, "解析失败带出错列号");
+        const auto noPlace = ExpressionParser::tryParse(nullptr, "");
+        check(!noPlace.has_value() && !noPlace.error().column.has_value(), "无位置的报错不硬猜列号");
+
         // 超深的运算链在构造期就报可读的错，宿主不会被一次无法捕获的栈溢出带走
         std::string longChain = "1";
         for (int term = 0; term < 5000; ++term)

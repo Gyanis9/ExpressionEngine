@@ -3,12 +3,15 @@
 #include <gtest/gtest.h>
 
 #include <memory>
+#include <optional>
 #include <string>
+#include <string_view>
 #include <variant>
 #include <vector>
 
 #include <ExpressionEngine/Base/Exception.h>
 #include <ExpressionEngine/Expression/ExpressionParser.h>
+#include <ExpressionEngine/Units/QuantityParser.h>
 
 namespace ExpressionEngine::Expression
 {
@@ -308,6 +311,75 @@ namespace ExpressionEngine::Expression
             {
                 EXPECT_EQ(failed.error().message, error.message());
             }
+        }
+
+        /// 取报错文案里「第 N 列」的 N；文案没有这一截时返回空
+        std::optional<int> locatedColumnInMessage(const std::string &message)
+        {
+            constexpr std::string_view mark = "第 ";
+            const std::size_t          head = message.find(mark);
+            if (head == std::string::npos)
+            {
+                return std::nullopt;
+            }
+            const std::size_t digits = head + mark.size();
+            const std::size_t tail   = message.find(" 列", digits);
+            if (tail == std::string::npos)
+            {
+                return std::nullopt;
+            }
+            return std::stoi(message.substr(digits, tail - digits));
+        }
+
+        /**
+         * @brief 钉住：解析失败把列号作为数据给出，且与文案里那个列号逐字一致
+         * @details 宿主要在输入框里划线定位错误，只能靠这个字段；从中文文案里再解析一遍
+         *          是脆弱的，所以两侧必须同源。
+         */
+        TEST(ExpressionParserTest, ParseFailureCarriesLocatedColumn)
+        {
+            for (const std::string &text: {"1 +", "2 *", "abs(1", "(1 + 2", "1 2", "1 > 0 ? 2", "1 zzz"})
+            {
+                const auto failed = ExpressionParser::tryParse(nullptr, text);
+                ASSERT_FALSE(failed.has_value()) << text;
+                const std::optional<int> inMessage = locatedColumnInMessage(failed.error().message);
+                ASSERT_TRUE(inMessage.has_value()) << failed.error().message;
+                EXPECT_EQ(failed.error().column, inMessage) << text;
+            }
+
+            // 「1 +」缺右操作数，报错落在结尾之后那一列
+            const auto trailing = ExpressionParser::tryParse(nullptr, "1 +");
+            ASSERT_FALSE(trailing.has_value());
+            EXPECT_EQ(trailing.error().column, 4);
+        }
+
+        /**
+         * @brief 钉住：文案里没有位置的报错，column 一律为空而不是硬猜一列
+         */
+        TEST(ExpressionParserTest, ParseFailureColumnIsEmptyWhenUnlocated)
+        {
+            // 空文本：文案只说表达式为空，没有「第 N 列」
+            const auto empty = ExpressionParser::tryParse(nullptr, "");
+            ASSERT_FALSE(empty.has_value());
+            EXPECT_FALSE(empty.error().column.has_value());
+            EXPECT_FALSE(locatedColumnInMessage(empty.error().message).has_value());
+
+            // 单位表里没有的符号会被当成「表达式后还有多余内容」，那条是带列号的，见上一条用例
+
+            // 层数超限抛在建节点时，文案给的是上限而非某一列
+            std::string deepChain = "1";
+            for (int term = 1; term < static_cast<int>(Expression::maxAstDepth) + 2; ++term)
+            {
+                deepChain += " + 1";
+            }
+            const auto tooDeep = ExpressionParser::tryParse(nullptr, deepChain);
+            ASSERT_FALSE(tooDeep.has_value());
+            EXPECT_FALSE(tooDeep.error().column.has_value());
+
+            // 数量文本解析器根本没有列号概念
+            const auto quantityFailure = Units::QuantityParser::tryParse("not a quantity");
+            ASSERT_FALSE(quantityFailure.has_value());
+            EXPECT_FALSE(quantityFailure.error().column.has_value());
         }
 
         /**

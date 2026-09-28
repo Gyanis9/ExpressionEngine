@@ -65,7 +65,8 @@ if (const auto parsed = ExpressionEngine::Expression::ExpressionParser::tryParse
 }
 else
 {
-    showError(parsed.error().message);          // 已含出错列号
+    showError(parsed.error().message);          // 中文可操作文案
+    highlight(parsed.error().column);           // 出错列，1 起；文案不含位置时为空
 }
 ```
 
@@ -243,7 +244,7 @@ ctest --test-dir build/release --output-on-failure
 - 零编译告警是提交硬判据：MSVC 用 `/W4 /permissive- /utf-8 /Zc:__cplusplus`，其它编译器用
   `-Wall -Wextra -Wpedantic`。
 - CI（`.github/workflows/windows-ci.yml`）在 `main` 上跑 Debug + AddressSanitizer 全量用例，之后
-  `cmake --install` 到临时前缀、另起 `tools/package-check/` 工程编译并跑 33 条宿主可见行为断言——
+  `cmake --install` 到临时前缀、另起 `tools/package-check/` 工程编译并跑 35 条宿主可见行为断言——
   导出头漏装、包配置写错这类缺陷只有仓库外消费者才看得见。
 
 ## 性能

@@ -36,6 +36,11 @@
   拒绝，报出区间原文与实际格数；上限是 `FunctionExpression::maxRangeCells`。残留的最坏代价是
   「表达式里的聚合调用数 × 这个上限」，输入文本长度仍由宿主自己把关。
 
+- **解析失败把出错列号作为数据给出**：`Base::ParseFailure` 新增 `column`（1 起，按 UTF-8 码点计数），
+  与文案里那个「第 N 列」同源——宿主要在输入框里划线定位错误，不必再从中文文案里解析一遍。
+  文案不含位置的报错（空文本、运算层数超限）留空，不硬猜一列。数量文本解析器没有列号概念，
+  其 `ParseFailure::column` 恒为空。
+
 - **线程安全契约成文**：`Expression` 的类注释与 README 首次写清并发调用的边界——建好的树只读，
   `evaluate()`/`tryEvaluate()`/`simplify()`/`toString()`/`copy()` 可对同一棵树并发调用；库内的进程级可变
   状态只有 `FunctionRegistry::global()`（自带读写锁）与 `UnitsApi` 的当前方案与精度（运行期切换由宿主
