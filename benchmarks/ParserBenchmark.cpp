@@ -95,6 +95,9 @@ namespace
     /// 接收解析结果，防止整批调用被优化掉；写回发生在计时区间之外
     volatile std::uintptr_t g_resultSink = 0;
 
+    /// 没能解析、因此没有计时的语料条数；末尾据此决定退出码，防止基准静默少一条测量
+    std::size_t g_skippedCases = 0;
+
     /// 单项基准的统计结果
     struct BenchmarkStats
     {
@@ -183,6 +186,40 @@ namespace
             result += unit;
         }
         return result;
+    }
+
+    /**
+     * @brief 造一条深度刚好在树深上限内的左结合加法链
+     * @details 长链这类深树是树深记账唯一拦得住的形状，语料必须留两档余量：贴着边界写，
+     *          上限一动这条用例就会静默变成「解析失败，跳过计时」，基准就此少一条测量。
+     * @return 表达式文本
+     */
+    [[nodiscard]] std::string chainWithinDepthLimit()
+    {
+        using ExpressionEngine::Expression::Expression;
+
+        std::string text = "1";
+        for (std::size_t addition = 2; addition < Expression::maxAstDepth; ++addition)
+        {
+            text += "+1";
+        }
+        return text;
+    }
+
+    /**
+     * @brief 造一条实参很多、树深只有一层的调用
+     * @details 实参是兄弟节点，不随个数叠层，因此文本可以任意长：长输入的测量不该只有一种形状。
+     * @param minimumLength 至少多少字符
+     * @return 表达式文本
+     */
+    [[nodiscard]] std::string wideCallToLength(const std::size_t minimumLength)
+    {
+        std::string text = "max(1";
+        while (text.size() < minimumLength)
+        {
+            text += ", 1";
+        }
+        return text + ")";
     }
 
     /**
@@ -359,6 +396,7 @@ namespace
             return true;
         } catch (const std::exception &error)
         {
+            ++g_skippedCases;
             std::printf("%s语料解析失败，跳过计时：%s\n", padLabel(label, 34).c_str(), error.what());
             return false;
         }
@@ -395,7 +433,7 @@ int main()
             {"数量解析/科学计数 1e3 kg", "1e3 kg"}, {"数量解析/长式子(>200 字符)", repeatToLength("1+2*3-4/5+6^2+sin(30)+sqrt(16)+abs(-7)", "+", 200)},
     };
 
-    // 表达式语料：七个短用例加一条 300 字符以上的长链与 50 层括号
+    // 表达式语料：七个短用例，再加 300 字符以上的长实参列表、上限内的加法链与 50 层括号
     const std::vector<BenchmarkCase> expressionCases = {
             {"表达式解析/属性相乘 Box.Length*2", "Box.Length * 2"},
             {"表达式解析/当前对象 .Length", ".Length"},
@@ -404,7 +442,8 @@ int main()
             {"表达式解析/三元 1>0?2:3", "1 > 0 ? 2 : 3"},
             {"表达式解析/函数 sin+cos", "sin(90) + cos(0)"},
             {"表达式解析/多参数 max(1;5,3)", "max(1; 5, 3)"},
-            {"表达式解析/长链(>300 字符)", repeatToLength("1+2*3-4/5+6^2+7%3+8", "+", 300)},
+            {"表达式解析/长实参列表(>300 字符)", wideCallToLength(300)},
+            {"表达式解析/加法链(上限内)", chainWithinDepthLimit()},
             {"表达式解析/括号嵌套 50 层", std::string(50, '(') + "1+2*3" + std::string(50, ')')},
     };
 
@@ -423,7 +462,7 @@ int main()
     // 词法语料：只取短式与长链两条，用来区分词法与语法分析的开销
     const std::vector<BenchmarkCase> lexerCases = {
             {"表达式词法/典型输入 Box.Length*2", expressionCases[0].text},
-            {"表达式词法/长链(>300 字符)", expressionCases[7].text},
+            {"表达式词法/长输入(>300 字符)", expressionCases[7].text},
     };
 
 #if defined(BENCH_HAS_LEGACY_QUANTITY)
@@ -487,6 +526,13 @@ int main()
         {
             runCase(entry.label, entry.text, [&entry] { return lexExpression(entry.text); });
         }
+    }
+
+    if (g_skippedCases > 0)
+    {
+        // 语料被限深拒掉时那一行只剩一行提示，读数的人容易当成「基准跑完了」；这里让退出码变红
+        std::printf("\n有 %zu 条语料没能解析，对应行没有计时：请把语料改到限额内，别让它静默退出测量。\n", g_skippedCases);
+        return 1;
     }
     return 0;
 }
