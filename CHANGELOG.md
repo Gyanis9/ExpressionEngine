@@ -12,8 +12,18 @@
 
 - **非 MSVC 编译器上真正编得过**：本库此前在 GCC/Clang 下直接编译失败——`FunctionRegistry.cpp`
   用了 `std::unique_lock` 却没包含 `<mutex>`（MSVC 的传递包含掩盖了这一点）。补齐包含后，量纲
-  乘除改成可自证边界的下标循环，内置单位表按数据表形态关闭 `-Wmissing-field-initializers`，
-  在自带告警集（`-Wall -Wextra -Wpedantic`）下从 1058 条诊断做到零告警（GCC 13.3、Clang 22.1 实测）。
+  乘除改成可自证边界的下标循环，在自带告警集（`-Wall -Wextra -Wpedantic`）下从 1058 条诊断做到零告警
+  （GCC 13.3、Clang 22.1 实测）。
+
+  当时只量了库本体，**用例树没跟着量**。本轮把同一套开关压到 `tests/`，露出 26 条诊断（16 条
+  「缺成员初始化」、10 条「范围循环变量按引用绑到临时量」），也就是说 `linux-ci.yml` 第一次执行就会红
+  ——一条从没跑过的作业里的判据不算判据。两处都按「改代码而不是关诊断」收：把可省略的成员默认值写在声明处
+  （`UnitTranslationSpecification::callback`、`UnitsSchemaSpecification::translationSpecifications`、
+  `VariableReference` 的 `documentName`/`objectName`），必填成员（`unitString`、`propertyName`）刻意
+  不给默认值，漏填仍会被编译器拦住；因此内置单位表原先那段
+  `#pragma GCC diagnostic ignored "-Wmissing-field-initializers"` 已删除，这条诊断在全仓重新生效。
+  循环变量改按值绑定。改完 GCC 13.3 下 47 个翻译单元（库 23、用例 24）零告警，322 条用例在 Linux 上
+  第一次全部跑起来并全绿；MSVC 三档（Debug、Release、Debug+ASan）逐档清空重编仍零告警、322 条全绿。
 
 - **告警与 sanitizer 判据可机检**：新增构建开关 `EXPRESSIONENGINE_WARNINGS_AS_ERRORS`（默认 ON），
   MSVC 下等价 `/WX`、GNU 系下等价 `-Werror`，库与测试同用一组告警开关，有告警就构建失败。
@@ -54,6 +64,20 @@
 
 - **Linux 构建矩阵**：新增 `linux-ci.yml`，在 GCC 与 Clang 下各跑一遍构建 + 全量用例（Debug 档
   开 ASan 与 UBSan），并同样跑一遍安装包的仓库外消费者。
+
+- **覆盖率门**：新增构建开关 `ENABLE_COVERAGE`（gcov 插桩，仅 GCC/Clang；MSVC 上配置期直接拒绝，
+  因为那边没有对应的设施）与 `tools/coverage.sh`，后者对 `src/ExpressionEngine/` 按行/函数/分支三项
+  各设一条地板线（80% / 78% / 55%，写死在脚本里——想让门变松要改这个文件，改动会进 diff、会被评审看见）。
+  地板线之下的实测读数（g++ 13.3、322 条用例）：行 83.2%（5748/6907）、函数 81.1%（821/1012）、
+  分支 58.1%（4488/7719）；CI 的 `coverage` 作业跑同一条脚本，并把逐文件明细作为构件上传，变红时能直接
+  看出是哪一层薄了。
+
+  判据本身验过三种形状：地板线抬到 90% 立刻以退出码 2 变红（说明这道门真的会咬）、指向一棵没开
+  `ENABLE_COVERAGE` 的构建树当场拒绝并说明「插桩没开」（那种树会交出「0 行覆盖」而不是报错，是最像绿的
+  假绿）、构建树不存在也拒绝。工具版本也钉住：gcovr 7.x 与 8.x 的开关取值形式不同，低于 8 直接拒。
+  两处实测踩到的坑写进了脚本注释：gcovr 报的路径在根之内是**相对**形式，只匹配绝对路径的过滤式会把数据
+  筛空、给出 0% 这种「红得没有道理」的读数，因此过滤式写成兼容相对与绝对两种形态；以及 gcov 在未走到
+  的分支上会写出负数计数（gcc bug 68080），gcovr 默认当解析错误整份中止，按官方建议降级为每文件警告一次。
 
 - **表达式树深上限**：一长串左结合同类运算（`a + b + c + …`）拼出来的树又深又窄，括号限深管不到
   它，而求值、化简、文本化、深拷贝与析构都按树深递归——实测 1 MB 栈在 Debug 约 250 层、带 AddressSanitizer

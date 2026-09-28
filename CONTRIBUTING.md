@@ -28,6 +28,18 @@ cmake --preset debug -DENABLE_THREAD_SANITIZER=ON    # ThreadSanitizer，仅 GCC
 TSAN_OPTIONS=halt_on_error=1 ctest --test-dir build/debug   # TSan 默认只打印报告、退出码 0，必须加
 ```
 
+覆盖率门只在 GCC/Clang 上有数据（gcov 是 GNU 系的设施，MSVC 侧没有对应插桩），因此它算 CI 的判据而不是
+本地的第三条硬判据：
+
+```bash
+cmake --preset debug -DENABLE_COVERAGE=ON && cmake --build build/debug
+ctest --test-dir build/debug --output-on-failure
+GCOVR=/path/to/gcovr bash tools/coverage.sh build/debug   # 阈值写死在脚本里，改动会进 diff
+```
+
+脚本在三种情况下会当场变红而不是给出一份好看的报告：构建树没开插桩开关、树里没有 `.gcda`（说明用例还没跑）、
+以及 gcovr 版本低于 8——最后这条是因为 7.x 与 8.x 的开关取值形式不同，混用会把判据静默换成另一种含义。
+
 ## 代码规范
 
 - C++23。命名：类与文件名大驼峰，函数与变量小驼峰，成员变量 `m_` 前缀。
