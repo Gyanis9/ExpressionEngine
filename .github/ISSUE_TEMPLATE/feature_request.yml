@@ -1,0 +1,42 @@
+name: 功能请求
+description: 提议一个新能力或一处公开接口改动
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: 你要解决的问题
+      description: 现在只能怎么绕？绕法在集成里造成了什么影响。请给出具体调用片段。
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 期望的形状
+      description: 公开 API 长什么样（函数名、参数、返回、走异常还是 expected 通道）。
+    validations:
+      required: true
+  - type: dropdown
+    id: layer
+    attributes:
+      label: 涉及层次
+      multiple: true
+      options:
+        - Base（向量/矩阵/旋转/精度/文本数字互转）
+        - Units（量纲、数量、单位方案）
+        - Expression（词法、语法、求值、函数、分量、字典）
+        - 构建与打包（CMake / Conan / 导出头）
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: 替代方案与代价
+      description: 业界同类引擎（电子表格、CAD 参数器、表达式库）怎么处理这件事？你考虑过哪些别的做法。
+  - type: checkboxes
+    id: breaking
+    attributes:
+      label: 兼容性
+      options:
+        - label: 这一改动会破坏现有公开接口或语义
+          required: false

@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 贡献规范与判据
+    url: https://github.com/Gyanis9/ExpressionEngine/blob/main/CONTRIBUTING.md
+    about: 提 PR 前先读：三条硬判据、代码规范、用例必须能被证伪。

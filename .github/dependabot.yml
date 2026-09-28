@@ -1,0 +1,16 @@
+# 依赖面很窄：库本体零第三方依赖，Conan 只在配置测试目标时取 GoogleTest。
+# Dependabot 没有 conan 生态，因此这里只覆盖 GitHub Actions 的钉定版本；
+# conandata.yml 里 gtest 的版本升级由维护者手工做（升级要跑全档用例与交付门）。
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: chore
+      include: scope
+    groups:
+      actions:
+        patterns:
+          - '*'
