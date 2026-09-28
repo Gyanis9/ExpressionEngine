@@ -86,6 +86,20 @@ if(ENABLE_THREAD_SANITIZER)
     message(STATUS "Sanitizers: 已启用 ThreadSanitizer（运行时需 TSAN_OPTIONS=halt_on_error=1 才会以非零码退出）")
 endif()
 
+option(ENABLE_COVERAGE "启用 gcov 插桩（仅 GCC/Clang，判据在 tools/coverage.sh）" OFF)
+
+if(ENABLE_COVERAGE)
+    if(MSVC)
+        message(FATAL_ERROR "MSVC 没有 gcov；覆盖率判据只能在 GCC/Clang 上跑（linux-ci.yml 的 coverage 作业）")
+    endif()
+
+    # -O0 与 -g 写在插桩这一行而不是依赖构建档：Release 树上开内联会把行号归到别的行，
+    # 覆盖率门要能在任一构建档上跑而不改变判据的含义。
+    add_compile_options(--coverage -O0 -g)
+    add_link_options(--coverage)
+    message(STATUS "Coverage: 已启用 gcov 插桩（出报告与阈值判定跑 bash tools/coverage.sh）")
+endif()
+
 add_subdirectory(src)
 
 if(EXPRESSIONENGINE_BUILD_TESTS)

@@ -162,3 +162,66 @@ jobs:
           name: ctest-logs-tsan
           path: build/tsan/Testing/Temporary/LastTest.log
           if-no-files-found: ignore
+
+  # 覆盖率门：README 与 CONTRIBUTING 里「用例覆盖库本体」这句话要有可判定的形式，
+  # 否则它只是一句自评。阈值与判据都写死在 tools/coverage.sh 里（本地同一条脚本），
+  # 这里只负责提供插桩构建与 gcovr 那件工具。
+  #
+  # 只在 GCC 上跑一份：gcov 的数据格式是 GNU 系的，Clang 侧要 -fprofile-instr-generate
+  # 另一套工具链，而本库的跨平台判据已经由上面的矩阵承担。
+  coverage:
+    name: 覆盖率（gcov + gcovr）
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    env:
+      CONAN_HOME: ${{ github.workspace }}/.conan2
+      CC: gcc
+      CXX: g++
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: 缓存 Conan 依赖
+        uses: actions/cache@v6
+        with:
+          path: ${{ env.CONAN_HOME }}
+          key: conan-gcc-${{ hashFiles('conandata.yml', 'conanfile.py') }}
+
+      - name: 安装 Conan
+        run: |
+          python3 -m venv "${RUNNER_TEMP}/conan-venv"
+          "${RUNNER_TEMP}/conan-venv/bin/pip" install --upgrade "conan>=2.25"
+          echo "${RUNNER_TEMP}/conan-venv/bin" >> "$GITHUB_PATH"
+
+      - name: 探测 Conan profile
+        run: conan profile detect --force
+
+      # 与样式门同理钉工具版本：gcovr 7.x 与 8.x 的开关取值形式不同，脚本会当场拒绝而不是
+      # 换一种含义跑下去。装成 venv 是因为镜像的系统 Python 受 PEP 668 保护。
+      - name: 安装钉定版本的 gcovr
+        run: |
+          python3 -m venv "${RUNNER_TEMP}/cov-venv"
+          "${RUNNER_TEMP}/cov-venv/bin/pip" install "gcovr==8.6"
+
+      - name: 配置（Debug + gcov 插桩）
+        run: cmake --preset debug -DENABLE_COVERAGE=ON
+
+      - name: 构建
+        run: cmake --build build/debug
+
+      - name: 全量用例
+        run: ctest --test-dir build/debug --output-on-failure --parallel
+
+      - name: 覆盖率判据
+        run: GCOVR="${RUNNER_TEMP}/cov-venv/bin/gcovr" bash tools/coverage.sh build/debug
+
+      # 逐文件明细是这条门唯一的现场证据：变红时要能立刻看出是哪一层薄了，
+      # 而不是只知道总数没到。
+      - name: 上传覆盖率明细
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-report
+          path: build/debug/coverage.txt
+          if-no-files-found: ignore
