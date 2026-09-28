@@ -5,8 +5,8 @@
 
 namespace ExpressionEngine::Base
 {
-    Exception::Exception(std::string message, const std::source_location &location) :
-        std::runtime_error(message), m_message(std::move(message)), m_file(location.file_name()), m_sourceLine(static_cast<int>(location.line())),
+    Exception::Exception(std::string message, const ErrorKind kind, const std::source_location &location) :
+        std::runtime_error(message), m_message(std::move(message)), m_kind(kind), m_file(location.file_name()), m_sourceLine(static_cast<int>(location.line())),
         m_function(location.function_name())
     {
     }

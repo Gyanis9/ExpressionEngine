@@ -80,7 +80,8 @@ namespace ExpressionEngine::Expression
      */
     struct EvaluationFailure
     {
-        std::string message; ///< 中文可操作文案，与异常通道的消息逐字相同
+        std::string        message;                      ///< 中文可操作文案，与异常通道的消息逐字相同
+        Base::ErrorKind    kind = Base::ErrorKind::Other; ///< 故障类别，取自抛出的那个异常对象，与异常通道的 kind() 同源
     };
 
     /**

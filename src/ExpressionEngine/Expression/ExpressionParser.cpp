@@ -197,7 +197,8 @@ namespace ExpressionEngine::Expression
                 throw Base::ParserError(std::format("{}：表达式嵌套超过 {} 层，已停止解析；请把长表达式拆成几个属性，"
                                                     "或减少括号与函数的层数",
                                                     m_parser.locationOf(m_parser.m_current),
-                                                    maxNestingDepth));
+                                                    maxNestingDepth),
+                                                    Base::ErrorKind::TooDeep);
             }
             ++m_parser.m_nestingDepth;
         }
@@ -260,7 +261,7 @@ namespace ExpressionEngine::Expression
         {
             if (m_current.kind == ExpressionTokenKind::End)
             {
-                throw Base::ParserError("表达式为空，请填入要计算的表达式");
+                throw Base::ParserError("表达式为空，请填入要计算的表达式", Base::ErrorKind::EmptyInput);
             }
 
             ExpressionPtr result = parseExpression(0);
@@ -700,16 +701,21 @@ namespace ExpressionEngine::Expression
 
     std::expected<ExpressionPtr, Base::ParseFailure> ExpressionParser::tryParse(IObjectResolver *resolver, const std::string_view text, const FunctionRegistry &registry)
     {
-        // 语料器留在 catch 够得着的作用域里：出错的那一列记在它身上，转成值返回时才取到
-        ExpressionParserImplementation parser{resolver, text, registry};
+        // 语料器留在 catch 够得着的作用域里：出错的那一列记在它身上，转成值返回时才取到。
+        // 它必须在 try 内构造——词法器读首几个记号时就会报整数溢出，构造落在 try 外会让
+        // 这条「不抛异常」的通道把异常放出去。
+        std::optional<ExpressionParserImplementation> parser;
         try
         {
-            return parser.parseDocument();
+            parser.emplace(resolver, text, registry);
+            return parser->parseDocument();
         } catch (const Base::Exception &error)
         {
             // 建树期抛出的都算「这条文本不能用」：语法错与函数的参数个数、可用性错都是
-            // 用户改一处文本就能修好的可恢复故障，统一转成值返回，文案与异常通道逐字一致
-            return std::unexpected(Base::ParseFailure{error.message(), parser.failureColumn()});
+            // 用户改一处文本就能修好的可恢复故障，统一转成值返回，文案与异常通道逐字一致。
+            // 语料器还没建起来时（词法期就失败）没有定位可报，列号留空
+            const std::optional<int> column = parser ? parser->failureColumn() : std::nullopt;
+            return std::unexpected(Base::ParseFailure{error.message(), column, error.kind()});
         }
     }
 

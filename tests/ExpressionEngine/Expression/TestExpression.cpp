@@ -838,6 +838,7 @@ namespace ExpressionEngine::Expression
             EXPECT_NE(failed.error().message.find("个单元格，超过单次聚合可读取的 " + std::to_string(FunctionExpression::maxRangeCells) + " 个上限"),
                       std::string::npos)
                     << failed.error().message;
+            EXPECT_EQ(failed.error().kind, Base::ErrorKind::Expression);
             EXPECT_THROW(static_cast<void>(overLimitSum->evaluate()), EvaluationError);
         }
 

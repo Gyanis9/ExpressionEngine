@@ -364,7 +364,11 @@ namespace ExpressionEngine::Expression
             EXPECT_FALSE(empty.error().column.has_value());
             EXPECT_FALSE(locatedColumnInMessage(empty.error().message).has_value());
 
-            // 单位表里没有的符号会被当成「表达式后还有多余内容」，那条是带列号的，见上一条用例
+            // 词法器在读首几个记号时就把整数溢出报出来：类别给得出，列号留空，异常不许外溢
+            const auto overflow = ExpressionParser::tryParse(nullptr, "99999999999999999999");
+            ASSERT_FALSE(overflow.has_value());
+            EXPECT_EQ(overflow.error().kind, Base::ErrorKind::Overflow);
+            EXPECT_FALSE(overflow.error().column.has_value());
 
             // 层数超限抛在建节点时，文案给的是上限而非某一列
             std::string deepChain = "1";
@@ -781,5 +785,74 @@ namespace ExpressionEngine::Expression
             }
         }
 
+        /**
+         * @brief 钉住：不可信文本落到哪个类别，且两条通道给的是同一个
+         * @details 宿主要么 catch、要么判返回值，两条写法必须能互换：同一条输入在 tryParse /
+         *          tryEvaluate 上得到的 kind，要与抛出通道里的 caught.kind() 相等，文案也逐字相同。
+         */
+        TEST(ExpressionParserTest, FailureKindsMatchBothChannels)
+        {
+            const std::string deepParens = std::string(150, '(') + "1" + std::string(150, ')');
+            std::string       longChain  = "1";
+            for (int term = 0; term < 70; ++term)
+            {
+                longChain += " + 1";
+            }
+
+            const std::vector<std::pair<std::string, Base::ErrorKind>> cases{
+                    {"", Base::ErrorKind::EmptyInput},
+                    {"1 +", Base::ErrorKind::Parser},
+                    {"abs(1", Base::ErrorKind::Parser},
+                    {"1 2", Base::ErrorKind::Parser},
+                    {deepParens, Base::ErrorKind::TooDeep},
+                    {longChain, Base::ErrorKind::TooDeep},
+                    {"99999999999999999999", Base::ErrorKind::Overflow},
+                    {"1 m^-9", Base::ErrorKind::Underflow},
+                    {"2 mm + 3 s", Base::ErrorKind::UnitsMismatch},
+                    // 文本操作数走「能不能解析成数量」这一层，处置方式是改文本，因此算语法错
+                    {"1 + <<abc>>", Base::ErrorKind::Parser},
+                    {"sqrt(list(1; 2))", Base::ErrorKind::Type},
+                    {"1 / 0", Base::ErrorKind::Value},
+                    {"Box.Length", Base::ErrorKind::Name},
+                    {"list(1; 2; 3)[9]", Base::ErrorKind::Index},
+                    // 裸区间在顶层就是「表达式后还有多余内容」，求值期的 Expression 类别由
+                    // ExpressionTest.RangeCellCountIsCappedBeforeExpansion 那条钉住
+            };
+
+            for (const auto &[text, expected]: cases)
+            {
+                Base::ErrorKind valueChannelKind = Base::ErrorKind::Other;
+                std::string     message;
+
+                const auto parsed = ExpressionParser::tryParse(nullptr, text);
+                if (!parsed.has_value())
+                {
+                    valueChannelKind = parsed.error().kind;
+                    message          = parsed.error().message;
+                } else
+                {
+                    const auto evaluated = (*parsed)->tryEvaluate();
+                    ASSERT_FALSE(evaluated.has_value()) << text;
+                    valueChannelKind = evaluated.error().kind;
+                    message          = evaluated.error().message;
+                }
+
+                EXPECT_EQ(valueChannelKind, expected) << text << " 的文案：" << message;
+
+                // 异常通道给出同一个类别：两条写法因此可以互换
+                Base::ErrorKind exceptionKind = Base::ErrorKind::Other;
+                try
+                {
+                    const ExpressionPtr tree = ExpressionParser::parse(nullptr, text);
+                    static_cast<void>(tree->evaluate());
+                    ADD_FAILURE() << "这条输入本就该失败：" << text;
+                } catch (const Base::Exception &error)
+                {
+                    exceptionKind = error.kind();
+                    EXPECT_EQ(error.message(), message) << text;
+                }
+                EXPECT_EQ(exceptionKind, expected) << text;
+            }
+        }
     } // namespace
 }     // namespace ExpressionEngine::Expression

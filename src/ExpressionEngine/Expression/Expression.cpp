@@ -1078,7 +1078,8 @@ namespace ExpressionEngine::Expression
         {
             throw Base::ParserError(std::format("表达式运算层数超过 {} 层上限，已拒绝；连续的同类运算请改用聚合函数"
                                                 "（如 sum(a, b, c)），或把长式子拆成几个属性",
-                                                maxAstDepth));
+                                                maxAstDepth),
+                                                Base::ErrorKind::TooDeep);
         }
         m_astDepth = std::max(m_astDepth, nextDepth);
     }
@@ -1125,7 +1126,7 @@ namespace ExpressionEngine::Expression
         {
             // 库内的求值故障都可以靠改表达式或改取值解决，转成值返回；
             // 宿主的 IProperty 与自定义函数回调抛出的非库异常不在捕获之列
-            return std::unexpected(EvaluationFailure{error.message()});
+            return std::unexpected(EvaluationFailure{error.message(), error.kind()});
         }
     }
 

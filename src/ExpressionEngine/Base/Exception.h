@@ -12,9 +12,35 @@
 #include <source_location>
 #include <stdexcept>
 #include <string>
+#include <utility>
 
 namespace ExpressionEngine::Base
 {
+    /**
+     * @brief 故障类别
+     * @details 异常体系本来就能按类型分支，但 tryParse()、tryEvaluate() 这类非异常通道只带回一条
+     *          中文文案，宿主想区分「改文本」与「改单位」就只能去匹配中文字串。ErrorKind 给两条
+     *          通道同一个可判的类别：异常对象用 kind() 报告，值通道原样带过去，因此同一次故障在
+     *          两条通道上的类别必然相等。每个异常类都报自己的类别（用例逐条钉住这张对应表），
+     *          新增的类若忘了标，落到 Other 而不是静默沿用别人的类别。
+     */
+    enum class ErrorKind
+    {
+        Other,         ///< 未归类：新增故障类型却没标类别时的兜底
+        Parser,        ///< 词法与语法错，改文本即可
+        EmptyInput,    ///< 输入为空，没有任何可解析的内容
+        TooDeep,       ///< 嵌套层数或表达式树深超上限，需要把式子拆短
+        UnitsMismatch, ///< 运算两侧单位不同，改成同一单位的量再算
+        Overflow,      ///< 数值超出可表示范围，缩小量级
+        Underflow,     ///< 数值低于可表示范围，放大量级
+        Type,          ///< 值类型不参与该运算
+        Value,         ///< 类型对但内容不被接受（除数为零、零向量归一化等）
+        Index,         ///< 分量下标越界
+        Attribute,     ///< 属性或分量不存在
+        Name,          ///< 标识符解析不到对象或属性
+        Expression,    ///< 表达式引擎的其它运行期故障
+    };
+
     /**
      * @brief 运行期故障的统一基类
      * @details 库对外抛出的运行期故障全部派生自本类，调用方可用一条 catch (const Exception&) 兜住。
@@ -29,9 +55,23 @@ namespace ExpressionEngine::Base
         /**
          * @brief 构造异常
          * @param message 中文可操作文案，写清「原因 + 替代做法」
+         * @param kind 故障类别；派生类带上自己的类别，宿主自己的派生类留默认值即可
          * @param location 抛出位置，默认由编译器在调用点填入
          */
-        explicit Exception(std::string message, const std::source_location &location = std::source_location::current());
+        explicit Exception(std::string message, ErrorKind kind = ErrorKind::Other,
+                           const std::source_location &location = std::source_location::current());
+
+        /**
+         * @brief 取故障类别
+         * @details 与值通道（ParseFailure::kind、EvaluationFailure::kind）同源：抛出时定下，
+         *          转成值返回时原样带过去，宿主因此可以在「捕获」与「判返回值」两条写法上
+         *          得到同一个分支依据。
+         * @return 构造时带来的类别
+         */
+        [[nodiscard]] ErrorKind kind() const noexcept
+        {
+            return m_kind;
+        }
 
         /**
          * @brief 取原始消息
@@ -77,6 +117,7 @@ namespace ExpressionEngine::Base
 
     private:
         std::string m_message;    ///< 消息正文
+        ErrorKind   m_kind;       ///< 故障类别，与值通道里的 kind 同源
         const char *m_file;       ///< 源文件名，指向字面量，不持所有权
         int         m_sourceLine; ///< 抛出点行号
         const char *m_function;   ///< 函数名，指向字面量，不持所有权
@@ -89,7 +130,18 @@ namespace ExpressionEngine::Base
     class ParserError : public Exception
     {
     public:
-        using Exception::Exception;
+        /**
+         * @brief 构造文本解析失败异常
+         * @param message 中文可操作文案
+         * @param kind 故障类别；词法语法错留默认值，输入为空、嵌套过深、单位表缺符号这类
+         *              处置方式不同的抛出点显式给出
+         * @param location 抛出位置，默认由编译器在调用点填入
+         */
+        explicit ParserError(std::string message, ErrorKind kind = ErrorKind::Parser,
+                             const std::source_location &location = std::source_location::current()) :
+            Exception(std::move(message), kind, location)
+        {
+        }
     };
 
     /**
@@ -99,7 +151,15 @@ namespace ExpressionEngine::Base
     class UnitsMismatchError : public Exception
     {
     public:
-        using Exception::Exception;
+        /**
+         * @brief 构造单位不匹配异常
+         * @param message 中文可操作文案
+         * @param location 抛出位置，默认由编译器在调用点填入
+         */
+        explicit UnitsMismatchError(std::string message, const std::source_location &location = std::source_location::current()) :
+            Exception(std::move(message), ErrorKind::UnitsMismatch, location)
+        {
+        }
     };
 
     /**
@@ -109,7 +169,15 @@ namespace ExpressionEngine::Base
     class OverflowError : public Exception
     {
     public:
-        using Exception::Exception;
+        /**
+         * @brief 构造数值溢出异常
+         * @param message 中文可操作文案
+         * @param location 抛出位置，默认由编译器在调用点填入
+         */
+        explicit OverflowError(std::string message, const std::source_location &location = std::source_location::current()) :
+            Exception(std::move(message), ErrorKind::Overflow, location)
+        {
+        }
     };
 
     /**
@@ -119,7 +187,15 @@ namespace ExpressionEngine::Base
     class UnderflowError : public Exception
     {
     public:
-        using Exception::Exception;
+        /**
+         * @brief 构造数值下溢异常
+         * @param message 中文可操作文案
+         * @param location 抛出位置，默认由编译器在调用点填入
+         */
+        explicit UnderflowError(std::string message, const std::source_location &location = std::source_location::current()) :
+            Exception(std::move(message), ErrorKind::Underflow, location)
+        {
+        }
     };
 
     /**
@@ -129,7 +205,15 @@ namespace ExpressionEngine::Base
     class TypeError : public Exception
     {
     public:
-        using Exception::Exception;
+        /**
+         * @brief 构造类型不符异常
+         * @param message 中文可操作文案
+         * @param location 抛出位置，默认由编译器在调用点填入
+         */
+        explicit TypeError(std::string message, const std::source_location &location = std::source_location::current()) :
+            Exception(std::move(message), ErrorKind::Type, location)
+        {
+        }
     };
 
     /**
@@ -139,7 +223,15 @@ namespace ExpressionEngine::Base
     class ValueError : public Exception
     {
     public:
-        using Exception::Exception;
+        /**
+         * @brief 构造取值非法异常
+         * @param message 中文可操作文案
+         * @param location 抛出位置，默认由编译器在调用点填入
+         */
+        explicit ValueError(std::string message, const std::source_location &location = std::source_location::current()) :
+            Exception(std::move(message), ErrorKind::Value, location)
+        {
+        }
     };
 
     /**
@@ -149,7 +241,15 @@ namespace ExpressionEngine::Base
     class IndexError : public Exception
     {
     public:
-        using Exception::Exception;
+        /**
+         * @brief 构造索引越界异常
+         * @param message 中文可操作文案
+         * @param location 抛出位置，默认由编译器在调用点填入
+         */
+        explicit IndexError(std::string message, const std::source_location &location = std::source_location::current()) :
+            Exception(std::move(message), ErrorKind::Index, location)
+        {
+        }
     };
 
     /**
@@ -159,7 +259,15 @@ namespace ExpressionEngine::Base
     class AttributeError : public Exception
     {
     public:
-        using Exception::Exception;
+        /**
+         * @brief 构造属性不存在异常
+         * @param message 中文可操作文案
+         * @param location 抛出位置，默认由编译器在调用点填入
+         */
+        explicit AttributeError(std::string message, const std::source_location &location = std::source_location::current()) :
+            Exception(std::move(message), ErrorKind::Attribute, location)
+        {
+        }
     };
 
     /**
@@ -169,7 +277,15 @@ namespace ExpressionEngine::Base
     class NameError : public Exception
     {
     public:
-        using Exception::Exception;
+        /**
+         * @brief 构造标识符无法解析异常
+         * @param message 中文可操作文案
+         * @param location 抛出位置，默认由编译器在调用点填入
+         */
+        explicit NameError(std::string message, const std::source_location &location = std::source_location::current()) :
+            Exception(std::move(message), ErrorKind::Name, location)
+        {
+        }
     };
 
     /**
@@ -179,6 +295,14 @@ namespace ExpressionEngine::Base
     class ExpressionError : public Exception
     {
     public:
-        using Exception::Exception;
+        /**
+         * @brief 构造表达式引擎故障异常
+         * @param message 中文可操作文案
+         * @param location 抛出位置，默认由编译器在调用点填入
+         */
+        explicit ExpressionError(std::string message, const std::source_location &location = std::source_location::current()) :
+            Exception(std::move(message), ErrorKind::Expression, location)
+        {
+        }
     };
 } // namespace ExpressionEngine::Base

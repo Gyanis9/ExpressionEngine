@@ -36,6 +36,17 @@
   拒绝，报出区间原文与实际格数；上限是 `FunctionExpression::maxRangeCells`。残留的最坏代价是
   「表达式里的聚合调用数 × 这个上限」，输入文本长度仍由宿主自己把关。
 
+- **失败带类别**：新增 `Base::ErrorKind`，两条非异常通道各带一个可分支的类别——`ParseFailure::kind`、
+  `EvaluationFailure::kind` 取自抛出的那个异常对象，异常通道用 `Base::Exception::kind()` 给出同一个值，
+  因此「判返回值」与「try/catch」两种写法可以互换，宿主不再需要匹配中文文案去分「改文本 / 换算单位 /
+  拆短式子」。类别与异常类型一一对应（`Parser`、`EmptyInput`、`TooDeep`、`UnitsMismatch`、`Overflow`、
+  `Underflow`、`Type`、`Value`、`Index`、`Attribute`、`Name`、`Expression`），未归类的落到 `Other`。
+  单位符号表与词法器的候选表实测重合，因此没有单独设「未知单位」这一类——走不到的类别不进枚举。
+
+  顺带修一处上一轮引入的契约破坏：`tryParse` 把语料器的构造挪到了 `try` 之外，而词法器读首几个记号时
+  就可能抛整数溢出，异常因此从这条「不抛异常」的通道放了出去。现在构造回到 `try` 内，这类失败照旧走
+  值通道（类别 `Overflow`，因为没有解析器定位，列号留空）。
+
 - **解析失败把出错列号作为数据给出**：`Base::ParseFailure` 新增 `column`（1 起，按 UTF-8 码点计数），
   与文案里那个「第 N 列」同源——宿主要在输入框里划线定位错误，不必再从中文文案里解析一遍。
   文案不含位置的报错（空文本、运算层数超限）留空，不硬猜一列。数量文本解析器没有列号概念，

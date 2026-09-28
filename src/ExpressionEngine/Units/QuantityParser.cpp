@@ -707,7 +707,8 @@ namespace ExpressionEngine::Units
                 throw Base::ParserError(std::format("数量文本第 {} 个字符处起嵌套超过 {} 层，已停止解析；请减少括号层数，"
                                                     "单位的连除可改写成 m/s^2 这样的幂次形式",
                                                     m_parser.m_current.offset + 1,
-                                                    maxNestingDepth));
+                                                    maxNestingDepth),
+                                                    Base::ErrorKind::TooDeep);
             }
             ++m_parser.m_nestingDepth;
         }
@@ -975,7 +976,7 @@ namespace ExpressionEngine::Units
         } catch (const Base::ParserError &error)
         {
             // 输入非法属可恢复错误：转成值返回，文案与异常通道逐字一致
-            return std::unexpected(Base::ParseFailure{error.message()});
+            return std::unexpected(Base::ParseFailure{error.message(), std::nullopt, error.kind()});
         }
     }
 

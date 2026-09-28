@@ -83,5 +83,43 @@ namespace ExpressionEngine::Base
             }
         }
 
+        /**
+         * @brief 钉住：每个异常类型报出自己的故障类别，漏标的会落到 Other 而不是静默算对
+         * @details 类别是值通道（ParseFailure::kind、EvaluationFailure::kind）的唯一来源，
+         *          这张表就是「库内异常体系与类别枚举一一对应」的判据。
+         */
+        TEST(ExceptionTest, EachErrorTypeReportsItsOwnKind)
+        {
+            EXPECT_EQ(Exception{"未归类的故障"}.kind(), ErrorKind::Other);
+            EXPECT_EQ(ParserError{"文本无法解析"}.kind(), ErrorKind::Parser);
+            // 带两个实参的构造要先落成变量：花括号里的逗号会被宏当成参数分隔符
+            const ParserError deepText{"嵌套过深，请拆短", ErrorKind::TooDeep};
+            const ParserError emptyText{"输入为空", ErrorKind::EmptyInput};
+            EXPECT_EQ(deepText.kind(), ErrorKind::TooDeep);
+            EXPECT_EQ(emptyText.kind(), ErrorKind::EmptyInput);
+            EXPECT_EQ(UnitsMismatchError{"两侧单位不同"}.kind(), ErrorKind::UnitsMismatch);
+            EXPECT_EQ(OverflowError{"数值过大"}.kind(), ErrorKind::Overflow);
+            EXPECT_EQ(UnderflowError{"数值过小"}.kind(), ErrorKind::Underflow);
+            EXPECT_EQ(TypeError{"类型不参与该运算"}.kind(), ErrorKind::Type);
+            EXPECT_EQ(ValueError{"取值不被接受"}.kind(), ErrorKind::Value);
+            EXPECT_EQ(IndexError{"下标越界"}.kind(), ErrorKind::Index);
+            EXPECT_EQ(AttributeError{"属性不存在"}.kind(), ErrorKind::Attribute);
+            EXPECT_EQ(NameError{"名字解析不到"}.kind(), ErrorKind::Name);
+            EXPECT_EQ(ExpressionError{"引擎运行期故障"}.kind(), ErrorKind::Expression);
+        }
+
+        /**
+         * @brief 钉住：类别经得住向上转型，catch 基类拿到的与派生类一致
+         */
+        TEST(ExceptionTest, KindSurvivesUpcast)
+        {
+            try
+            {
+                throw UnitsMismatchError{"加法两侧单位不同，请先换算"};
+            } catch (const Exception &caught)
+            {
+                EXPECT_EQ(caught.kind(), ErrorKind::UnitsMismatch);
+            }
+        }
     } // namespace
 } // namespace ExpressionEngine::Base

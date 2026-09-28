@@ -26,6 +26,7 @@
 
 namespace
 {
+    using ExpressionEngine::Base::ErrorKind;
     using ExpressionEngine::Base::NameError;
     using ExpressionEngine::Base::ValueError;
     using ExpressionEngine::Expression::CustomFunctionSpec;
@@ -118,6 +119,25 @@ namespace
         check(!misplaced.has_value() && misplaced.error().column.value_or(-1) == 4, "解析失败带出错列号");
         const auto noPlace = ExpressionParser::tryParse(nullptr, "");
         check(!noPlace.has_value() && !noPlace.error().column.has_value(), "无位置的报错不硬猜列号");
+
+        // 故障类别是数据而不是文案的一部分：宿主按「改文本 / 换算单位 / 拆短式子」分支，不必匹配中文
+        const auto mismatchedTree  = ExpressionParser::parse(nullptr, "2 mm + 3 s");
+        const auto mismatchedValue = mismatchedTree->tryEvaluate();
+        check(!mismatchedValue.has_value() && mismatchedValue.error().kind == ErrorKind::UnitsMismatch, "求值失败给出量纲类别");
+
+        const auto deepText = ExpressionParser::tryParse(nullptr, std::string(150, '(') + "1" + std::string(150, ')'));
+        check(!deepText.has_value() && deepText.error().kind == ErrorKind::TooDeep, "解析失败给出层数超限类别");
+
+        // 两条通道同源：换用 try/catch 的宿主拿到同一个类别
+        bool sameKindOnBothChannels = false;
+        try
+        {
+            static_cast<void>(ExpressionParser::parse(nullptr, "2 mm + 3 s")->evaluate());
+        } catch (const ExpressionEngine::Base::Exception &error)
+        {
+            sameKindOnBothChannels = error.kind() == ErrorKind::UnitsMismatch;
+        }
+        check(sameKindOnBothChannels, "异常通道与值通道给出同一个类别");
 
         // 超深的运算链在构造期就报可读的错，宿主不会被一次无法捕获的栈溢出带走
         std::string longChain = "1";
