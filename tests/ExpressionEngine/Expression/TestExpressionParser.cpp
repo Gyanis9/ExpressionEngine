@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 
+#include <cmath>
 #include <memory>
 #include <optional>
 #include <string>
@@ -853,6 +854,38 @@ namespace ExpressionEngine::Expression
                 }
                 EXPECT_EQ(exceptionKind, expected) << text;
             }
+        }
+        /**
+         * @brief 钉住：求值不把 NaN 或无穷大交给宿主，两条通道都按 ValueError 报
+         * @details 数量层遵守 IEEE 语义（0/0 就是 NaN，Quantity 也用 NaN 表示无效），那是数值库的
+         *          事实；但表达式的取值是宿主拿去当参数用的，交出去就是让它在几何与表格里静默扩散。
+         *          同一套里除零早已报错，非有限结果不能反而放行。
+         */
+        TEST(ExpressionParserTest, NonFiniteResultsAreRejected)
+        {
+            for (const std::string &text: {"sqrt(-1)", "log(-1)", "log(0)", "10^999", "1e308 * 1e308"})
+            {
+                const auto parsed = ExpressionParser::tryParse(nullptr, text);
+                ASSERT_TRUE(parsed.has_value()) << text << " 的文案：" << parsed.error().message;
+
+                const auto failed = (*parsed)->tryEvaluate();
+                ASSERT_FALSE(failed.has_value()) << text << " 本该被拒";
+                EXPECT_EQ(failed.error().kind, Base::ErrorKind::Value) << text;
+                EXPECT_NE(failed.error().message.find("不能当作参数交给宿主"), std::string::npos) << failed.error().message;
+                EXPECT_THROW(static_cast<void>((*parsed)->evaluate()), Base::ValueError);
+            }
+        }
+
+        /**
+         * @brief 钉住：判据只挡非有限值，大但不越界的取值照常可用
+         */
+        TEST(ExpressionParserTest, LargeButFiniteResultsStillWork)
+        {
+            EXPECT_DOUBLE_EQ(quantityOf("1e308").getValue(), 1e308);
+            EXPECT_DOUBLE_EQ(quantityOf("sqrt(0)").getValue(), 0.0);
+            EXPECT_DOUBLE_EQ(quantityOf("log(1)").getValue(), 0.0);
+            EXPECT_DOUBLE_EQ(quantityOf("1 / 1e308").getValue(), 1e-308);
+            EXPECT_DOUBLE_EQ(quantityOf("2^1023").getValue(), std::pow(2.0, 1023.0));
         }
     } // namespace
 }     // namespace ExpressionEngine::Expression

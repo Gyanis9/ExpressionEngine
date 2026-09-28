@@ -139,6 +139,16 @@ namespace
         }
         check(sameKindOnBothChannels, "异常通道与值通道给出同一个类别");
 
+        // 求值不把 NaN 或无穷大交给宿主：与除零同一口径，按 ValueError 报出
+        const auto negativeRoot = ExpressionParser::parse(nullptr, "sqrt(-1)")->tryEvaluate();
+        check(!negativeRoot.has_value() && negativeRoot.error().kind == ErrorKind::Value, "开方负数不给 NaN 而是报错");
+
+        const auto overflowed = ExpressionParser::parse(nullptr, "10^999")->tryEvaluate();
+        check(!overflowed.has_value() && overflowed.error().message.find("不能当作参数交给宿主") != std::string::npos, "溢出成无穷大时同样报错");
+
+        const auto finiteStillWorks = ExpressionParser::parse(nullptr, "1e308")->tryEvaluate();
+        check(finiteStillWorks.has_value(), "大但有限的取值照常可用");
+
         // 超深的运算链在构造期就报可读的错，宿主不会被一次无法捕获的栈溢出带走
         std::string longChain = "1";
         for (int term = 0; term < 5000; ++term)

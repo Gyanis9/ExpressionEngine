@@ -6,6 +6,7 @@
 #include <memory>
 #include <numbers>
 #include <stdexcept>
+#include <limits>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -1169,5 +1170,27 @@ namespace ExpressionEngine::Expression
             EXPECT_THROW(static_cast<void>(fault.tryEvaluate()), std::runtime_error);
         }
 
+        /**
+         * @brief 钉住：宿主给的无效数量（NaN 标记）不算求值成功
+         * @details Quantity 用 NaN 表示「无效」，求值把它当取值交回就是让无效状态伪装成结果。
+         */
+        TEST(ExpressionTest, InvalidQuantityValueIsRejected)
+        {
+            Units::Quantity invalid{1.0};
+            invalid.setInvalid();
+            const auto node   = std::make_unique<ValueExpression>(nullptr, Value(invalid));
+            const auto failed = node->tryEvaluate();
+            ASSERT_FALSE(failed.has_value());
+            EXPECT_EQ(failed.error().kind, Base::ErrorKind::Value);
+            EXPECT_NE(failed.error().message.find("非数（NaN）"), std::string::npos) << failed.error().message;
+            EXPECT_THROW(static_cast<void>(node->evaluate()), Base::ValueError);
+
+            // 宿主也可能给出不带单位的裸数：判据覆盖数量与裸数两种数值形态
+            const auto plainNode   = std::make_unique<ValueExpression>(nullptr, Value(std::numeric_limits<double>::quiet_NaN()));
+            const auto plainFailed = plainNode->tryEvaluate();
+            ASSERT_FALSE(plainFailed.has_value());
+            EXPECT_EQ(plainFailed.error().kind, Base::ErrorKind::Value);
+            EXPECT_THROW(static_cast<void>(plainNode->evaluate()), Base::ValueError);
+        }
     } // namespace
 }     // namespace ExpressionEngine::Expression

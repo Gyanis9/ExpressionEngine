@@ -76,6 +76,10 @@ else
 类别表见 `Base::ErrorKind`（`Parser`、`EmptyInput`、`TooDeep`、`UnitsMismatch`、`Overflow`、`Underflow`、
 `Type`、`Value`、`Index`、`Attribute`、`Name`、`Expression`，未归类的落到 `Other`）。
 
+求值不把 NaN 或无穷大交给宿主：`sqrt(-1)`、`10^999`、宿主给的无效数量都在求值出口按 `Base::ValueError`
+报出（类别 `Value`），与除零同一口径。数量层本身仍按 IEEE 语义运算——收口发生在「表达式算出的取值要交给
+宿主」这一步，不让无效状态伪装成结果。
+
 `tryEvaluate()` 只兜库自己的异常：宿主实现（`IProperty`、自定义函数回调）抛出的异常照旧向上传播。
 超深输入在构造阶段就报 `ParserError`，不会撞上无法捕获的栈溢出：括号与函数的嵌套限 100 层，
 表达式树深限 64 层（`sum(a, b, c, …)` 这类实参是兄弟节点，不叠层；`Expression::astDepth()` 可自查）。
@@ -250,7 +254,7 @@ ctest --test-dir build/release --output-on-failure
 - 零编译告警是提交硬判据：MSVC 用 `/W4 /permissive- /utf-8 /Zc:__cplusplus`，其它编译器用
   `-Wall -Wextra -Wpedantic`。
 - CI（`.github/workflows/windows-ci.yml`）在 `main` 上跑 Debug + AddressSanitizer 全量用例，之后
-  `cmake --install` 到临时前缀、另起 `tools/package-check/` 工程编译并跑 38 条宿主可见行为断言——
+  `cmake --install` 到临时前缀、另起 `tools/package-check/` 工程编译并跑 41 条宿主可见行为断言——
   导出头漏装、包配置写错这类缺陷只有仓库外消费者才看得见。
 
 ## 性能

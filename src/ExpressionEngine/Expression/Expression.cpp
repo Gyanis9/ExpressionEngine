@@ -865,6 +865,37 @@ namespace ExpressionEngine::Expression
             } while (range.next());
         }
 
+        /**
+         * @brief 求值的产出必须是可交给宿主的有限数值
+         * @details 数量运算本身遵守 IEEE 语义：0/0 给出 NaN、以零因子换算给出无穷大，Quantity 还用
+         *          NaN 表示「无效」——那是数值库的事实，测试也照着钉住。但表达式的取值是宿主拿去当
+         *          参数、写进几何或表格的东西，把 NaN 或 inf 交出去就是让它在下游静默扩散。同一套里
+         *          除零早已按 ValueError 拒绝，非有限的结果没有理由反而放行，因此在这里统一收口。
+         * @param node 求出该取值的节点，用于在报错里回写表达式原文
+         * @param result 待检查的取值；非数值形态（文本、几何、序列）不在本判据之列
+         * @throws Base::ValueError 数值取值为 NaN 或无穷大
+         */
+        void requireFiniteResult(const Expression &node, const Value &result)
+        {
+            const double *plain    = std::get_if<double>(&result);
+            const auto     quantity = std::get_if<Units::Quantity>(&result);
+            if (plain == nullptr && quantity == nullptr)
+            {
+                return;
+            }
+
+            const double value = plain != nullptr ? *plain : quantity->getValue();
+            if (std::isfinite(value))
+            {
+                return;
+            }
+
+            throw Base::ValueError(std::format("表达式 {} 算出的是{}，不能当作参数交给宿主；请检查定义域与量级——"
+                                               "开方要非负、对数要正数、除法分母不能为零、乘方别超出可表示范围",
+                                               node.toString(true),
+                                               std::isinf(value) ? "无穷大（溢出）" : "非数（NaN）"));
+        }
+
         /// 把单个标量取值喂给收集器
         void collectScalar(Collector &collector, const Value &value, std::string_view context)
         {
@@ -1102,18 +1133,18 @@ namespace ExpressionEngine::Expression
     Value Expression::evaluate() const
     {
         Value result = evaluateNode();
-        if (m_components.empty())
+        if (!m_components.empty())
         {
-            return result;
+            // 分量按值语义逐段作用在求值结果上：Box.Placement.Base[0] 先取向量再取 x，
+            // list(1; 2)[1] 取第二项。不支持该分量的取值由 applyComponent 报出具体原因
+            const std::string context = std::format("表达式 {} 的分量访问", toString(true));
+            for (const auto &component: m_components)
+            {
+                result = applyComponent(result, component, context);
+            }
         }
-
-        // 分量按值语义逐段作用在求值结果上：Box.Placement.Base[0] 先取向量再取 x，
-        // list(1; 2)[1] 取第二项。不支持该分量的取值由 applyComponent 报出具体原因
-        const std::string context = std::format("表达式 {} 的分量访问", toString(true));
-        for (const auto &component: m_components)
-        {
-            result = applyComponent(result, component, context);
-        }
+        // 取分量的结果同样是数值，判据放在出口这一处才能覆盖两条路径
+        requireFiniteResult(*this, result);
         return result;
     }
 
