@@ -1176,6 +1176,36 @@ namespace ExpressionEngine::Expression
         [[nodiscard]] static Function functionFromName(std::string_view name);
 
         /**
+         * @brief 一条内置函数的可展示信息
+         * @details 供宿主做自动补全、帮助面板这类界面；别名各占一条（如 `tuple` 与 `list` 都指向
+         *          同一个函数种类，但在界面里是两条可选的写法）。
+         */
+        struct BuiltInInfo
+        {
+            std::string_view name;        ///< 表达式里的写法，全小写
+            bool             isAggregate; ///< 是否聚合函数：序列实参会被摊平后再统计
+        };
+
+        /**
+         * @brief 列出全部内置函数
+         * @details 顺序与解析器查表一致（先数学、再文本、再几何、最后聚合与逻辑），首次调用组装一次
+         *          之后只读，因此可以在多个线程上并发取用。宿主自己登记的自定义函数不在这里，
+         *          那一份走 `FunctionRegistry::names()`——两边合起来才是宿主界面该列的全集。
+         * @return 内置函数目录
+         */
+        [[nodiscard]] static const std::vector<BuiltInInfo> &builtInFunctions();
+
+        /**
+         * @brief 判断某个函数名接受这个实参个数吗
+         * @details 判据借解析期实际使用的那套规则，宿主不必自己抄一份参数个数表——抄出来的那份
+         *          迟早与引擎漂移，而漂移的表现是界面允许用户写出解析器拒绝的调用。
+         * @param name 函数名，全小写；不认识时为 false
+         * @param argumentCount 实参个数
+         * @return 该函数允许这个实参个数时为 true
+         */
+        [[nodiscard]] static bool acceptsArgumentCount(std::string_view name, std::size_t argumentCount);
+
+        /**
          * @brief 节点种类名
          * @details 重写 UnitExpression::nodeName()：固定返回 "Function"。
          * @return "Function"

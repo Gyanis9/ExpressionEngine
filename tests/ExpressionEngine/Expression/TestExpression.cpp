@@ -3,6 +3,7 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <memory>
 #include <numbers>
 #include <stdexcept>
@@ -1167,5 +1168,80 @@ namespace ExpressionEngine::Expression
             EXPECT_EQ(plainFailed.error().kind, Base::ErrorKind::Value);
             EXPECT_THROW(static_cast<void>(plainNode->evaluate()), Base::ValueError);
         }
+        /**
+         * @brief 钉住：内置函数目录能被宿主直接列出，且每个名字都真的可解析
+         * @details 界面列出的函数必须是解析器认识的函数；两边各存一份表迟早漂移，所以逐项往返查。
+         *          别名各占一条（tuple 与 list 是同一种类的两种写法），聚合函数在目录里标出来供分组。
+         */
+        TEST(ExpressionTest, BuiltInFunctionCatalogRoundTrips)
+        {
+            const auto &catalog = FunctionExpression::builtInFunctions();
+            EXPECT_FALSE(catalog.empty());
+            // 条目数与 README 宣称的内置函数个数同数：新增函数忘了进表（或表里多写一条）就在这里红
+            EXPECT_EQ(catalog.size(), 78U);
+            for (const std::string_view required: {"abs", "sqrt", "sum", "upper", "vector", "matrix", "rotation", "list", "tuple", "str"})
+            {
+                EXPECT_NE(std::ranges::find(catalog, required, &FunctionExpression::BuiltInInfo::name), catalog.end()) << required;
+            }
+
+            for (const auto &entry: catalog)
+            {
+                EXPECT_FALSE(entry.name.empty()) << "目录里有空名字";
+                EXPECT_NE(FunctionExpression::functionFromName(entry.name), FunctionExpression::Function::None) << entry.name;
+                EXPECT_EQ(std::ranges::count(catalog, entry.name, &FunctionExpression::BuiltInInfo::name), 1) << "目录里有重名：" << entry.name;
+            }
+
+            const auto aggregateOf = [&catalog](const std::string_view name)
+            {
+                const auto found = std::ranges::find_if(catalog, [name](const FunctionExpression::BuiltInInfo &info) { return info.name == name; });
+                return found != catalog.end() && found->isAggregate;
+            };
+            EXPECT_TRUE(aggregateOf("sum"));
+            EXPECT_TRUE(aggregateOf("average"));
+            EXPECT_TRUE(aggregateOf("min"));
+            EXPECT_FALSE(aggregateOf("sqrt"));
+            EXPECT_FALSE(aggregateOf("upper"));
+
+            // 别名各占一条，且都指到同一个函数种类
+            EXPECT_NE(FunctionExpression::functionFromName("tuple"), FunctionExpression::Function::None);
+            EXPECT_EQ(FunctionExpression::functionFromName("tuple"), FunctionExpression::functionFromName("list"));
+        }
+
+        /**
+         * @brief 钉住：参数个数的查询与节点构造用的是同一套规则
+         * @details 宿主拿这个查询做输入提示；它与解析期规则不一致时，界面会放行一条必定报错的调用。
+         *          判据仍来自解析期那套规则，这里把「不许另立第二份」写成用例；文本侧的同进同退由
+         *          TestExpressionParser.cpp 的 QueryMatchesParsing 钉住。
+         */
+        TEST(ExpressionTest, ArgumentCountQueryMatchesEngineRules)
+        {
+            for (const auto &entry: FunctionExpression::builtInFunctions())
+            {
+                for (std::size_t count = 0; count <= 4; ++count)
+                {
+                    std::vector<ExpressionPtr> arguments;
+                    arguments.reserve(count);
+                    for (std::size_t index = 0; index < count; ++index)
+                    {
+                        arguments.push_back(number(1.0));
+                    }
+
+                    bool accepted = true;
+                    try
+                    {
+                        const ExpressionPtr probe = std::make_unique<FunctionExpression>(nullptr, FunctionExpression::functionFromName(entry.name), std::string(entry.name), std::move(arguments));
+                        EXPECT_NE(probe, nullptr);
+                    } catch (const EvaluationError &)
+                    {
+                        accepted = false;
+                    }
+                    EXPECT_EQ(FunctionExpression::acceptsArgumentCount(entry.name, count), accepted) << entry.name << " 收 " << count << " 个实参";
+                }
+            }
+
+            // 名字不认识时只回答「不收」，不抛
+            EXPECT_FALSE(FunctionExpression::acceptsArgumentCount("nosuchfunction", 1));
+        }
+
     } // namespace
 } // namespace ExpressionEngine::Expression

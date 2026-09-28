@@ -3097,17 +3097,23 @@ namespace ExpressionEngine::Expression
         return "?";
     }
 
-    FunctionExpression::Function FunctionExpression::functionFromName(std::string_view name)
+    namespace
     {
         using Function = FunctionExpression::Function;
-        struct Entry
+
+        /// 内置函数的一条名字表项
+        struct BuiltInNameEntry
         {
-            std::string_view name;     ///< 函数名
-            Function         function; ///< 函数种类
+            std::string_view             name;     ///< 表达式里的写法，全小写
+            FunctionExpression::Function function; ///< 函数种类
         };
 
-        // 全部小写，供解析器直接查表
-        static constexpr auto entries = std::to_array<Entry>({
+        /**
+     * @brief 内置函数名表
+     * @details 解析器按名字查表、宿主列目录都读这一份：两处各存一份迟早会漂移，
+     *          而漂移的表现是「界面里能选到的函数解析器不认识」。
+     */
+        constexpr auto builtInNameEntries = std::to_array<BuiltInNameEntry>({
                 {.name = "abs", .function = Function::Absolute},
                 {.name = "acos", .function = Function::ArcCosine},
                 {.name = "asin", .function = Function::ArcSine},
@@ -3188,7 +3194,11 @@ namespace ExpressionEngine::Expression
                 {.name = "or", .function = Function::LogicalOr},
         });
 
-        for (const auto &entry: entries)
+    } // namespace
+
+    FunctionExpression::Function FunctionExpression::functionFromName(std::string_view name)
+    {
+        for (const auto &entry: builtInNameEntries)
         {
             if (entry.name == name)
             {
@@ -3196,6 +3206,42 @@ namespace ExpressionEngine::Expression
             }
         }
         return Function::None;
+    }
+    const std::vector<FunctionExpression::BuiltInInfo> &FunctionExpression::builtInFunctions()
+    {
+        // 只在首次调用时组装一次，之后只读；多线程同时读安全
+        static const std::vector<BuiltInInfo> catalog = []
+        {
+            std::vector<BuiltInInfo> collected;
+            collected.reserve(builtInNameEntries.size());
+            for (const auto &entry: builtInNameEntries)
+            {
+                collected.push_back(BuiltInInfo{.name = entry.name, .isAggregate = isAggregate(entry.function)});
+            }
+            return collected;
+        }();
+
+        return catalog;
+    }
+
+    bool FunctionExpression::acceptsArgumentCount(const std::string_view name, const std::size_t argumentCount)
+    {
+        const Function function = functionFromName(name);
+        if (function == Function::None)
+        {
+            return false;
+        }
+
+        // 判据直接借解析期那套规则，不另立第二份：宿主问「这个函数收几个参数」与
+        // 真去解析一条调用，两者必须同进同退
+        try
+        {
+            validateFunctionCall(function, argumentCount, name);
+            return true;
+        } catch (const EvaluationError &)
+        {
+            return false;
+        }
     }
 
     void FunctionExpression::appendText(std::string &text, const bool persistent, int) const

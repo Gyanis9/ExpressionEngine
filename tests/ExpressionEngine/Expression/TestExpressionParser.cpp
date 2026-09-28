@@ -885,5 +885,49 @@ namespace ExpressionEngine::Expression
             EXPECT_DOUBLE_EQ(quantityOf("1 / 1e308").getValue(), 1e-308);
             EXPECT_DOUBLE_EQ(quantityOf("2^1023").getValue(), std::pow(2.0, 1023.0));
         }
+        /**
+         * @brief 钉住：函数目录与参数个数查询，与「这条文本能不能用」同进同退
+         * @details 宿主界面按这两个 API 提示用户；只要它们与解析期规则有一毫米的偏差，界面就会
+         *          放行一条必定报错的调用，或拒绝一条本来合法的写法。
+         */
+        TEST(ExpressionParserTest, CatalogQueryMatchesParsing)
+        {
+            for (const auto &entry: FunctionExpression::builtInFunctions())
+            {
+                // 目录里的每个函数，都存在一个能让它解析成功的实参个数
+                std::size_t usable = 0;
+                for (const std::size_t candidate: {1U, 2U, 3U, 4U})
+                {
+                    if (FunctionExpression::acceptsArgumentCount(entry.name, candidate))
+                    {
+                        usable = candidate;
+                        break;
+                    }
+                }
+                ASSERT_NE(usable, 0U) << entry.name;
+
+                std::string text(entry.name);
+                text += '(';
+                for (std::size_t index = 0; index < usable; ++index)
+                {
+                    if (index != 0)
+                    {
+                        text += "; ";
+                    }
+                    text += "1";
+                }
+                text += ')';
+                const auto parsed = ExpressionParser::tryParse(nullptr, text);
+                EXPECT_TRUE(parsed.has_value()) << text << " 的文案：" << parsed.error().message;
+            }
+
+            EXPECT_TRUE(ExpressionParser::tryParse(nullptr, "sqrt(4)").has_value());
+            EXPECT_FALSE(ExpressionParser::tryParse(nullptr, "sqrt(1; 2)").has_value());
+            EXPECT_TRUE(ExpressionParser::tryParse(nullptr, "sum(1, 2, 3, 4, 5)").has_value());
+            EXPECT_FALSE(ExpressionParser::tryParse(nullptr, "sum()").has_value());
+            EXPECT_FALSE(FunctionExpression::acceptsArgumentCount("sqrt", 2));
+            EXPECT_TRUE(FunctionExpression::acceptsArgumentCount("sum", 9));
+        }
+
     } // namespace
 } // namespace ExpressionEngine::Expression

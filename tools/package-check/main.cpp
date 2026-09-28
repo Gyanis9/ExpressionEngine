@@ -35,6 +35,7 @@ namespace
     using ExpressionEngine::Expression::ExpressionParser;
     using ExpressionEngine::Expression::ExpressionPtr;
     using ExpressionEngine::Expression::FunctionCall;
+    using ExpressionEngine::Expression::FunctionExpression;
     using ExpressionEngine::Expression::FunctionRegistry;
     using ExpressionEngine::Expression::IObjectResolver;
     using ExpressionEngine::Expression::Value;
@@ -148,6 +149,12 @@ namespace
 
         const auto finiteStillWorks = ExpressionParser::parse(nullptr, "1e308")->tryEvaluate();
         check(finiteStillWorks.has_value(), "大但有限的取值照常可用");
+
+        // 函数目录与参数个数查询是公开面：宿主做自动补全不必自己抄一份表
+        const auto &catalog = FunctionExpression::builtInFunctions();
+        check(catalog.size() == 78 && FunctionExpression::functionFromName(catalog.front().name) != FunctionExpression::Function::None, "装出来的包能列内置函数目录");
+        check(FunctionExpression::acceptsArgumentCount("sqrt", 1) && !FunctionExpression::acceptsArgumentCount("sqrt", 2), "参数个数查询与解析期同判据");
+        check(!FunctionExpression::acceptsArgumentCount("nosuchfunction", 1), "不认识的函数名只回答不收");
 
         // 超深的运算链在构造期就报可读的错，宿主不会被一次无法捕获的栈溢出带走
         std::string longChain = "1";

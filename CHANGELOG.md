@@ -20,6 +20,12 @@
   sanitizer 构建补上 `-fno-sanitize-recover=all`：UBSan 默认只打印诊断并继续执行，那样门禁永远
   全绿；现在未定义行为直接中止进程。
 
+- **内置函数目录可查**：`FunctionExpression::builtInFunctions()` 列出 78 个写法（别名各占一条）并标出
+  哪些是聚合函数，`FunctionExpression::acceptsArgumentCount(名字, 个数)` 回答「这个函数收几个参数」——
+  判据直接借解析期那套规则，不另立一份参数表，因为抄出来的那份迟早与引擎漂移，而漂移的表现是界面
+  放行一条必定报错的调用。名字表从解析函数里搬到一处共用，查表与列目录读同一份。宿主自己登记的函数
+  仍走 `FunctionRegistry::names()`，两份合起来才是界面该列的全集。
+
 - **样式门**：`.clang-format` 从「作者本地的偏好」变成有判据的规范——新增 `tools/format-check.sh`，
   CI 的 `style` 作业跑的是同一条脚本，工具版本钉死 clang-format 23.1.1（不同大版本会把同一份文件
   排成两种形状，不钉版本这道门会在某天全体变红）。配置补上四项关键设置：`ReflowComments: false`
