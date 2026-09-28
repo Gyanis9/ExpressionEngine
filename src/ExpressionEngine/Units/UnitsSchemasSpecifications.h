@@ -21,13 +21,15 @@ namespace ExpressionEngine::Units
      * @details 适用规则：在一组候选里取第一个「阈值大于待换算值」的条目；阈值为 0 表示兜底条目；
      *          换算因子为 0 表示 unitString 里写的是要调用的特殊函数名而不是单位串，此时内置登记表
      *          （toDMS、toFractional）优先，未登记的名字转向本条目的 callback。
+     *          callback 的默认值写在成员上，因此数据表可以按「只填用到的列」的形态书写而不触发
+     *          GNU 系的缺初始化诊断；unitString 刻意不给默认值，漏写必填列仍然会被编译器拦住。
      */
     struct UnitTranslationSpecification
     {
         double                             threshold{1}; ///< 适用阈值
         std::string                        unitString;   ///< 目标单位串，或特殊函数名
         double                             factor{1};    ///< 从基准单位到该单位的换算因子
-        std::function<std::string(double)> callback;     ///< 特殊函数名未登记时的自定义排版：入参是基准值，返回整段文本
+        std::function<std::string(double)> callback{};   ///< 特殊函数名未登记时的自定义排版：入参是基准值，返回整段文本
     };
 
     /**
@@ -44,7 +46,7 @@ namespace ExpressionEngine::Units
         const char *description{nullptr};     ///< 方案描述
         bool        isDefault{false};         ///< 是否为默认方案
 
-        std::map<std::string, std::vector<UnitTranslationSpecification>> translationSpecifications; ///< 按单位类型名索引的换算规则集合
+        std::map<std::string, std::vector<UnitTranslationSpecification>> translationSpecifications{}; ///< 按单位类型名索引的换算规则集合
     };
 
     /**

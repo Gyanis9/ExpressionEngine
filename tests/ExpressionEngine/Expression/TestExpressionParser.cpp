@@ -215,7 +215,7 @@ namespace ExpressionEngine::Expression
          */
         TEST(ExpressionParserTest, RoundTripThroughText)
         {
-            for (const std::string &text: {"1 + 2*3", "(1+2)*3", "2 mm", "1/2 mm", "sin(0.5)"})
+            for (const std::string text: {"1 + 2*3", "(1+2)*3", "2 mm", "1/2 mm", "sin(0.5)"})
             {
                 SCOPED_TRACE(text);
                 ExpressionPtr first;
@@ -254,7 +254,7 @@ namespace ExpressionEngine::Expression
          */
         TEST(ExpressionParserTest, TextValueRoundTripsThroughPersistentText)
         {
-            for (const std::string &text: {"", "abc", "a'b", "a\"b", "a>b", "a>>b", "a#b", "a\\b", "<<x>>", "中文 1.5", "a\nb"})
+            for (const std::string text: {"", "abc", "a'b", "a\"b", "a>b", "a>>b", "a#b", "a\\b", "<<x>>", "中文 1.5", "a\nb"})
             {
                 SCOPED_TRACE(text);
                 // 从 AST 侧出发：文本节点的持久化写法必须能被词法器读回同一个值
@@ -340,7 +340,7 @@ namespace ExpressionEngine::Expression
          */
         TEST(ExpressionParserTest, ParseFailureCarriesLocatedColumn)
         {
-            for (const std::string &text: {"1 +", "2 *", "abs(1", "(1 + 2", "1 2", "1 > 0 ? 2", "1 zzz"})
+            for (const std::string text: {"1 +", "2 *", "abs(1", "(1 + 2", "1 2", "1 > 0 ? 2", "1 zzz"})
             {
                 const auto failed = ExpressionParser::tryParse(nullptr, text);
                 ASSERT_FALSE(failed.has_value()) << text;
@@ -427,7 +427,7 @@ namespace ExpressionEngine::Expression
          */
         TEST(ExpressionParserTest, ListTextRoundTrips)
         {
-            for (const std::string &text: {"list()", "list(1; 2 mm)", "list(1; list(2; 3))", "sum(list(1; 2)[0:1])"})
+            for (const std::string text: {"list()", "list(1; 2 mm)", "list(1; list(2; 3))", "sum(list(1; 2)[0:1])"})
             {
                 SCOPED_TRACE(text);
                 const ExpressionPtr first   = ExpressionParser::parse(nullptr, text);
@@ -468,7 +468,7 @@ namespace ExpressionEngine::Expression
         TEST(ExpressionParserTest, FoldedConstantKeepsItsUnit)
         {
             // 单量纲、复合量纲与角度量各一条：折成常量后文本必须带着量纲
-            for (const std::string &text: {"2 m + 3 m", "(2 m) / (4 s)", "(3 mm) * (4 mm)", "90 deg + 90 deg"})
+            for (const std::string text: {"2 m + 3 m", "(2 m) / (4 s)", "(3 mm) * (4 mm)", "90 deg + 90 deg"})
             {
                 SCOPED_TRACE(text);
                 const ExpressionPtr folded  = ExpressionParser::parse(nullptr, text)->simplify();
@@ -487,7 +487,7 @@ namespace ExpressionEngine::Expression
          */
         TEST(ExpressionParserTest, GeometryAndListTextRoundTrip)
         {
-            for (const std::string &text: {"vector(1; 2; 3)", "matrix(1; 0; 0; 0; 0; 1; 0; 0; 0; 0; 1; 0; 0; 0; 0; 1)", "rotation(0; 0; 0.5)", "placement(vector(1; 2; 3); rotation(0; 0; 0.5))", "list(vector(1; 2; 3); 2 m; <<文本>>)"})
+            for (const std::string text: {"vector(1; 2; 3)", "matrix(1; 0; 0; 0; 0; 1; 0; 0; 0; 0; 1; 0; 0; 0; 0; 1)", "rotation(0; 0; 0.5)", "placement(vector(1; 2; 3); rotation(0; 0; 0.5))", "list(vector(1; 2; 3); 2 m; <<文本>>)"})
             {
                 SCOPED_TRACE(text);
                 const ExpressionPtr folded   = ExpressionParser::parse(nullptr, text)->simplify();
@@ -600,7 +600,7 @@ namespace ExpressionEngine::Expression
         TEST(ExpressionParserTest, UnitExpressionTextRoundTrips)
         {
             // 回写的文本再解析一次必须算出同一个量：单位后置、幂、英制两段与带括号的除法逐条覆盖
-            for (const std::string &text: {"2 mm", "1/2 mm", "2 m/s", "3 mm^2", "1/2 mm + 2 mm", "5' 6\"", "(2 m) / (4 s)", "3 mm * 4 mm", "2 * mm"})
+            for (const std::string text: {"2 mm", "1/2 mm", "2 m/s", "3 mm^2", "1/2 mm + 2 mm", "5' 6\"", "(2 m) / (4 s)", "3 mm * 4 mm", "2 * mm"})
             {
                 SCOPED_TRACE(text);
                 const ExpressionPtr first   = ExpressionParser::parse(nullptr, text);
@@ -861,7 +861,7 @@ namespace ExpressionEngine::Expression
          */
         TEST(ExpressionParserTest, NonFiniteResultsAreRejected)
         {
-            for (const std::string &text: {"sqrt(-1)", "log(-1)", "log(0)", "10^999", "1e308 * 1e308"})
+            for (const std::string text: {"sqrt(-1)", "log(-1)", "log(0)", "10^999", "1e308 * 1e308"})
             {
                 const auto parsed = ExpressionParser::tryParse(nullptr, text);
                 ASSERT_TRUE(parsed.has_value()) << text << " 的文案：" << parsed.error().message;

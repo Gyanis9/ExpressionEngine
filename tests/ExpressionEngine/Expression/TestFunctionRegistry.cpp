@@ -200,7 +200,7 @@ namespace ExpressionEngine::Expression
             EXPECT_FALSE(registry.registerFunction(makeSpec("odd", [](const FunctionCall &) { return Value{1.0}; }, 3, 2)).has_value());
             EXPECT_EQ(registry.size(), 0U);
 
-            for (const std::string &badName: {"", "1abc", "_private", "a b", "a@b", "a-b", "a+b", "a\u2212b"})
+            for (const std::string badName: {"", "1abc", "_private", "a b", "a@b", "a-b", "a+b", "a\u2212b"})
             {
                 SCOPED_TRACE(badName);
                 const auto failed = registry.registerFunction(makeSpec(badName, [](const FunctionCall &) { return Value{1.0}; }, 0));

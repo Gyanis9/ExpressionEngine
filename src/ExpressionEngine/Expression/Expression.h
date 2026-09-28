@@ -44,12 +44,14 @@ namespace ExpressionEngine::Expression
      *          Part.<<a.b>>）由 Expression 的分量机制作用在取值上，宿主也可以把带点的名字整体
      *          登记成一个属性名（Dictionary 就按 "Box.Length" 这样查子对象）。因此三格模型足以
      *          表达引擎需要交给宿主解析的一切，不需要更大的标识符类型。
+     *          可省略的两格把空值写在成员上，指定初始化器只填用到的格子就不会触发 GNU 系的
+     *          缺初始化诊断；propertyName 无默认值，漏填必填格仍然会被编译器拦住。
      */
     struct VariableReference
     {
-        std::string documentName; ///< 文档名；空表示不限定文档
-        std::string objectName;   ///< 对象名；空表示表达式所属的当前对象
-        std::string propertyName; ///< 属性名，必填
+        std::string documentName{}; ///< 文档名；空表示不限定文档
+        std::string objectName{};   ///< 对象名；空表示表达式所属的当前对象
+        std::string propertyName;   ///< 属性名，必填
 
         /**
          * @brief 判断两条引用是否指向同一格

@@ -284,7 +284,7 @@ namespace ExpressionEngine::Expression
          */
         TEST(ExpressionNodes, ReferenceTextRoundTrips)
         {
-            for (const std::string &text: {"Length", "Box.Length", "<<Part>>.Box.Length", "<<Sheet#A1>>"})
+            for (const std::string text: {"Length", "Box.Length", "<<Part>>.Box.Length", "<<Sheet#A1>>"})
             {
                 const ExpressionPtr node    = ExpressionParser::parse(nullptr, text);
                 const std::string   written = node->toString();
