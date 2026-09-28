@@ -36,6 +36,14 @@
   拒绝，报出区间原文与实际格数；上限是 `FunctionExpression::maxRangeCells`。残留的最坏代价是
   「表达式里的聚合调用数 × 这个上限」，输入文本长度仍由宿主自己把关。
 
+- **线程安全契约成文**：`Expression` 的类注释与 README 首次写清并发调用的边界——建好的树只读，
+  `evaluate()`/`tryEvaluate()`/`simplify()`/`toString()`/`copy()` 可对同一棵树并发调用；库内的进程级可变
+  状态只有 `FunctionRegistry::global()`（自带读写锁）与 `UnitsApi` 的当前方案与精度（运行期切换由宿主
+  加锁，这条约定原本就写在 `UnitsApi.h`）；宿主的 `IObjectResolver`/`IProperty` 由宿主保证安全。
+  `Range::next()` 前进的是可变游标，因此一份区间对象同一时刻只交给一个线程，这条补在 `Range.h`。
+  用例新增 8 个线程各 200 轮对同一棵树求值、化简、深拷贝与文本化的一致性断言，并在结束后断言树
+  仍是原来那棵树（只判取值，不判时序；MSVC 上没有 ThreadSanitizer，无竞争本身要靠线程检测器验）。
+
 ### 变更
 
 - **轴角反解的退化判定**：`Rotation` 内部缓存的轴角原先只看四元数的 w 是否恰好等于 ±1，

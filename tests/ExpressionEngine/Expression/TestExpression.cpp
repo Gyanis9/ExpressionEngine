@@ -9,6 +9,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <thread>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -838,6 +839,57 @@ namespace ExpressionEngine::Expression
                       std::string::npos)
                     << failed.error().message;
             EXPECT_THROW(static_cast<void>(overLimitSum->evaluate()), EvaluationError);
+        }
+
+        /**
+         * @brief 钉住：建好的树可以在多个线程上并发求值、化简、深拷贝与文本化
+         * @details 断言的是取值一致，不是时序：既不依赖调度，也不测性能。它的价值在于日后谁给节点
+         *          加了没上锁的惰性缓存，这里就会读到不一致的取值或崩在竞争上，而不是等宿主在生产
+         *          环境里发现。宿主侧的解析器在这里只被只读地重入，符合 Expression 的线程安全约定。
+         */
+        TEST(ExpressionTest, OneTreeServesConcurrentReaders)
+        {
+            FakeResolver resolver;
+            FakeObject  &sheet = resolver.addObject("Sheet", "Doc");
+            sheet.addProperty("Length", "Length", Value(Units::Quantity(4.0, Units::Unit::Length)));
+            sheet.addProperty("Width", "Length", Value(Units::Quantity(3.0, Units::Unit::Length)));
+            resolver.setCurrentObject(&sheet);
+
+            auto length = std::make_unique<VariableExpression>(
+                    &resolver, VariableExpression::Reference{.documentName = "", .objectName = "", .propertyName = "Length"});
+            auto width = std::make_unique<VariableExpression>(
+                    &resolver, VariableExpression::Reference{.documentName = "", .objectName = "", .propertyName = "Width"});
+            const ExpressionPtr tree = binary(Operator::Add, binary(Operator::Multiply, std::move(length), number(2.0)), std::move(width));
+
+            const double      expectedValue = quantityOf(tree->evaluate()).getValue();
+            const std::string expectedText  = tree->toString();
+            EXPECT_DOUBLE_EQ(expectedValue, 11.0);
+
+            constexpr int            workerCount = 8;
+            std::vector<std::thread> workers;
+            workers.reserve(static_cast<std::size_t>(workerCount));
+            for (int workerIndex = 0; workerIndex < workerCount; ++workerIndex)
+            {
+                workers.emplace_back(
+                        [&tree, expectedValue, &expectedText]
+                        {
+                            for (int round = 0; round < 200; ++round)
+                            {
+                                EXPECT_DOUBLE_EQ(quantityOf(tree->evaluate()).getValue(), expectedValue);
+                                EXPECT_DOUBLE_EQ(quantityOf(tree->simplify()->evaluate()).getValue(), expectedValue);
+                                EXPECT_DOUBLE_EQ(quantityOf(tree->copy()->evaluate()).getValue(), expectedValue);
+                                EXPECT_EQ(tree->toString(), expectedText);
+                            }
+                        });
+            }
+            for (std::thread &worker: workers)
+            {
+                worker.join();
+            }
+
+            // 并发用完之后树还是那棵树：求值这条路不写回节点，文本与取值都不该被谁动过
+            EXPECT_EQ(tree->toString(), expectedText);
+            EXPECT_DOUBLE_EQ(quantityOf(tree->evaluate()).getValue(), expectedValue);
         }
 
         /**

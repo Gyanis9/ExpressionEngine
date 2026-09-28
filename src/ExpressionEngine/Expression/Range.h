@@ -212,6 +212,8 @@ namespace ExpressionEngine::Expression
          * @brief 前进到下一个单元格
          * @details 遍历游标是内部状态，因此本方法为 const，
          *          使 const 区间也能参与 `do { … } while (range.next())` 的遍历写法。
+         *          同一个 Range 对象同一时刻只交给一个线程：游标可变，两个线程共用一份就会
+         *          互相跳过单元格。聚合函数每次取到的都是自己的区间副本，不受这条影响。
          * @return 还有下一个单元格时为 true；已遍历完成为 false
          */
         [[nodiscard]] bool next() const;

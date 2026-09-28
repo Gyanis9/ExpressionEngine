@@ -89,6 +89,12 @@ namespace ExpressionEngine::Expression
      *          IObjectResolver 解析，节点不持有对象树的所有权。分量由 evaluate() 统一作用在
      *          节点求出的取值上（引用节点因此是「先解析属性、再逐段取子值」），取值不支持
      *          某个分量时明确报错，不会静默忽略。
+     * @note 线程安全：建好的树只读，evaluate()、tryEvaluate()、simplify()、toString()、copy()
+     *       与 astDepth() 都不改动任何节点，同一棵树可以在多个线程上并发调用。库侧唯一的
+     *       进程级可变状态是 FunctionRegistry::global()（自带读写锁）与 UnitsApi 的当前方案/
+     *       精度（按 UnitsApi.h 的约定，运行期切换需宿主自己加锁）。宿主实现的
+     *       IObjectResolver 与 IProperty 由宿主保证线程安全：并发求值会在多个线程上重入
+     *       同一个实现。
      */
     class Expression
     {
