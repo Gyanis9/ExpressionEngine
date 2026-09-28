@@ -1,0 +1,87 @@
+# Linux CI：把 README 声称的「其它编译器用 -Wall -Wextra -Wpedantic」这条路真正跑起来。
+#
+# 为什么要单独一个作业：此前只有 MSVC 一侧被验证过，而 GCC 13 下本库其实**编不过**
+# （FunctionRegistry.cpp 用了 std::unique_lock 却没 include <mutex>，MSVC 传递包含掩盖了
+# 这一点），且自带告警集下有 1058 条诊断。文档写着支持、CI 里没有，就是假承诺。
+#
+# 矩阵两个编译器：GCC 与 Clang；Debug 档打开 ASan + UBSan。CMake 的非 MSVC 分支带
+# -fno-sanitize-recover=all，未定义行为会中止进程，ctest 才真的会红——不加它 UBSan 只打印
+# 诊断并继续执行，门禁永远全绿。
+#
+# 最后一步是安装到临时前缀后编译并运行 tools/package-check：导出头与安装规则的跨平台接线
+# 只有在装出来的包上才看得见（/utf-8 只在 MSVC 分支加，Linux 侧靠编译器默认 UTF-8 源码）。
+
+name: Linux CI
+
+on:
+  # 与 windows-ci.yml 同一套触发策略：免费分钟数有限，日常在 develop 上，合进 main 才跑。
+  push:
+    branches: [ main ]
+    paths-ignore:
+      - '**.md'
+      - 'LICENSE'
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [ gcc, clang ]
+
+    env:
+      # Conan 的包缓存搬进工作区，便于下面的 actions/cache 缓存它
+      CONAN_HOME: ${{ github.workspace }}/.conan2
+      # conan profile detect 认这两个变量，选出的 profile 与矩阵项一致
+      CC: ${{ matrix.compiler == 'gcc' && 'gcc' || 'clang' }}
+      CXX: ${{ matrix.compiler == 'gcc' && 'g++' || 'clang++' }}
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: 缓存 Conan 依赖
+        uses: actions/cache@v6
+        with:
+          path: ${{ env.CONAN_HOME }}
+          key: conan-${{ matrix.compiler }}-${{ hashFiles('conandata.yml', 'conanfile.py') }}
+
+      # 镜像里的系统 Python 受 PEP 668 保护，直接 pip install 会被拒；建 venv 再装。
+      - name: 安装 Conan
+        run: |
+          python3 -m venv "${RUNNER_TEMP}/conan-venv"
+          "${RUNNER_TEMP}/conan-venv/bin/pip" install --upgrade "conan>=2.25"
+          echo "${RUNNER_TEMP}/conan-venv/bin" >> "$GITHUB_PATH"
+
+      - name: 探测 Conan profile
+        run: conan profile detect --force
+
+      # gtest 由 conan_provider.cmake 在配置阶段按需构建（Linux 上没有可复用的预编译包）
+      - name: 配置（Debug + AddressSanitizer/UndefinedBehaviorSanitizer）
+        run: cmake --preset debug -DENABLE_SANITIZERS=ON
+
+      # 零告警判据由构建期开关兜住：EXPRESSIONENGINE_WARNINGS_AS_ERRORS 默认 ON，
+      # GNU 系下等价 -Werror、MSVC 下等价 /WX，这一步有告警就红。换编译器小版本带来
+      # 新的第三方告警时可以显式关掉它，但要在提交说明里写清为什么。
+      - name: 构建
+        run: cmake --build build/debug
+
+      - name: 全量用例
+        run: ctest --test-dir build/debug --output-on-failure --parallel
+
+      - name: 失败时上传用例日志
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ctest-logs-${{ matrix.compiler }}
+          path: build/debug/Testing/Temporary/LastTest.log
+          if-no-files-found: ignore
+
+      - name: 安装并运行包消费者
+        run: |
+          cmake --install build/debug --prefix "${RUNNER_TEMP}/ee-install"
+          cmake -S tools/package-check -B tools/package-check/build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH="${RUNNER_TEMP}/ee-install"
+          cmake --build tools/package-check/build
+          ./tools/package-check/build/consumerCheck
