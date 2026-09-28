@@ -19,6 +19,18 @@ else()
     target_compile_options(ExpressionEngineWarnings INTERFACE -Wall -Wextra -Wpedantic)
 endif()
 
+# 判据要能机检：默认把上面这组开关下的告警直接变成错误，CI 与本地构建都拦得住。
+# 关掉它是给自己留后门，只在换编译器小版本、出现无法自证的第三方新告警时临时使用。
+option(EXPRESSIONENGINE_WARNINGS_AS_ERRORS "把告警当作错误" ON)
+
+if(EXPRESSIONENGINE_WARNINGS_AS_ERRORS)
+    if(MSVC)
+        target_compile_options(ExpressionEngineWarnings INTERFACE /WX)
+    else()
+        target_compile_options(ExpressionEngineWarnings INTERFACE -Werror)
+    endif()
+endif()
+
 # ---------------------------------------------------------------------------
 # 内存与未定义行为检测（CI 与需要插桩的构建用它）
 # ---------------------------------------------------------------------------
@@ -43,10 +55,12 @@ if(ENABLE_SANITIZERS)
 
         message(STATUS "Sanitizers: 已启用 AddressSanitizer（MSVC 无 UBSan；因 gtest 未插桩而关闭容器注解）")
     else()
-        # -fno-omit-frame-pointer：栈回溯才有意义，否则报告里的调用栈会缺帧
-        add_compile_options(-fsanitize=address,undefined -fno-omit-frame-pointer)
+        # -fno-omit-frame-pointer：栈回溯才有意义，否则报告里的调用栈会缺帧。
+        # -fno-sanitize-recover=all：UBSan 默认只打印诊断然后继续执行，那样门禁永远全绿；
+        # 加上它，未定义行为直接中止进程，ctest 才会真的红。
+        add_compile_options(-fsanitize=address,undefined -fno-omit-frame-pointer -fno-sanitize-recover=all)
         add_link_options(-fsanitize=address,undefined)
-        message(STATUS "Sanitizers: 已启用 AddressSanitizer + UndefinedBehaviorSanitizer")
+        message(STATUS "Sanitizers: 已启用 AddressSanitizer + UndefinedBehaviorSanitizer（不可恢复，命中即失败）")
     endif()
 endif()
 

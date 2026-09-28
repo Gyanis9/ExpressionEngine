@@ -15,6 +15,14 @@
   乘除改成可自证边界的下标循环，内置单位表按数据表形态关闭 `-Wmissing-field-initializers`，
   在自带告警集（`-Wall -Wextra -Wpedantic`）下从 1058 条诊断做到零告警（GCC 13.3、Clang 22.1 实测）。
 
+- **告警与 sanitizer 判据可机检**：新增构建开关 `EXPRESSIONENGINE_WARNINGS_AS_ERRORS`（默认 ON），
+  MSVC 下等价 `/WX`、GNU 系下等价 `-Werror`，库与测试同用一组告警开关，有告警就构建失败。
+  sanitizer 构建补上 `-fno-sanitize-recover=all`：UBSan 默认只打印诊断并继续执行，那样门禁永远
+  全绿；现在未定义行为直接中止进程。
+
+- **Linux 构建矩阵**：新增 `linux-ci.yml`，在 GCC 与 Clang 下各跑一遍构建 + 全量用例（Debug 档
+  开 ASan 与 UBSan），并同样跑一遍安装包的仓库外消费者。
+
 ### 变更
 
 - **轴角反解的退化判定**：`Rotation` 内部缓存的轴角原先只看四元数的 w 是否恰好等于 ±1，
