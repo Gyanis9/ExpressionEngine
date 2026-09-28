@@ -9,7 +9,8 @@
 #   cmake --install build/debug --prefix <前缀>
 #   cmake -S tools/package-check -B tools/package-check/build -DCMAKE_PREFIX_PATH=<前缀>
 #   cmake --build tools/package-check/build && tools/package-check/build/consumerCheck.exe
-# 退出码为 0 且末行打印 failed=0 才算过。
+# 退出码为 0 且末行打印 failed=0 才算过。整条链路（克隆->构建->用例->安装->消费者）
+# 已由同目录的 run-gate.sh 包起来，日常验收入口是：bash tools/package-check/run-gate.sh
 
 cmake_minimum_required(VERSION 3.28)
 
