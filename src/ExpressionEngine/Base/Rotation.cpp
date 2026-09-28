@@ -1,5 +1,6 @@
 #include <ExpressionEngine/Base/Rotation.h>
 
+#include <algorithm>
 #include <array>
 #include <cassert>
 #include <format>
@@ -259,29 +260,43 @@ namespace ExpressionEngine::Base
 
     void Rotation::evaluateVector()
     {
-        // 四元数可写成 q = (sin(θ/2)·n, cos(θ/2))，|w| 恰好为 1 表示没有旋转
-        // 注意 w 不允许等于 ±1，那种情形下轴角无定义，走下面的兜底分支
-        if ((m_quaternion[3] > -1.0) && (m_quaternion[3] < 1.0))
-        {
-            const double rotationAngle = std::acos(m_quaternion[3]) * 2.0;
-            const double scale         = std::sin(rotationAngle / 2.0);
-            // 轴长可能来自用户传入的非单位轴向，先取回其长度，零长按 1 处理以免除零
-            double       length        = m_axis.length();
-            if (length < Vector3d::epsilon())
-            {
-                length = 1.0;
-            }
-            m_axis.x = m_quaternion[0] * length / scale;
-            m_axis.y = m_quaternion[1] * length / scale;
-            m_axis.z = m_quaternion[2] * length / scale;
+        // 四元数可写成 q = (sin(θ/2)·n, cos(θ/2))：向量部分的长度就是 |sin(θ/2)|。
+        // 判「无旋转」用这个长度而不是 w 是否恰好为 ±1——w 在 1 附近精度已经耗尽，
+        // 只靠它兜底会让向量部分接近零的情形走进除以 sin(θ/2) 的分支，把轴算成噪声。
+        const double vectorLength = std::sqrt(m_quaternion[0] * m_quaternion[0] + m_quaternion[1] * m_quaternion[1] +
+                                              m_quaternion[2] * m_quaternion[2]);
 
-            m_angle = rotationAngle;
-        } else
+        if (vectorLength <= NoRotationThreshold)
         {
-            // |w| == 1：旋转角为 0，轴角退回 Z 轴 + 0 度
-            m_axis.set(0.0, 0.0, 1.0);
-            m_angle = 0.0;
+            if (m_quaternion[3] == 0.0)
+            {
+                // 零四元数没有可信方向：轴留零向量，不伪造轴向，调用方先查 isNull()
+                m_axis.set(0.0, 0.0, 0.0);
+                m_angle = std::numbers::pi;
+            } else
+            {
+                // 真实四元数而向量部分为零：旋转角为 0，轴任取，约定退回 Z 轴
+                m_axis.set(0.0, 0.0, 1.0);
+                m_angle = 0.0;
+            }
+
+            return;
         }
+
+        // 向量部分长度已排除 |w| == 1 的退化情形，clamp 只是给未归一化的调用者兜底
+        const double rotationAngle = std::acos(std::clamp(m_quaternion[3], -1.0, 1.0)) * 2.0;
+        // 轴长可能来自用户传入的非单位轴向，先取回其长度，零长按 1 处理以免除零
+        double       length        = m_axis.length();
+        if (length < Vector3d::epsilon())
+        {
+            length = 1.0;
+        }
+        // 直接除以向量部分长度：它与 sin(θ/2) 是同一个量，却不经 acos/sin 往返，不丢精度
+        m_axis.x = m_quaternion[0] * length / vectorLength;
+        m_axis.y = m_quaternion[1] * length / vectorLength;
+        m_axis.z = m_quaternion[2] * length / vectorLength;
+
+        m_angle = rotationAngle;
     }
 
     void Rotation::setValue(const double q0, const double q1, const double q2, const double q3)
