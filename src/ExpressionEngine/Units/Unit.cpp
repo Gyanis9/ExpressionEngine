@@ -137,12 +137,13 @@ namespace ExpressionEngine::Units
 
     Unit Unit::operator*(const Unit &other) const
     {
+        // 逐位相加而非 ranges::transform：指数上界是 ±8，两数之和不会回绕，
+        // 但写死下标循环能让编译器自己证明写入没有越出数组，静态分析不再报假警
         UnitExponents result{};
-        std::ranges::transform(m_exponents, other.m_exponents, result.begin(),
-                               [](const auto leftExponent, const auto rightExponent)
-                               {
-                                   return static_cast<std::int8_t>(leftExponent + rightExponent);
-                               });
+        for (std::size_t index = 0; index < result.size(); ++index)
+        {
+            result[index] = static_cast<std::int8_t>(m_exponents[index] + other.m_exponents[index]);
+        }
 
         // 结果构造时校验指数范围，乘法溢出一律报错而非截断
         return Unit{result};
@@ -151,11 +152,10 @@ namespace ExpressionEngine::Units
     Unit Unit::operator/(const Unit &other) const
     {
         UnitExponents result{};
-        std::ranges::transform(m_exponents, other.m_exponents, result.begin(),
-                               [](const auto leftExponent, const auto rightExponent)
-                               {
-                                   return static_cast<std::int8_t>(leftExponent - rightExponent);
-                               });
+        for (std::size_t index = 0; index < result.size(); ++index)
+        {
+            result[index] = static_cast<std::int8_t>(m_exponents[index] - other.m_exponents[index]);
+        }
 
         return Unit{result};
     }

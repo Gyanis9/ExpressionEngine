@@ -687,8 +687,6 @@ namespace ExpressionEngine::Units
 
             void expect(TokenKind kind, std::string_view description);
 
-            void expectEnd();
-
             QuantityLexer m_lexer;     ///< 词法分析器
             Token         m_current;   ///< 当前记号
             Token         m_lookahead; ///< 下一记号，用于区分 "1/mm" 与 "1/2"
@@ -741,14 +739,6 @@ namespace ExpressionEngine::Units
                 throw Base::ParserError(std::format("数量文本第 {} 个字符处缺少{}，请补上后重试", m_current.offset + 1, description));
             }
             advance();
-        }
-
-        void QuantityParserImplementation::expectEnd()
-        {
-            if (m_current.kind != TokenKind::End)
-            {
-                throw Base::ParserError(std::format("数量文本第 {} 个字符处出现多余内容，请检查表达式是否完整", m_current.offset + 1));
-            }
         }
 
         Quantity QuantityParserImplementation::parseInput()

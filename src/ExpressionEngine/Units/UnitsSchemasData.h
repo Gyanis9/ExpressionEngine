@@ -42,6 +42,12 @@ namespace ExpressionEngine::Units::UnitsSchemasData
 
     // NOLINTBEGIN
 // clang-format off
+// 表里每条换算刻意只写「阈值 / 单位串 / 因子」三项，第四项 callback 一律留空由实现兜底：
+// 这是数据表的写法而非漏写初始化，故在 GNU 系编译器上关闭该诊断（MSVC 不报此项）。
+#if defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
+#endif
 /// 编号 6 方案 MmMin：毫米与毫米每分钟，CNC 小件与公制小尺寸用
 inline const UnitsSchemaSpecification mmMinSchema
 { 6, "MmMin", "mm" , false, false , QT_TRANSLATE_NOOP("UnitsApi", "Metric small parts & CNC (mm, mm/min)"), false,
@@ -696,6 +702,9 @@ inline const UnitsSchemaSpecification imperialCivilSchema
 };
 
     // clang-format on
+#if defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
     // NOLINTEND
     /// 内置方案列表：按编号排列，供 UnitsSchemas 按序号或名字查找
     inline const std::vector schemaSpecifications{internalSchema, mksSchema, centimeterSchema, femSchema, imperialSchema,
