@@ -2,6 +2,7 @@
 // 库自己的用例跑在源码树内，看不见「导出头没随包发布」「安装规则漏了目录」这类接线缺陷；
 // 中文注释的导出头还会让不带 /utf-8 的 MSVC 消费者直接编译失败。本目录就是那道门。
 
+#include <cstddef>
 #include <exception>
 #include <iostream>
 #include <optional>
@@ -29,6 +30,7 @@ namespace
     using ExpressionEngine::Base::ValueError;
     using ExpressionEngine::Expression::CustomFunctionSpec;
     using ExpressionEngine::Expression::Dictionary;
+    using ExpressionEngine::Expression::Expression;
     using ExpressionEngine::Expression::ExpressionParser;
     using ExpressionEngine::Expression::ExpressionPtr;
     using ExpressionEngine::Expression::FunctionCall;
@@ -110,6 +112,27 @@ namespace
         }
 
         check(!ExpressionParser::tryParse(nullptr, "1 +").has_value(), "坏文本走非异常通道报错");
+
+        // 超深的运算链在构造期就报可读的错，宿主不会被一次无法捕获的栈溢出带走
+        std::string longChain = "1";
+        for (int term = 0; term < 5000; ++term)
+        {
+            longChain += " + 1";
+        }
+        const auto tooDeep = ExpressionParser::tryParse(nullptr, longChain);
+        check(!tooDeep.has_value() && tooDeep.error().message.find("层上限") != std::string::npos, "超深的运算链按树深上限拒绝");
+
+        // 深度上限是公开契约：上限内的链照常可用，报错文案给的出路（改用聚合实参）真的不叠层
+        std::string edgeChain = "1";
+        for (std::size_t term = 1; term < Expression::maxAstDepth; ++term)
+        {
+            edgeChain += " + 1";
+        }
+        const auto edge = ExpressionParser::tryParse(nullptr, edgeChain);
+        check(edge.has_value() && edge.value()->astDepth() == Expression::maxAstDepth - 1 && evaluate(edgeChain).has_value(), "上限内的运算链照常解析与求值");
+
+        const auto wide = ExpressionParser::tryParse(nullptr, "sum(1, 2, 3, 4, 5)");
+        check(wide.has_value() && wide.value()->astDepth() == 1, "聚合实参是兄弟节点，不叠树深");
 
         // 文本函数按 UTF-8 字符计，不做 Unicode 大小写映射（非 ASCII 字母原样留着）
         const auto folded = evaluate("upper(<<aB1>>)");

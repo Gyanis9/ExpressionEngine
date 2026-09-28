@@ -9,6 +9,7 @@
 
 #pragma once
 
+#include <cstddef>
 #include <expected>
 #include <memory>
 #include <optional>
@@ -201,6 +202,21 @@ namespace ExpressionEngine::Expression
         static constexpr int s_defaultPriority = 20;
 
         /**
+         * @brief 表达式树深度上限
+         * @details 求值、化简、文本化、深拷贝与析构都是递归遍历，树深就是递归层数。实测在 1 MB
+         *          线程栈上：MSVC Debug 走到 250 层、Debug+AddressSanitizer 走到 200 层就把栈耗尽，
+         *          Release 则在 400~1000 层之间；栈溢出不可捕获，进程直接消失。取 64 让最紧张的
+         *          那档（带插桩的 Debug）也留下两倍以上的余量，宿主用小线程栈时同样够用，这个数
+         *          还与 Excel 的 64 层公式嵌套一致。
+         *          括号与函数的嵌套另有解析器限额（100 层）管着：它拦的是解析器自己的递归，而
+         *          「一长串左结合同类运算」是在同一层递归里循环拼出来的，只有本上限拦得住。
+         *          每个节点在接入子节点或分量时按深度记账，超过本上限就在构造当场报错——此时正在
+         *          拼装的那棵子树不超过上限，回滚途中的析构同样安全。更长的序列请改用聚合函数：
+         *          把 `a+b+c+…` 写成 `sum(a, b, c, …)`，实参是兄弟节点，再多也不叠层。
+         */
+        static constexpr std::size_t maxAstDepth{64};
+
+        /**
          * @brief 构造表达式节点
          * @param resolver 对象解析器，可为空；为空时引用型节点求值会明确报错
          */
@@ -217,6 +233,14 @@ namespace ExpressionEngine::Expression
          * @return 对象解析器；未绑定时为空
          */
         [[nodiscard]] IObjectResolver *resolver() const noexcept;
+
+        /**
+         * @brief 取本节点子树的深度
+         * @details 叶子节点为 0，父节点是「最深的子节点或分量内表达式再加一层」；
+         *          构造期记账，因此恒不超过 maxAstDepth。宿主可据此判断自己的表达式离上限还有多远。
+         * @return 子树深度
+         */
+        [[nodiscard]] std::size_t astDepth() const noexcept;
 
         /**
          * @brief 求值，并把本节点的分量逐段作用在求值结果上
@@ -293,6 +317,7 @@ namespace ExpressionEngine::Expression
         /**
          * @brief 追加一段分量
          * @param component 分量；名字相同的分量按路径顺序依次追加
+         * @throws Base::ParserError 分量里的子表达式使树深超过 maxAstDepth；此时分量不会被追加
          */
         void addComponent(Component component);
 
@@ -398,10 +423,37 @@ namespace ExpressionEngine::Expression
          */
         [[nodiscard]] ExpressionPtr carryComponents(ExpressionPtr rebuilt) const;
 
+        /**
+         * @brief 接入一个子节点前按深度记账
+         * @details 复合节点的构造函数收下实参、条件分支、操作数时都必须调用本方法，
+         *          否则宿主拼出的深树会把递归遍历带进栈溢出。子节点为空（一元运算符的
+         *          右操作数）时什么都不做。
+         * @param child 即将由本节点持有的子节点；可为空
+         * @throws Base::ParserError 记账后树深超过 maxAstDepth
+         */
+        void adoptChild(const Expression *child);
+
+        /**
+         * @brief 接入一段分量前按深度记账
+         * @details 分量里的下标、区间端点与步长都是会被子节点持有的表达式，取分量时
+         *          同样要递归求值，因此与 adoptChild() 走同一条上限。
+         * @param component 即将追加的分量
+         * @throws Base::ParserError 记账后树深超过 maxAstDepth
+         */
+        void adoptComponent(const Component &component);
+
     private:
+        /**
+         * @brief 把本节点深度抬到「某个子节点的深度再加一层」，并检查上限
+         * @param childDepth 子节点（或分量内表达式）的深度
+         * @throws Base::ParserError 超过 maxAstDepth；抛出时本节点深度保持不变
+         */
+        void raiseAstDepth(std::size_t childDepth);
+
         IObjectResolver *m_resolver;   ///< 对象解析器，不持所有权，可为空
         ComponentList    m_components; ///< 分量列表，由 evaluate() 统一作用在求值结果上
         std::string      m_comment;    ///< 注释
+        std::size_t      m_astDepth{}; ///< 子树深度，接入子节点与分量时记账，恒不超过 maxAstDepth
     };
 
     /**
@@ -683,6 +735,7 @@ namespace ExpressionEngine::Expression
          * @param left 左操作数；Negate 与 Positive 只用左操作数
          * @param operation 运算符
          * @param right 右操作数；一元运算符可为空
+         * @throws Base::ParserError 操作数使树深超过 maxAstDepth
          */
         explicit OperatorExpression(IObjectResolver *resolver = nullptr, ExpressionPtr left = nullptr, Operator operation = Operator::None, ExpressionPtr right = nullptr);
 
@@ -709,12 +762,16 @@ namespace ExpressionEngine::Expression
         /**
          * @brief 设置左操作数
          * @param expression 新左操作数
+         * @throws Base::ParserError 新操作数使树深超过 maxAstDepth；此时操作数保持原样
+         * @details 只应在本节点尚未被上层节点持有前调用：深度是自下而上记账的，接好之后
+         *          再换掉子树，上层的记录就偏小了。
          */
         void setLeft(ExpressionPtr expression);
 
         /**
          * @brief 设置右操作数
          * @param expression 新右操作数
+         * @throws Base::ParserError 新操作数使树深超过 maxAstDepth；此时操作数保持原样
          */
         void setRight(ExpressionPtr expression);
 
@@ -839,6 +896,7 @@ namespace ExpressionEngine::Expression
          * @param condition 条件表达式，按「非零为真」判定
          * @param trueExpression 条件为真时取值的分支
          * @param falseExpression 条件为假时取值的分支
+         * @throws Base::ParserError 分支使树深超过 maxAstDepth
          */
         explicit ConditionalExpression(IObjectResolver *resolver        = nullptr, ExpressionPtr condition = nullptr, ExpressionPtr trueExpression = nullptr,
                                        ExpressionPtr    falseExpression = nullptr);
@@ -1050,6 +1108,7 @@ namespace ExpressionEngine::Expression
          * @param arguments 实参，按值接收所有权
          * @throws EvaluationError 参数个数与该函数的要求不符
          * @throws Base::ParserError 函数是哨兵值，或函数需要宿主对象工厂
+         * @throws Base::ParserError 某个实参使树深超过 maxAstDepth
          */
         explicit FunctionExpression(IObjectResolver *          resolver  = nullptr, Function function = Function::None, std::string name = std::string(),
                                     std::vector<ExpressionPtr> arguments = std::vector<ExpressionPtr>());

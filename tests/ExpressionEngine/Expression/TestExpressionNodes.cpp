@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 
+#include <cstddef>
 #include <memory>
 #include <string>
 #include <vector>
@@ -345,6 +346,151 @@ namespace ExpressionEngine::Expression
             const auto reversed = std::make_unique<RangeExpression>(nullptr, "B2", "A1");
             EXPECT_EQ(reversed->toString(), "B2:A1");
             EXPECT_EQ(reversed->getRange().rangeText(), "A1:B2");
+        }
+
+        /// 造一段「1 + 1 + …」的文本，terms 是项数
+        std::string additiveChainText(const std::size_t terms)
+        {
+            std::string text = "1";
+            for (std::size_t term = 1; term < terms; ++term)
+            {
+                text += " + 1";
+            }
+            return text;
+        }
+
+        /// 造一段「sum(1, 1, …)」的文本：项数相同，但实参是兄弟节点，树只有一层深
+        std::string sumOfOnesText(const std::size_t terms)
+        {
+            std::string text = "sum(";
+            for (std::size_t term = 0; term < terms; ++term)
+            {
+                if (term > 0)
+                {
+                    text += ", ";
+                }
+                text += "1";
+            }
+            text += ')';
+            return text;
+        }
+
+        /// 手工接一条左结合加法链，terms 是项数；深度记账不能只认解析器
+        ExpressionPtr additiveChainNodes(const std::size_t terms)
+        {
+            ExpressionPtr chain = numberNode(1.0);
+            for (std::size_t term = 1; term < terms; ++term)
+            {
+                chain = binary(Operator::Add, std::move(chain), numberNode(1.0));
+            }
+            return chain;
+        }
+
+        /// 造一个只关心结构的变量引用节点，用例不接解析器
+        ExpressionPtr makeListReference()
+        {
+            return std::make_unique<VariableExpression>(
+                    nullptr, VariableExpression::Reference{.documentName = "", .objectName = "", .propertyName = "List"});
+        }
+
+        /**
+         * @brief 钉住：深度取「最深的一支再加一层」，兄弟节点不叠层
+         * @details 括号不产生节点，实参与区间端点是兄弟，因此宽树再宽也只有一层；
+         *          把这两类混为一谈的话，深度上限就会拒掉根本不危险的表达式。
+         */
+        TEST(ExpressionNodes, AstDepthCountsTheDeepestBranchOnly)
+        {
+            EXPECT_EQ(ExpressionParser::parse(nullptr, "1")->astDepth(), 0);
+            EXPECT_EQ(ExpressionParser::parse(nullptr, "(((1)))")->astDepth(), 0);
+            EXPECT_EQ(ExpressionParser::parse(nullptr, "1 + 2")->astDepth(), 1);
+            EXPECT_EQ(ExpressionParser::parse(nullptr, "1 + 2 + 3")->astDepth(), 2);
+            // 乘法挂在加法的右支上，两层各占一层；同级但不同支的才不叠层
+            EXPECT_EQ(ExpressionParser::parse(nullptr, "1 + 2 * 3")->astDepth(), 2);
+            EXPECT_EQ(ExpressionParser::parse(nullptr, "1 * 2 + 3 * 4")->astDepth(), 2);
+            EXPECT_EQ(ExpressionParser::parse(nullptr, "sum(1, 2, 3)")->astDepth(), 1);
+            // 分量里的下标也算一支
+            EXPECT_EQ(ExpressionParser::parse(nullptr, "List[1 + 2].Name")->astDepth(), 2);
+            // 深拷贝与原树同形，深度照搬；分量里的表达式只有基类记着，副本必须一起带上
+            EXPECT_EQ(ExpressionParser::parse(nullptr, "1 + 2 + 3")->copy()->astDepth(), 2);
+            EXPECT_EQ(ExpressionParser::parse(nullptr, "List[1 + 2].Name")->copy()->astDepth(), 2);
+        }
+
+        /**
+         * @brief 钉住：顶到上限的加法链照常求值，再长一项就在构造期报错
+         */
+        TEST(ExpressionNodes, OperatorChainIsCutOffAtTheDepthLimit)
+        {
+            const std::size_t limit = Expression::maxAstDepth;
+
+            // 上限项数 = limit-1 层，求值与文本往返都必须成立
+            EXPECT_DOUBLE_EQ(evaluateText(additiveChainText(limit)), static_cast<double>(limit));
+            const auto edge = ExpressionParser::parse(nullptr, additiveChainText(limit + 1));
+            ASSERT_NE(edge, nullptr);
+            EXPECT_EQ(edge->astDepth(), limit);
+
+            // 再多一项就过线，两条通道给出同一份可行动的文案
+            const std::string overLimit = additiveChainText(limit + 2);
+            const auto        failed    = ExpressionParser::tryParse(nullptr, overLimit);
+            ASSERT_FALSE(failed.has_value());
+            EXPECT_NE(failed.error().message.find("超过 " + std::to_string(limit) + " 层上限"), std::string::npos);
+            EXPECT_THROW(static_cast<void>(ExpressionParser::parse(nullptr, overLimit)), Base::ParserError);
+        }
+
+        /**
+         * @brief 钉住：一长串同类运算在构造期就被拒绝，进程不会走到不可捕获的栈溢出
+         * @details 解析器自身的递归由括号限额管着，但左结合长链是在同一层递归里循环拼出来的，
+         *          只有构造期的深度记账拦得住——过去这种输入直接把测试进程打挂。
+         */
+        TEST(ExpressionNodes, PathologicalChainFailsCleanlyInsteadOfCrashing)
+        {
+            const std::string huge = additiveChainText(20000);
+
+            const auto failed = ExpressionParser::tryParse(nullptr, huge);
+            ASSERT_FALSE(failed.has_value());
+            EXPECT_NE(failed.error().message.find("层上限"), std::string::npos);
+            EXPECT_THROW(static_cast<void>(ExpressionParser::parse(nullptr, huge)), Base::ParserError);
+
+            // 文案给的出路必须真的能用：同样多的项改用聚合实参，取值不变
+            EXPECT_DOUBLE_EQ(evaluateText(sumOfOnesText(20000)), 20000.0);
+            const auto aggregated = ExpressionParser::parse(nullptr, sumOfOnesText(20000));
+            ASSERT_NE(aggregated, nullptr);
+            EXPECT_EQ(aggregated->astDepth(), 1);
+        }
+
+        /**
+         * @brief 钉住：分量里的子表达式同样计入深度，超限时分量不会挂上半截
+         */
+        TEST(ExpressionNodes, ComponentExpressionsCountTowardDepth)
+        {
+            // 下标本身 limit 层深（构造得出来），加上引用节点这一层就过线
+            const ExpressionPtr deepestIndex = additiveChainNodes(Expression::maxAstDepth + 1);
+            EXPECT_EQ(deepestIndex->astDepth(), Expression::maxAstDepth);
+
+            auto overLimit = makeListReference();
+            EXPECT_THROW(overLimit->addComponent(Expression::Component::arrayIndex(additiveChainNodes(Expression::maxAstDepth + 1))), Base::ParserError);
+            EXPECT_FALSE(overLimit->hasComponent());
+
+            // 少一层就放得下，且把本节点顶到上限
+            auto inside = makeListReference();
+            inside->addComponent(Expression::Component::arrayIndex(additiveChainNodes(Expression::maxAstDepth)));
+            ASSERT_TRUE(inside->hasComponent());
+            EXPECT_EQ(inside->astDepth(), Expression::maxAstDepth);
+        }
+
+        /**
+         * @brief 钉住：宿主手工拼的树也受同一上限管，换操作数同样记账
+         */
+        TEST(ExpressionNodes, HandBuiltChainIsAlsoCutOff)
+        {
+            EXPECT_NO_THROW(static_cast<void>(additiveChainNodes(Expression::maxAstDepth + 1)));
+            EXPECT_THROW(static_cast<void>(additiveChainNodes(Expression::maxAstDepth + 2)), Base::ParserError);
+
+            auto sum = std::make_unique<OperatorExpression>(nullptr, numberNode(1.0), Operator::Add, numberNode(2.0));
+            EXPECT_THROW(sum->setRight(additiveChainNodes(Expression::maxAstDepth + 1)), Base::ParserError);
+            EXPECT_THROW(sum->setLeft(additiveChainNodes(Expression::maxAstDepth + 1)), Base::ParserError);
+            // 抛出时操作数保持原样，本节点深度不变
+            EXPECT_EQ(sum->toString(), "1 + 2");
+            EXPECT_EQ(sum->astDepth(), 1);
         }
 
     } // namespace

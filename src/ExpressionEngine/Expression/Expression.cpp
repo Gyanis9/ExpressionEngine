@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstddef>
 #include <format>
 #include <limits>
 #include <memory>
@@ -1052,6 +1053,39 @@ namespace ExpressionEngine::Expression
         return m_resolver;
     }
 
+    std::size_t Expression::astDepth() const noexcept
+    {
+        return m_astDepth;
+    }
+
+    void Expression::raiseAstDepth(const std::size_t childDepth)
+    {
+        const std::size_t nextDepth = childDepth + 1;
+        // 先判再写：抛出时本节点记录不变，宿主 catch 之后还能接着用原来那棵树
+        if (nextDepth > maxAstDepth)
+        {
+            throw Base::ParserError(std::format("表达式运算层数超过 {} 层上限，已拒绝；连续的同类运算请改用聚合函数"
+                                                "（如 sum(a, b, c)），或把长式子拆成几个属性",
+                                                maxAstDepth));
+        }
+        m_astDepth = std::max(m_astDepth, nextDepth);
+    }
+
+    void Expression::adoptChild(const Expression *child)
+    {
+        if (child != nullptr)
+        {
+            raiseAstDepth(child->m_astDepth);
+        }
+    }
+
+    void Expression::adoptComponent(const Component &component)
+    {
+        adoptChild(component.index.get());
+        adoptChild(component.endIndex.get());
+        adoptChild(component.step.get());
+    }
+
     Value Expression::evaluate() const
     {
         Value result = evaluateNode();
@@ -1179,6 +1213,8 @@ namespace ExpressionEngine::Expression
         result->m_resolver   = m_resolver;
         result->m_components = m_components;
         result->m_comment    = m_comment;
+        // 副本与本节点同形，深度直接照搬：copyNode() 只按子节点算过，不含分量里的表达式
+        result->m_astDepth = m_astDepth;
         return result;
     }
 
@@ -1211,6 +1247,8 @@ namespace ExpressionEngine::Expression
 
     void Expression::addComponent(Component component)
     {
+        // 先记账再落列表：超限时抛出，本节点的分量列表保持原样
+        adoptComponent(component);
         m_components.push_back(std::move(component));
     }
 
@@ -1457,6 +1495,9 @@ namespace ExpressionEngine::Expression
         {
             throw EvaluationError("运算符节点的运算符为空；请检查表达式构造过程");
         }
+        // 深度记账：本节点比最深的操作数还深一层，超上限就在此拒绝，不给遍历留下栈溢出
+        adoptChild(m_left.get());
+        adoptChild(m_right.get());
         if (m_operator == Operator::Negate || m_operator == Operator::Positive)
         {
             if (m_right != nullptr)
@@ -1494,6 +1535,7 @@ namespace ExpressionEngine::Expression
         {
             throw EvaluationError("运算符的左操作数不能为空；请传入有效表达式");
         }
+        adoptChild(expression.get());
         m_left = std::move(expression);
     }
 
@@ -1503,6 +1545,7 @@ namespace ExpressionEngine::Expression
         {
             throw EvaluationError("运算符的右操作数不能为空；一元运算符请改用不带右操作数的构造方式");
         }
+        adoptChild(expression.get());
         m_right = std::move(expression);
     }
 
@@ -1882,6 +1925,9 @@ namespace ExpressionEngine::Expression
         {
             throw EvaluationError("条件表达式需要条件、真分支与假分支三个子表达式；请检查表达式构造过程");
         }
+        adoptChild(m_condition.get());
+        adoptChild(m_trueExpression.get());
+        adoptChild(m_falseExpression.get());
     }
 
     ConditionalExpression::~ConditionalExpression() = default;
@@ -1988,6 +2034,7 @@ namespace ExpressionEngine::Expression
             {
                 throw EvaluationError("函数实参不能为空；请检查表达式构造过程");
             }
+            adoptChild(argument.get());
         }
         const std::string_view label = m_name.empty() ? functionName(m_function) : std::string_view(m_name);
         validateFunctionCall(m_function, m_arguments.size(), label);

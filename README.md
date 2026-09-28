@@ -70,7 +70,8 @@ else
 ```
 
 `tryEvaluate()` 只兜库自己的异常：宿主实现（`IProperty`、自定义函数回调）抛出的异常照旧向上传播。
-超深嵌套在解析阶段就报 `ParserError`（限深 100 层），不会撞上无法捕获的栈溢出。
+超深输入在构造阶段就报 `ParserError`，不会撞上无法捕获的栈溢出：括号与函数的嵌套限 100 层，
+表达式树深限 64 层（`sum(a, b, c, …)` 这类实参是兄弟节点，不叠层；`Expression::astDepth()` 可自查）。
 
 ## 表达式能写什么
 
@@ -231,7 +232,7 @@ ctest --test-dir build/release --output-on-failure
 - 零编译告警是提交硬判据：MSVC 用 `/W4 /permissive- /utf-8 /Zc:__cplusplus`，其它编译器用
   `-Wall -Wextra -Wpedantic`。
 - CI（`.github/workflows/windows-ci.yml`）在 `main` 上跑 Debug + AddressSanitizer 全量用例，之后
-  `cmake --install` 到临时前缀、另起 `tools/package-check/` 工程编译并跑 28 条宿主可见行为断言——
+  `cmake --install` 到临时前缀、另起 `tools/package-check/` 工程编译并跑 31 条宿主可见行为断言——
   导出头漏装、包配置写错这类缺陷只有仓库外消费者才看得见。
 
 ## 性能
