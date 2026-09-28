@@ -64,6 +64,28 @@ if(ENABLE_SANITIZERS)
     endif()
 endif()
 
+# ---------------------------------------------------------------------------
+# 线程检测器（另开一道，不并入上面的开关）
+# ---------------------------------------------------------------------------
+# TSan 与 ASan 互斥：同时插桩会被编译器直接拒绝，所以它只能自成一种构建档。
+# MSVC 没有 TSan，这条判据因此只在 GCC/Clang 上成立——README 里「无竞争」的证明也只挂在这里。
+# 另外 TSan 默认只打印报告并继续跑（halt_on_error=0），进程退出码仍为 0；要让门禁真的红，
+# 跑测试时必须给 TSAN_OPTIONS=halt_on_error=1，见 linux-ci.yml 的 tsan 作业。
+option(ENABLE_THREAD_SANITIZER "启用 ThreadSanitizer（仅 GCC/Clang，与 ENABLE_SANITIZERS 互斥）" OFF)
+
+if(ENABLE_THREAD_SANITIZER)
+    if(MSVC)
+        message(FATAL_ERROR "MSVC 没有 ThreadSanitizer；这条判据只能在 GCC/Clang 上跑（linux-ci.yml 的 tsan 作业）")
+    endif()
+    if(ENABLE_SANITIZERS)
+        message(FATAL_ERROR "ENABLE_THREAD_SANITIZER 与 ENABLE_SANITIZERS 互斥：TSan 与 ASan 不能同时插桩")
+    endif()
+
+    add_compile_options(-fsanitize=thread -fno-omit-frame-pointer)
+    add_link_options(-fsanitize=thread)
+    message(STATUS "Sanitizers: 已启用 ThreadSanitizer（运行时需 TSAN_OPTIONS=halt_on_error=1 才会以非零码退出）")
+endif()
+
 add_subdirectory(src)
 
 if(EXPRESSIONENGINE_BUILD_TESTS)

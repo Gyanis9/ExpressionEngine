@@ -106,3 +106,59 @@ jobs:
           cmake -S tools/package-check -B tools/package-check/build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH="${RUNNER_TEMP}/ee-install"
           cmake --build tools/package-check/build
           ./tools/package-check/build/consumerCheck
+
+  # 线程检测器：Expression 的类注释承诺「建好的树可并发只读」，登记表承诺「读写可并发」。
+  # 这两条此前只有行为用例（判取值一致），抓不到数据竞争——那要 TSan。
+  # 只在 GCC 上跑一份：TSan 与 ASan 互斥（CMake 里直接拒了同时开启），所以必须单独一个构建目录。
+  #
+  # 说明本机验证到哪一步：库在 g++ 13.3 + -fsanitize=thread 下编译链接均零告警零失败（容器内实测），
+  # 但本机容器跑不起 TSan 运行时（WSL2 内核的高位 ASLR 让影子内存映射失败，报
+  # "unexpected memory mapping" 后以 66 退出，容器内也无法 setarch -R）。因此这一作业的第一次
+  # runner 执行才是「无竞争」的真正证明；红了对应的用例与报告，不要直接关掉它。
+  tsan:
+    name: 线程检测（ThreadSanitizer）
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    env:
+      CONAN_HOME: ${{ github.workspace }}/.conan2
+      CC: gcc
+      CXX: g++
+      # TSan 默认只打印报告并继续跑，退出码仍为 0，那样门禁永远不会红——必须让它命中即停
+      TSAN_OPTIONS: halt_on_error=1
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: 缓存 Conan 依赖
+        uses: actions/cache@v6
+        with:
+          path: ${{ env.CONAN_HOME }}
+          key: conan-gcc-${{ hashFiles('conandata.yml', 'conanfile.py') }}
+
+      - name: 安装 Conan
+        run: |
+          python3 -m venv "${RUNNER_TEMP}/conan-venv"
+          "${RUNNER_TEMP}/conan-venv/bin/pip" install --upgrade "conan>=2.25"
+          echo "${RUNNER_TEMP}/conan-venv/bin" >> "$GITHUB_PATH"
+
+      - name: 探测 Conan profile
+        run: conan profile detect --force
+
+      # 单独的构建目录：与上面 build-and-test 的 ASan 档不能共用一份缓存
+      - name: 配置（ThreadSanitizer）
+        run: cmake -S . -B build/tsan -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_STANDARD=23 -DCMAKE_CXX_STANDARD_REQUIRED=ON -DCMAKE_CXX_EXTENSIONS=OFF -DCMAKE_EXPORT_COMPILE_COMMANDS=ON "-DCMAKE_PROJECT_TOP_LEVEL_INCLUDES=${{ github.workspace }}/conan_provider.cmake" -DENABLE_THREAD_SANITIZER=ON
+
+      - name: 构建
+        run: cmake --build build/tsan
+
+      - name: 全量用例
+        run: ctest --test-dir build/tsan --output-on-failure --parallel
+
+      - name: 失败时上传用例日志
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ctest-logs-tsan
+          path: build/tsan/Testing/Temporary/LastTest.log
+          if-no-files-found: ignore

@@ -92,7 +92,10 @@ else
 建好的表达式树只读：`evaluate()`、`tryEvaluate()`、`simplify()`、`toString()`、`copy()` 可以在多个线程上
 对同一棵树并发调用。库内的进程级状态只有两处——`FunctionRegistry::global()` 自带读写锁，`UnitsApi` 的
 当前方案与精度按头文件约定需宿主在运行期切换时自行加锁。宿主实现的 `IObjectResolver` 与 `IProperty`
-由宿主自己保证线程安全：并发求值会在多个线程上重入同一个实现。`Range` 的遍历游标是可变状态，一份
+由宿主自己保证线程安全：并发求值会在多个线程上重入同一个实现。CI 的 `tsan` 作业把全量用例在 ThreadSanitizer 下再跑一遍，并把 `halt_on_error` 打开——
+数据竞争因此会让门禁变红，而不是只留一行报告。
+
+`Range` 的遍历游标是可变状态，一份
 区间对象同一时刻只交给一个线程（聚合函数每次取到自己的副本，不受这条影响）。
 
 ## 表达式能写什么
@@ -256,6 +259,9 @@ ctest --test-dir build/release --output-on-failure
 - 库本体零外部依赖；构建用例时才需要 GoogleTest——预设经 `conan_provider.cmake` 自动执行
   `conan install`（首次需要本机已装 Conan）。
 - 开关：`EXPRESSIONENGINE_BUILD_TESTS`（默认 ON）、`EXPRESSIONENGINE_BUILD_BENCHMARKS`（默认 OFF）。
+- 插桩构建两个开关，互斥（同时开会被 CMake 拒）：`ENABLE_SANITIZERS=ON` 上 AddressSanitizer
+  （GCC/Clang 上还含 UBSan，命中即中止进程），`ENABLE_THREAD_SANITIZER=ON` 上 ThreadSanitizer
+  （仅 GCC/Clang；跑用例时要给 `TSAN_OPTIONS=halt_on_error=1`，否则 TSan 只打印报告、退出码仍为 0）。
 - 零编译告警是提交硬判据：MSVC 用 `/W4 /permissive- /utf-8 /Zc:__cplusplus`，其它编译器用
   `-Wall -Wextra -Wpedantic`。
 - 排版同样有判据：`bash tools/format-check.sh` 按仓库根的 `.clang-format` 校全部受版本控制的

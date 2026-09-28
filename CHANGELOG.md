@@ -26,6 +26,14 @@
   里查到量、且除英制两记号外都能真的解析成表达式。已知边界：反方向的漂移（单位表新增符号、词法器没跟上）
   不在目录里体现，那种情况下该写法只是暂时不能用作后缀，不会给出错的目录项。
 
+- **数据竞争有机器判据了**：新增构建开关 `ENABLE_THREAD_SANITIZER`（仅 GCC/Clang，与
+  `ENABLE_SANITIZERS` 互斥——两种插桩不能同时开，同时开会被 CMake 直接拒），并在 `linux-ci.yml`
+  加 `tsan` 作业，把全量用例在 ThreadSanitizer 下再跑一遍。关键一处是 `TSAN_OPTIONS=halt_on_error=1`：
+  TSan 默认只打印报告并继续执行，进程退出码仍是 0，不加它这道门永远不会红。
+  本机验到哪一步如实记下：库在 g++ 13.3 + TSan 下编译链接零告警、探针也链得上，但容器里 TSan 运行时
+  起不来（WSL2 内核的高位 ASLR 让影子内存映射失败，报 `unexpected memory mapping` 后以 66 退出，
+  容器内也无权限 `setarch -R`）——所以「无竞争」的真正证明要等这一作业在 runner 上第一次执行。
+
 - **内置函数目录可查**：`FunctionExpression::builtInFunctions()` 列出 78 个写法（别名各占一条）并标出
   哪些是聚合函数，`FunctionExpression::acceptsArgumentCount(名字, 个数)` 回答「这个函数收几个参数」——
   判据直接借解析期那套规则，不另立一份参数表，因为抄出来的那份迟早与引擎漂移，而漂移的表现是界面
