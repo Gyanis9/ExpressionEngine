@@ -172,7 +172,7 @@ namespace
 
         // 单元格区间按格数在展开之前拒绝：十几个字符的文本不该要到整张网格
         Dictionary cellHost;
-        const auto cells  = ExpressionParser::tryParse(&cellHost, "sum(A1:E16384)");
+        const auto cells = ExpressionParser::tryParse(&cellHost, "sum(A1:E16384)");
         check(cells.has_value(), "超大区间的写法本身合法");
         if (cells.has_value())
         {
@@ -199,13 +199,13 @@ namespace
 
         check(dictionary.contains("Length"), "字典能查到已定义的名字");
 
-        FunctionRegistry registry;
+        FunctionRegistry   registry;
         CustomFunctionSpec spec;
-        spec.name          = "fromHost";
-        spec.usage         = "fromHost(x) 原样返回一段宿主文本";
-        spec.minArguments  = 1;
-        spec.maxArguments  = 1;
-        spec.function      = [](const FunctionCall &call) -> Value
+        spec.name         = "fromHost";
+        spec.usage        = "fromHost(x) 原样返回一段宿主文本";
+        spec.minArguments = 1;
+        spec.maxArguments = 1;
+        spec.function     = [](const FunctionCall &call) -> Value
         {
             static_cast<void>(call.argumentValue(0));
             return Value{std::string{"from-host"}};
@@ -245,10 +245,10 @@ namespace
         const auto lengthSchema = [](const std::size_t number, const std::string &name, std::vector<UnitTranslationSpecification> rows)
         {
             UnitsSchemaSpecification specification;
-            specification.number                             = number;
-            specification.name                               = name;
-            specification.basicLengthUnitString              = "mm";
-            specification.description                        = "consumer schema";
+            specification.number                              = number;
+            specification.name                                = name;
+            specification.basicLengthUnitString               = "mm";
+            specification.description                         = "consumer schema";
             specification.translationSpecifications["Length"] = std::move(rows);
             return specification;
         };
@@ -271,8 +271,7 @@ namespace
         try
         {
             static_cast<void>(schemas.specification(99U));
-        }
-        catch (const NameError &error)
+        } catch (const NameError &error)
         {
             rejectedWithNumber = error.message().find("99") != std::string::npos;
         }
@@ -282,8 +281,7 @@ namespace
         try
         {
             static_cast<void>(UnitsSchemas{UnitsSchemasDataPack{{}, 2, 8}});
-        }
-        catch (const NameError &)
+        } catch (const NameError &)
         {
             emptyPackRejected = true;
         }
@@ -303,8 +301,7 @@ namespace
         try
         {
             static_cast<void>(UnitsSchema{lengthSchema(0, "Custom", {{0, "toNope", 0.0}})}.translate(Quantity(1.0, Unit::Length)));
-        }
-        catch (const ValueError &error)
+        } catch (const ValueError &error)
         {
             unknownSpecialRejected = error.message().find("toNope") != std::string::npos;
         }
@@ -344,8 +341,7 @@ int main()
         runHostInjectionChecks();
         runUnitsChecks();
         runCustomSchemaChecks();
-    }
-    catch (const std::exception &error)
+    } catch (const std::exception &error)
     {
         std::cout << "FAIL: 消费者检查抛出未预期异常: " << error.what() << '\n';
         ++failed;

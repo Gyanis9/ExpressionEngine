@@ -38,18 +38,17 @@ namespace
     }
 
     /// 手工构造宿主自定义快照，用来验证「不必受内置区域表限制」的用法
-    NumericLocaleContext makeCustomContext(std::string localeId, std::string decimalSeparator, std::string groupingSeparator, const int primaryGroupingSize,
-                                           const int   secondaryGroupingSize)
+    NumericLocaleContext makeCustomContext(std::string localeId, std::string decimalSeparator, std::string groupingSeparator, const int primaryGroupingSize, const int secondaryGroupingSize)
     {
         return NumericLocaleContext{
-                .localeId = std::move(localeId),
-                .decimalSeparator = std::move(decimalSeparator),
-                .groupingSeparator = std::move(groupingSeparator),
-                .positiveSign = "+",
-                .negativeSign = "-",
-                .primaryGroupingSize = primaryGroupingSize,
+                .localeId              = std::move(localeId),
+                .decimalSeparator      = std::move(decimalSeparator),
+                .groupingSeparator     = std::move(groupingSeparator),
+                .positiveSign          = "+",
+                .negativeSign          = "-",
+                .primaryGroupingSize   = primaryGroupingSize,
                 .secondaryGroupingSize = secondaryGroupingSize,
-                .zeroDigit = "0",
+                .zeroDigit             = "0",
         };
     }
 
@@ -100,8 +99,7 @@ TEST(NumericFormattingTest, CLocaleContextHasDotDecimalAndNoGrouping)
 /// @brief 钉住内置区域表的覆盖面：约定的 19 个标识符都必须能构造出可用快照
 TEST(NumericFormattingTest, BuiltinLocaleTableCoversDocumentedIdentifiers)
 {
-    for (const std::string_view identifier:
-         {"C", "en_US", "en_GB", "de_DE", "fr_FR", "es_ES", "it_IT", "pt_BR", "ru_RU", "zh_CN", "ja_JP", "ko_KR", "pl_PL", "nl_NL", "tr_TR", "cs_CZ", "hu_HU", "sv_SE", "uk_UA"})
+    for (const std::string_view identifier: {"C", "en_US", "en_GB", "de_DE", "fr_FR", "es_ES", "it_IT", "pt_BR", "ru_RU", "zh_CN", "ja_JP", "ko_KR", "pl_PL", "nl_NL", "tr_TR", "cs_CZ", "hu_HU", "sv_SE", "uk_UA"})
     {
         const NumericLocaleContext context = expectContext(identifier);
         EXPECT_EQ(context.localeId, std::string(identifier));

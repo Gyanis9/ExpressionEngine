@@ -8,8 +8,7 @@
 
 namespace ExpressionEngine::Units
 {
-    UnitsSchemas::UnitsSchemas(const UnitsSchemasDataPack &pack) :
-        m_pack{pack}, m_currentSchema{std::make_unique<UnitsSchema>(specification())}, m_fractionDenominator{pack.defaultDenominator}
+    UnitsSchemas::UnitsSchemas(const UnitsSchemasDataPack &pack) : m_pack{pack}, m_currentSchema{std::make_unique<UnitsSchema>(specification())}, m_fractionDenominator{pack.defaultDenominator}
     {
     }
 
@@ -22,11 +21,7 @@ namespace ExpressionEngine::Units
     {
         // 对外列表按方案编号排序，保证调用方看到的顺序与编号一致
         auto sortedSpecifications = m_pack.specifications;
-        std::ranges::sort(sortedSpecifications,
-                          [](const UnitsSchemaSpecification &left, const UnitsSchemaSpecification &right)
-                          {
-                              return left.number < right.number;
-                          });
+        std::ranges::sort(sortedSpecifications, [](const UnitsSchemaSpecification &left, const UnitsSchemaSpecification &right) { return left.number < right.number; });
 
         std::vector<std::string> values;
         values.reserve(sortedSpecifications.size());
@@ -37,19 +32,13 @@ namespace ExpressionEngine::Units
 
     std::vector<std::string> UnitsSchemas::names() const
     {
-        return collect([](const UnitsSchemaSpecification &specification)
-        {
-            return specification.name;
-        });
+        return collect([](const UnitsSchemaSpecification &specification) { return specification.name; });
     }
 
     std::vector<std::string> UnitsSchemas::descriptions() const
     {
         // 本库不带翻译体系，描述按数据表原文返回；需要本地化的宿主可自行包装
-        return collect([](const UnitsSchemaSpecification &specification)
-        {
-            return specification.description == nullptr ? std::string{} : std::string{specification.description};
-        });
+        return collect([](const UnitsSchemaSpecification &specification) { return specification.description == nullptr ? std::string{} : std::string{specification.description}; });
     }
 
     std::size_t UnitsSchemas::getDecimals() const
@@ -107,13 +96,9 @@ namespace ExpressionEngine::Units
 
     UnitsSchemaSpecification UnitsSchemas::specification()
     {
-        const auto isMarkedDefault = [](const UnitsSchemaSpecification &specification)
-        {
-            return specification.isDefault;
-        };
+        const auto isMarkedDefault = [](const UnitsSchemaSpecification &specification) { return specification.isDefault; };
 
-        if (const auto defaultSpecification = std::ranges::find_if(m_pack.specifications, isMarkedDefault);
-            defaultSpecification != m_pack.specifications.end())
+        if (const auto defaultSpecification = std::ranges::find_if(m_pack.specifications, isMarkedDefault); defaultSpecification != m_pack.specifications.end())
         {
             return *defaultSpecification;
         }
@@ -129,17 +114,11 @@ namespace ExpressionEngine::Units
 
     UnitsSchemaSpecification UnitsSchemas::specification(const std::string_view name)
     {
-        return findSpecification([name](const UnitsSchemaSpecification &specification)
-        {
-            return specification.name == name;
-        }, std::format("名为 \"{}\"", name));
+        return findSpecification([name](const UnitsSchemaSpecification &specification) { return specification.name == name; }, std::format("名为 \"{}\"", name));
     }
 
     UnitsSchemaSpecification UnitsSchemas::specification(const std::size_t schemaNumber)
     {
-        return findSpecification([schemaNumber](const UnitsSchemaSpecification &specification)
-        {
-            return specification.number == schemaNumber;
-        }, std::format("编号为 {}", schemaNumber));
+        return findSpecification([schemaNumber](const UnitsSchemaSpecification &specification) { return specification.number == schemaNumber; }, std::format("编号为 {}", schemaNumber));
     }
 } // namespace ExpressionEngine::Units

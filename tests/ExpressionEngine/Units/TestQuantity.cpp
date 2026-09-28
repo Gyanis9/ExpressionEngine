@@ -109,7 +109,7 @@ namespace ExpressionEngine::Units
         {
             struct Row
             {
-                std::string    name;      ///< 报错时指出是哪一项
+                std::string     name;     ///< 报错时指出是哪一项
                 const Quantity *prefixed; ///< 带前缀的量
                 const Quantity *base;     ///< 同量纲的基准量
                 double          ratio;    ///< 前缀倍数
@@ -386,4 +386,4 @@ namespace ExpressionEngine::Units
         }
 
     } // namespace
-}     // namespace ExpressionEngine::Units
+} // namespace ExpressionEngine::Units

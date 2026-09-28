@@ -41,6 +41,9 @@ IncludeCategories:
     Priority: 2
   - Regex: '.*'
     Priority: 3
+# 包含顺序由人维护（自己的头、标准库、项目内头三段），归一化不能把它重排
+IncludeBlocks: Preserve
+SortIncludes: false
 IncludeIsMainRegex: '([-_](test|unittest))?$'
 IndentCaseLabels: true
 IndentWidth: 4
@@ -49,6 +52,10 @@ MacroBlockBegin: ''
 MacroBlockEnd: ''
 MaxEmptyLinesToKeep: 2
 NamespaceIndentation: All
+# 注释一律不重新折行：中文 Doxygen 的换行是排版的一部分，折行会改掉文档文本本身
+ReflowComments: false
+# using 声明同理：它们按「异常 → 表达式 → 单位」的层次手写，重排会打散这层分组
+SortUsingDeclarations: false
 SpaceAfterCStyleCast: true
 SpaceAfterTemplateKeyword: false
 SpaceBeforeRangeBasedForLoopColon: false

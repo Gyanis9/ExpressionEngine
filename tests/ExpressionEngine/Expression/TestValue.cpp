@@ -175,8 +175,7 @@ namespace ExpressionEngine::Expression
             EXPECT_TRUE(valueLessThan(Value(std::string("a")), Value(std::string("b"))));
 
             // 量纲不同：纯数按无量纲处理，与长度量不可比
-            EXPECT_THROW(static_cast<void>(valueLessThan(Value(Units::Quantity(1.0, Units::Unit::Length)), Value(Units::Quantity(1.0, Units::Unit::TimeSpan)))),
-                         Base::UnitsMismatchError);
+            EXPECT_THROW(static_cast<void>(valueLessThan(Value(Units::Quantity(1.0, Units::Unit::Length)), Value(Units::Quantity(1.0, Units::Unit::TimeSpan)))), Base::UnitsMismatchError);
             EXPECT_THROW(static_cast<void>(valueLessThan(Value(Units::Quantity(1.0, Units::Unit::Length)), Value(1.0))), Base::UnitsMismatchError);
             // 几何值之间没有大小关系
             EXPECT_THROW(static_cast<void>(valueLessThan(Value(Base::Vector3d(1.0, 0.0, 0.0)), Value(Base::Vector3d(2.0, 0.0, 0.0)))), Base::TypeError);
@@ -225,8 +224,8 @@ namespace ExpressionEngine::Expression
          */
         TEST(ValueTest, SequenceTextAndEquality)
         {
-            const Value nested = makeValueSequence({Value(Units::Quantity(1.0)), makeValueSequence({Value(2.0)})});
-            const std::string text = toString(nested);
+            const Value       nested = makeValueSequence({Value(Units::Quantity(1.0)), makeValueSequence({Value(2.0)})});
+            const std::string text   = toString(nested);
             EXPECT_TRUE(text.starts_with("list(")) << text;
             EXPECT_TRUE(text.ends_with(")")) << text;
             EXPECT_NE(text.find("list(", 5), std::string::npos) << "嵌套序列也要写成 list(...)：" << text;
@@ -247,7 +246,7 @@ namespace ExpressionEngine::Expression
          */
         TEST(ValueTest, TextValuesRoundTripThroughArchiveText)
         {
-            const std::vector<std::pair<std::string, std::string> > hostile{
+            const std::vector<std::pair<std::string, std::string>> hostile{
                     {"空文本", std::string{}},
                     {"普通文本", "plain"},
                     {"含结束符", "a>>b"},
@@ -269,9 +268,9 @@ namespace ExpressionEngine::Expression
 
             for (const auto &[label, text]: hostile)
             {
-                const Value           original{text};
-                const std::string     written = toExpressionText(original);
-                const auto            parsed  = ExpressionParser::tryParse(nullptr, written);
+                const Value       original{text};
+                const std::string written = toExpressionText(original);
+                const auto        parsed  = ExpressionParser::tryParse(nullptr, written);
 
                 ASSERT_TRUE(parsed.has_value()) << label << " 回写成：" << written << " 解析失败：" << parsed.error().message;
 
@@ -287,4 +286,4 @@ namespace ExpressionEngine::Expression
         }
 
     } // namespace
-}     // namespace ExpressionEngine::Expression
+} // namespace ExpressionEngine::Expression

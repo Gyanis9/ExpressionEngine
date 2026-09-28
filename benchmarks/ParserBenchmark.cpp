@@ -232,9 +232,8 @@ namespace
     template<typename Callable>
     [[nodiscard]] BenchmarkStats measure(Callable &&callable)
     {
-        const auto warmupDeadline =
-                std::chrono::steady_clock::now() + std::chrono::duration_cast<std::chrono::steady_clock::duration>(std::chrono::duration<double, std::nano>(g_warmupNanoseconds));
-        std::uintptr_t warmupSink = 0;
+        const auto     warmupDeadline = std::chrono::steady_clock::now() + std::chrono::duration_cast<std::chrono::steady_clock::duration>(std::chrono::duration<double, std::nano>(g_warmupNanoseconds));
+        std::uintptr_t warmupSink     = 0;
         while (std::chrono::steady_clock::now() < warmupDeadline)
         {
             warmupSink ^= callable();
@@ -293,9 +292,8 @@ namespace
         const double megabytesPerSecond = nanosecondsPerByte > 0.0 ? 1000.0 / nanosecondsPerByte : 0.0;
         const double thousandsPerSecond = 1.0e6 / stats.medianNanoseconds;
         const double allocationsPerCall = static_cast<double>(stats.allocations) / static_cast<double>(stats.timedIterations);
-        std::printf("%s中位数 %8.3f us/次  平均 %8.3f us/次  %9.1f k次/秒  %8.3f MB/s  %7.3f ns/字节  分配 %6.2f 次/次  %zu 字节  计时 %zu 次\n", padLabel(label, 34).c_str(),
-                    stats.medianNanoseconds / 1000.0, stats.meanNanoseconds / 1000.0, thousandsPerSecond, megabytesPerSecond, nanosecondsPerByte, allocationsPerCall, text.size(),
-                    stats.timedIterations);
+        std::printf("%s中位数 %8.3f us/次  平均 %8.3f us/次  %9.1f k次/秒  %8.3f MB/s  %7.3f ns/字节  分配 %6.2f 次/次  %zu 字节  计时 %zu 次\n", padLabel(label, 34).c_str(), stats.medianNanoseconds / 1000.0, stats.meanNanoseconds / 1000.0,
+                    thousandsPerSecond, megabytesPerSecond, nanosecondsPerByte, allocationsPerCall, text.size(), stats.timedIterations);
     }
 
     /// 测一项并打印一行结果
@@ -369,8 +367,7 @@ namespace
     /// 解析并求值一次，返回取值的位模式；建树与求值都在计时区间内
     [[nodiscard]] std::uintptr_t parseAndEvaluate(const std::string_view text)
     {
-        const ExpressionEngine::Expression::ExpressionPtr expression =
-                ExpressionEngine::Expression::ExpressionParser::parse(&g_evaluationDictionary, text, g_evaluationRegistry);
+        const ExpressionEngine::Expression::ExpressionPtr expression = ExpressionEngine::Expression::ExpressionParser::parse(&g_evaluationDictionary, text, g_evaluationRegistry);
         return sinkOf(expression->evaluate());
     }
 
@@ -422,41 +419,28 @@ int main()
 #ifdef BENCH_COMPILER_FLAGS
     std::printf("编译选项: %s\n", BENCH_COMPILER_FLAGS);
 #endif
-    std::printf("计时: 预热 %.0f ms 后跑 %d 批，每批按标定凑到约 %.0f ms，中位数/平均值为逐批归一后的结果\n", g_warmupNanoseconds / 1.0e6, g_batchCount,
-                g_batchTargetNanoseconds / 1.0e6);
+    std::printf("计时: 预热 %.0f ms 后跑 %d 批，每批按标定凑到约 %.0f ms，中位数/平均值为逐批归一后的结果\n", g_warmupNanoseconds / 1.0e6, g_batchCount, g_batchTargetNanoseconds / 1.0e6);
     std::printf("说明: 表达式解析一列的每次调用含 AST 的构造与释放；词法一列只跑到 End，不建 AST\n\n");
 
     // 数量语料：五个短用例加一个拼到 200 字符以上的长式子
     const std::vector<BenchmarkCase> quantityCases = {
-            {"数量解析/典型输入 1.5 mm", "1.5 mm"}, {"数量解析/分数 1/2 mm", "1/2 mm"},
-            {"数量解析/英制 5' 6\"", "5' 6\""},     {"数量解析/组合 2 m/s", "2 m/s"},
-            {"数量解析/科学计数 1e3 kg", "1e3 kg"}, {"数量解析/长式子(>200 字符)", repeatToLength("1+2*3-4/5+6^2+sin(30)+sqrt(16)+abs(-7)", "+", 200)},
+            {"数量解析/典型输入 1.5 mm", "1.5 mm"}, {"数量解析/分数 1/2 mm", "1/2 mm"},     {"数量解析/英制 5' 6\"", "5' 6\""},
+            {"数量解析/组合 2 m/s", "2 m/s"},       {"数量解析/科学计数 1e3 kg", "1e3 kg"}, {"数量解析/长式子(>200 字符)", repeatToLength("1+2*3-4/5+6^2+sin(30)+sqrt(16)+abs(-7)", "+", 200)},
     };
 
     // 表达式语料：七个短用例，再加 300 字符以上的长实参列表、上限内的加法链与 50 层括号
     const std::vector<BenchmarkCase> expressionCases = {
-            {"表达式解析/属性相乘 Box.Length*2", "Box.Length * 2"},
-            {"表达式解析/当前对象 .Length", ".Length"},
-            {"表达式解析/跨文档 <<Part>>", "<<Part>>.Box.Length"},
-            {"表达式解析/单元格区间 [1:5]", "Box.Cells[1:5]"},
-            {"表达式解析/三元 1>0?2:3", "1 > 0 ? 2 : 3"},
-            {"表达式解析/函数 sin+cos", "sin(90) + cos(0)"},
-            {"表达式解析/多参数 max(1;5,3)", "max(1; 5, 3)"},
-            {"表达式解析/长实参列表(>300 字符)", wideCallToLength(300)},
-            {"表达式解析/加法链(上限内)", chainWithinDepthLimit()},
-            {"表达式解析/括号嵌套 50 层", std::string(50, '(') + "1+2*3" + std::string(50, ')')},
+            {"表达式解析/属性相乘 Box.Length*2", "Box.Length * 2"}, {"表达式解析/当前对象 .Length", ".Length"},
+            {"表达式解析/跨文档 <<Part>>", "<<Part>>.Box.Length"},  {"表达式解析/单元格区间 [1:5]", "Box.Cells[1:5]"},
+            {"表达式解析/三元 1>0?2:3", "1 > 0 ? 2 : 3"},           {"表达式解析/函数 sin+cos", "sin(90) + cos(0)"},
+            {"表达式解析/多参数 max(1;5,3)", "max(1; 5, 3)"},       {"表达式解析/长实参列表(>300 字符)", wideCallToLength(300)},
+            {"表达式解析/加法链(上限内)", chainWithinDepthLimit()}, {"表达式解析/括号嵌套 50 层", std::string(50, '(') + "1+2*3" + std::string(50, ')')},
     };
 
     // 求值语料：解析 + 求值整条链路，覆盖内置函数、自定义函数、序列与字典引用
     const std::vector<BenchmarkCase> evaluationCases = {
-            {"求值/纯算术 1+2*3", "1 + 2 * 3"},
-            {"求值/数量加法 2 mm + 3 mm", "2 mm + 3 mm"},
-            {"求值/内置函数 sqrt+abs", "sqrt(16) + abs(-7)"},
-            {"求值/自定义函数 taxed(100 mm)", "taxed(100 mm)"},
-            {"求值/序列构建与下标", "list(1; 2; 3)[1]"},
-            {"求值/序列区间聚合", "sum(list(1; 2; 3; 4)[0:2])"},
-            {"求值/字典引用 Length * 2", "Length * 2"},
-            {"求值/字典多名字", "Length + Width * 2"},
+            {"求值/纯算术 1+2*3", "1 + 2 * 3"},          {"求值/数量加法 2 mm + 3 mm", "2 mm + 3 mm"},        {"求值/内置函数 sqrt+abs", "sqrt(16) + abs(-7)"}, {"求值/自定义函数 taxed(100 mm)", "taxed(100 mm)"},
+            {"求值/序列构建与下标", "list(1; 2; 3)[1]"}, {"求值/序列区间聚合", "sum(list(1; 2; 3; 4)[0:2])"}, {"求值/字典引用 Length * 2", "Length * 2"},       {"求值/字典多名字", "Length + Width * 2"},
     };
 
     // 词法语料：只取短式与长链两条，用来区分词法与语法分析的开销
@@ -485,23 +469,22 @@ int main()
         const BenchmarkStats handwrittenStats = measure([&entry] { return parseQuantity(entry.text); });
         printStats(entry.label, entry.text, handwrittenStats);
 #if defined(BENCH_HAS_LEGACY_QUANTITY)
-        const std::string generatedLabel = std::string("生成解析/") + entry.label.substr(quantityLabelPrefix.size());
+        const std::string generatedLabel  = std::string("生成解析/") + entry.label.substr(quantityLabelPrefix.size());
         const std::string comparisonLabel = std::string("数量对比/") + entry.label.substr(quantityLabelPrefix.size());
         // 先各跑一次取结果位模式：两侧若数值不同，说明对比的两条路径做的不是同一件事，必须报出来。
         const std::uintptr_t handwrittenBits = parseQuantity(entry.text);
         if (validate(generatedLabel, [&entry] { return ExpressionEngine::Benchmarks::parseLegacyQuantity(entry.text); }))
         {
-            const std::uintptr_t  generatedBits  = ExpressionEngine::Benchmarks::parseLegacyQuantity(entry.text);
+            const std::uintptr_t generatedBits  = ExpressionEngine::Benchmarks::parseLegacyQuantity(entry.text);
             const BenchmarkStats generatedStats = measure([&entry] { return ExpressionEngine::Benchmarks::parseLegacyQuantity(entry.text); });
             printStats(generatedLabel, entry.text, generatedStats);
             // 倍数用两侧各自的中位数相除：生成代码每次调用额外建/销毁扫描 buffer，固定开销也计入其中。
             const double slowdownRatio = generatedStats.medianNanoseconds / handwrittenStats.medianNanoseconds;
-            std::printf("%s生成 ÷ 手写 = %6.2f 倍耗时（中位数，越大越慢）  结果%s\n", padLabel(comparisonLabel, 34).c_str(), slowdownRatio,
-                        handwrittenBits == generatedBits ? "一致" : "不一致");
+            std::printf("%s生成 ÷ 手写 = %6.2f 倍耗时（中位数，越大越慢）  结果%s\n", padLabel(comparisonLabel, 34).c_str(), slowdownRatio, handwrittenBits == generatedBits ? "一致" : "不一致");
             if (handwrittenBits != generatedBits)
             {
-                std::printf("%s手写 %.17g  生成 %.17g\n", padLabel("数值差异/" + entry.label.substr(quantityLabelPrefix.size()), 34).c_str(),
-                            std::bit_cast<double>(static_cast<std::uint64_t>(handwrittenBits)), std::bit_cast<double>(static_cast<std::uint64_t>(generatedBits)));
+                std::printf("%s手写 %.17g  生成 %.17g\n", padLabel("数值差异/" + entry.label.substr(quantityLabelPrefix.size()), 34).c_str(), std::bit_cast<double>(static_cast<std::uint64_t>(handwrittenBits)),
+                            std::bit_cast<double>(static_cast<std::uint64_t>(generatedBits)));
             }
         }
 #endif

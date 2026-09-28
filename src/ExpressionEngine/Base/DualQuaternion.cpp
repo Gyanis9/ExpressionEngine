@@ -28,8 +28,8 @@ namespace ExpressionEngine::Base
     DualQuaternion operator*(const DualQuaternion &left, const DualQuaternion &right)
     {
         // 四元数乘法公式：分量本身是对偶数，ε 项的运算由 DualNumber 的运算符完成
-        return {left.w * right.x + left.x * right.w + left.y * right.z - left.z * right.y, left.w * right.y + left.y * right.w + left.z * right.x - left.x * right.z,
-                left.w * right.z + left.z * right.w + left.x * right.y - left.y * right.x, left.w * right.w - left.x * right.x - left.y * right.y - left.z * right.z};
+        return {left.w * right.x + left.x * right.w + left.y * right.z - left.z * right.y, left.w * right.y + left.y * right.w + left.z * right.x - left.x * right.z, left.w * right.z + left.z * right.w + left.x * right.y - left.y * right.x,
+                left.w * right.w - left.x * right.x - left.y * right.y - left.z * right.z};
     }
 
     DualQuaternion operator*(const DualQuaternion &left, const double right)
@@ -106,11 +106,10 @@ namespace ExpressionEngine::Base
 
         // 螺旋坐标下插值：转角与沿轴位移同步按 t 缩放
         rotationAngle *= t;
-        pitch         *= t;
+        pitch *= t;
 
         // 换算回四元数：实部为旋转，对偶部为沿螺旋轴的平移编码
         return {screwAxis * std::sin(rotationAngle / 2) + DualQuaternion(0.0, 0.0, 0.0, std::cos(rotationAngle / 2)),
-                screwMoment * std::sin(rotationAngle / 2) + pitch / 2 * std::cos(rotationAngle / 2) * screwAxis +
-                DualQuaternion(0.0, 0.0, 0.0, -pitch / 2 * std::sin(rotationAngle / 2))};
+                screwMoment * std::sin(rotationAngle / 2) + pitch / 2 * std::cos(rotationAngle / 2) * screwAxis + DualQuaternion(0.0, 0.0, 0.0, -pitch / 2 * std::sin(rotationAngle / 2))};
     }
 } // namespace ExpressionEngine::Base

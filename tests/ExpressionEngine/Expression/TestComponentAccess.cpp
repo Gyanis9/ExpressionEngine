@@ -58,8 +58,7 @@ namespace ExpressionEngine::Expression
         /// 造一个变量引用节点；用例只关心结构，不接解析器
         ExpressionPtr makeVariableReference(std::string documentName, std::string objectName, std::string propertyName)
         {
-            return std::make_unique<VariableExpression>(
-                    nullptr, VariableExpression::Reference{.documentName = std::move(documentName), .objectName = std::move(objectName), .propertyName = std::move(propertyName)});
+            return std::make_unique<VariableExpression>(nullptr, VariableExpression::Reference{.documentName = std::move(documentName), .objectName = std::move(objectName), .propertyName = std::move(propertyName)});
         }
 
     } // namespace
@@ -90,7 +89,9 @@ namespace ExpressionEngine::Expression
 
         // 混进孤立续字节的文本（宿主从外部数据拿到的字节串）：末字符还是最后一个字符，
         // 不是那个孤立字节——计数与定位必须按同一套规则切分才做得到
-        const Value withStray(std::string("\x80" "A", 2));
+        const Value withStray(std::string("\x80"
+                                          "A",
+                                          2));
         EXPECT_EQ(std::get<std::string>(applyComponent(withStray, makeIndexComponent(-1.0), "测试")), "A");
         EXPECT_EQ(std::get<std::string>(applyComponent(withStray, makeIndexComponent(0.0), "测试")), std::string("\x80", 1));
     }
@@ -161,8 +162,8 @@ namespace ExpressionEngine::Expression
     {
         const Value vector(Base::Vector3d(1.0, 2.0, 3.0));
 
-        const Value   sliced   = applyComponent(vector, makeRangeComponent(0.0, 1.0), "测试");
-        const auto   *sequence = std::get_if<ValueSequence>(&sliced);
+        const Value sliced   = applyComponent(vector, makeRangeComponent(0.0, 1.0), "测试");
+        const auto *sequence = std::get_if<ValueSequence>(&sliced);
         ASSERT_NE(sequence, nullptr);
         ASSERT_EQ(sequence->size(), 2U);
         EXPECT_DOUBLE_EQ(toDouble(sequenceAt(*sequence, 0), "首项"), 1.0);
@@ -245,9 +246,9 @@ namespace ExpressionEngine::Expression
      */
     TEST(ComponentAccessTest, CollectReferencesKeepsFirstAppearanceOrder)
     {
-        auto sum = std::make_unique<OperatorExpression>(nullptr, makeVariableReference("", "Box", "Length"), OperatorExpression::Operator::Add,
-                                                        std::make_unique<OperatorExpression>(nullptr, std::make_unique<NumberExpression>(nullptr, Units::Quantity(2.0)),
-                                                                                             OperatorExpression::Operator::Multiply, makeVariableReference("", "Other", "Width")));
+        auto sum = std::make_unique<OperatorExpression>(
+                nullptr, makeVariableReference("", "Box", "Length"), OperatorExpression::Operator::Add,
+                std::make_unique<OperatorExpression>(nullptr, std::make_unique<NumberExpression>(nullptr, Units::Quantity(2.0)), OperatorExpression::Operator::Multiply, makeVariableReference("", "Other", "Width")));
 
         const std::vector<VariableReference> references = sum->collectReferences();
         ASSERT_EQ(references.size(), static_cast<std::size_t>(2));
@@ -262,20 +263,17 @@ namespace ExpressionEngine::Expression
      */
     TEST(ComponentAccessTest, CollectReferencesDeduplicatesAndRecurses)
     {
-        auto product = std::make_unique<OperatorExpression>(nullptr, makeVariableReference("", "Box", "Length"), OperatorExpression::Operator::Multiply,
-                                                            makeVariableReference("", "Box", "Length"));
+        auto                                 product    = std::make_unique<OperatorExpression>(nullptr, makeVariableReference("", "Box", "Length"), OperatorExpression::Operator::Multiply, makeVariableReference("", "Box", "Length"));
         const std::vector<VariableReference> references = product->collectReferences();
         ASSERT_EQ(references.size(), static_cast<std::size_t>(1));
         EXPECT_EQ(references[0].propertyName, "Length");
 
         // 同对象同属性但文档不同，是两条独立依赖
-        auto qualified = std::make_unique<OperatorExpression>(nullptr, makeVariableReference("", "Box", "Length"), OperatorExpression::Operator::Add,
-                                                              makeVariableReference("Doc", "Box", "Length"));
+        auto qualified = std::make_unique<OperatorExpression>(nullptr, makeVariableReference("", "Box", "Length"), OperatorExpression::Operator::Add, makeVariableReference("Doc", "Box", "Length"));
         EXPECT_EQ(qualified->collectReferences().size(), static_cast<std::size_t>(2));
 
         // 条件节点的条件与两个分支都会被收集
-        auto conditional = std::make_unique<ConditionalExpression>(nullptr, makeVariableReference("", "Box", "UseTop"), makeVariableReference("", "Box", "Top"),
-                                                                   makeVariableReference("", "Box", "Bottom"));
+        auto conditional = std::make_unique<ConditionalExpression>(nullptr, makeVariableReference("", "Box", "UseTop"), makeVariableReference("", "Box", "Top"), makeVariableReference("", "Box", "Bottom"));
         EXPECT_EQ(conditional->collectReferences().size(), static_cast<std::size_t>(3));
 
         // 函数实参里的引用同样被递归收集

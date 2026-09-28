@@ -24,10 +24,10 @@ namespace ExpressionEngine::Base
      */
     struct ParseFailure
     {
-        std::string        message;                   ///< 中文可操作文案，带位置时已含列号
-        std::optional<int> column;                    ///< 出错列，1 起，按 UTF-8 码点计数；只有文案以「表达式第 N 列」定位的报错才有值，
-                                                       ///< 空文本、层数超限、词法期整数溢出这些没有前缀定位的留空
-        ErrorKind          kind = ErrorKind::Other;   ///< 故障类别，取自抛出的那个异常对象；宿主自己构造时留 Other
+        std::string        message;        ///< 中文可操作文案，带位置时已含列号
+        std::optional<int> column;         ///< 出错列，1 起，按 UTF-8 码点计数；只有文案以「表达式第 N 列」定位的报错才有值，
+                                           ///< 空文本、层数超限、词法期整数溢出这些没有前缀定位的留空
+        ErrorKind kind = ErrorKind::Other; ///< 故障类别，取自抛出的那个异常对象；宿主自己构造时留 Other
     };
 
 } // namespace ExpressionEngine::Base

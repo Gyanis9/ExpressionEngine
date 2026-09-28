@@ -26,7 +26,7 @@ namespace ExpressionEngine::Expression
             {
                 const ExpressionPtr expression    = ExpressionParser::parse(nullptr, text);
                 const Value         value         = expression->evaluate();
-                const auto *        quantityValue = std::get_if<Units::Quantity>(&value);
+                const auto         *quantityValue = std::get_if<Units::Quantity>(&value);
                 if (quantityValue == nullptr)
                 {
                     ADD_FAILURE() << "表达式 " << text << " 的结果不是数量";
@@ -180,7 +180,7 @@ namespace ExpressionEngine::Expression
             const auto referenceOf = [](const std::string &text)
             {
                 const ExpressionPtr expression = ExpressionParser::parse(nullptr, text);
-                const auto *        variable   = dynamic_cast<const VariableExpression *>(expression.get());
+                const auto         *variable   = dynamic_cast<const VariableExpression *>(expression.get());
                 EXPECT_NE(variable, nullptr) << text;
                 if (variable == nullptr)
                 {
@@ -204,7 +204,7 @@ namespace ExpressionEngine::Expression
 
             // 索引与路径分量挂在同一条引用上
             const ExpressionPtr indexed         = ExpressionParser::parse(nullptr, "Box.Cells[1:5]");
-            const auto *        indexedVariable = dynamic_cast<const VariableExpression *>(indexed.get());
+            const auto         *indexedVariable = dynamic_cast<const VariableExpression *>(indexed.get());
             ASSERT_NE(indexedVariable, nullptr);
             EXPECT_EQ(indexedVariable->components().size(), 1U);
             EXPECT_EQ(indexedVariable->components().front().kind, Expression::ComponentKind::Range);
@@ -222,7 +222,8 @@ namespace ExpressionEngine::Expression
                 try
                 {
                     first = ExpressionParser::parse(nullptr, text);
-                } catch (const Base::Exception &error) {
+                } catch (const Base::Exception &error)
+                {
                     ADD_FAILURE() << "原式解析不过：" << text << " （" << error.message() << "）";
                     continue;
                 }
@@ -262,7 +263,7 @@ namespace ExpressionEngine::Expression
 
                 const ExpressionPtr reparsed = ExpressionParser::parse(nullptr, printed);
                 const Value         value    = reparsed->evaluate();
-                const auto *        parsed   = std::get_if<std::string>(&value);
+                const auto         *parsed   = std::get_if<std::string>(&value);
                 ASSERT_NE(parsed, nullptr) << "持久化文本 " << printed << " 没解析回文本取值";
                 EXPECT_EQ(*parsed, text);
             }
@@ -435,7 +436,8 @@ namespace ExpressionEngine::Expression
                 try
                 {
                     second = ExpressionParser::parse(nullptr, printed);
-                } catch (const Base::Exception &error) {
+                } catch (const Base::Exception &error)
+                {
                     ADD_FAILURE() << "回写文本解析不回来：" << printed << " （" << error.message() << "）";
                     continue;
                 }
@@ -485,11 +487,7 @@ namespace ExpressionEngine::Expression
          */
         TEST(ExpressionParserTest, GeometryAndListTextRoundTrip)
         {
-            for (const std::string &text: {"vector(1; 2; 3)",
-                                           "matrix(1; 0; 0; 0; 0; 1; 0; 0; 0; 0; 1; 0; 0; 0; 0; 1)",
-                                           "rotation(0; 0; 0.5)",
-                                           "placement(vector(1; 2; 3); rotation(0; 0; 0.5))",
-                                           "list(vector(1; 2; 3); 2 m; <<文本>>)"})
+            for (const std::string &text: {"vector(1; 2; 3)", "matrix(1; 0; 0; 0; 0; 1; 0; 0; 0; 0; 1; 0; 0; 0; 0; 1)", "rotation(0; 0; 0.5)", "placement(vector(1; 2; 3); rotation(0; 0; 0.5))", "list(vector(1; 2; 3); 2 m; <<文本>>)"})
             {
                 SCOPED_TRACE(text);
                 const ExpressionPtr folded   = ExpressionParser::parse(nullptr, text)->simplify();
@@ -779,7 +777,7 @@ namespace ExpressionEngine::Expression
                 EXPECT_TRUE(valuesEqual(original, simplified->evaluate())) << sample << " 化简后取值变了";
 
                 // 存档文本还要能原样解析回来，算出同一个值
-                const std::string text = simplified->toString(true);
+                const std::string text     = simplified->toString(true);
                 const auto        reparsed = ExpressionParser::tryParse(nullptr, text);
                 ASSERT_TRUE(reparsed.has_value()) << sample << " 化简后写成「" << text << "」解析不回来";
                 EXPECT_TRUE(valuesEqual(original, (*reparsed)->evaluate())) << sample << " 的存档文本「" << text << "」算出了别的值";
@@ -888,4 +886,4 @@ namespace ExpressionEngine::Expression
             EXPECT_DOUBLE_EQ(quantityOf("2^1023").getValue(), std::pow(2.0, 1023.0));
         }
     } // namespace
-}     // namespace ExpressionEngine::Expression
+} // namespace ExpressionEngine::Expression

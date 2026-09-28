@@ -27,8 +27,7 @@ namespace ExpressionEngine::Units
          * @param isDefault 是否标记为默认方案
          * @return 方案定义
          */
-        UnitsSchemaSpecification makeLengthSchema(const std::size_t number, const std::string &name, std::vector<UnitTranslationSpecification> rows,
-                                                  const bool isDefault = false)
+        UnitsSchemaSpecification makeLengthSchema(const std::size_t number, const std::string &name, std::vector<UnitTranslationSpecification> rows, const bool isDefault = false)
         {
             UnitsSchemaSpecification specification{.number = number, .name = name, .basicLengthUnitString = "mm", .isDefault = isDefault};
             specification.translationSpecifications["Length"] = std::move(rows);
@@ -50,14 +49,13 @@ namespace ExpressionEngine::Units
         /**
          * @brief 执行动作并取回它抛出的 Base::Exception 消息；没抛就算用例失败
          */
-        template <typename Action>
+        template<typename Action>
         std::string thrownMessage(const Action &action)
         {
             try
             {
                 action();
-            }
-            catch (const Base::Exception &error)
+            } catch (const Base::Exception &error)
             {
                 return error.message();
             }
@@ -115,10 +113,7 @@ namespace ExpressionEngine::Units
         {
             const UnitsSchemasDataPack emptyPack{.specifications = {}, .defaultDecimals = 2, .defaultDenominator = 8};
 
-            const std::string message = thrownMessage([&emptyPack]
-            {
-                static_cast<void>(UnitsSchemas{emptyPack});
-            });
+            const std::string message = thrownMessage([&emptyPack] { static_cast<void>(UnitsSchemas{emptyPack}); });
 
             EXPECT_NE(message.find("没有任何方案"), std::string::npos) << "报错文案要指明原因，实际：" << message;
         }
@@ -136,17 +131,11 @@ namespace ExpressionEngine::Units
 
             UnitsSchemas schemas{pack};
 
-            const std::string byName = thrownMessage([&schemas]
-            {
-                static_cast<void>(schemas.specification("NoSuchSchema"));
-            });
+            const std::string byName = thrownMessage([&schemas] { static_cast<void>(schemas.specification("NoSuchSchema")); });
             EXPECT_NE(byName.find("NoSuchSchema"), std::string::npos) << "实际：" << byName;
             EXPECT_THROW(schemas.select("NoSuchSchema"), Base::NameError);
 
-            const std::string byNumber = thrownMessage([&schemas]
-            {
-                static_cast<void>(schemas.specification(99U));
-            });
+            const std::string byNumber = thrownMessage([&schemas] { static_cast<void>(schemas.specification(99U)); });
             EXPECT_NE(byNumber.find("99"), std::string::npos) << "实际：" << byNumber;
             EXPECT_THROW(schemas.select(99U), Base::NameError);
         }
@@ -208,11 +197,10 @@ namespace ExpressionEngine::Units
          */
         TEST(UnitsSchemaCustomPackTest, CallbackFormatsWhenNameIsNotRegistered)
         {
-            const UnitsSchemaSpecification specification =
-                    makeLengthSchema(0, "Custom", {makeSpecialRow("myFormat", [](const double value) { return std::format("<{}>", value); })});
+            const UnitsSchemaSpecification specification = makeLengthSchema(0, "Custom", {makeSpecialRow("myFormat", [](const double value) { return std::format("<{}>", value); })});
 
             const UnitsSchema schema{specification};
-            double            factor    = 0.0;
+            double            factor = 0.0;
             std::string       unitString;
             const Quantity    quantity{2.5, Unit::Length};
 
@@ -227,8 +215,7 @@ namespace ExpressionEngine::Units
          */
         TEST(UnitsSchemaCustomPackTest, RegisteredSpecialTakesPrecedenceOverCallback)
         {
-            const UnitsSchemaSpecification specification =
-                    makeLengthSchema(0, "Custom", {makeSpecialRow("toFractional", [](const double) { return std::string{"callback"}; })});
+            const UnitsSchemaSpecification specification = makeLengthSchema(0, "Custom", {makeSpecialRow("toFractional", [](const double) { return std::string{"callback"}; })});
 
             Quantity       quantity{100.0, Unit::Length};
             QuantityFormat format;
@@ -237,7 +224,7 @@ namespace ExpressionEngine::Units
             quantity.setFormat(format);
 
             const UnitsSchema schema{specification};
-            double            factor    = 0.0;
+            double            factor = 0.0;
             std::string       unitString;
 
             // 100 mm = 3.937 in，按 1/16 英寸落进 3" + 15/16"；因子与单位串由内置函数写回
@@ -256,10 +243,7 @@ namespace ExpressionEngine::Units
             const UnitsSchema schema{specification};
             const Quantity    quantity{100.0, Unit::Length};
 
-            const std::string message = thrownMessage([&schema, &quantity]
-            {
-                static_cast<void>(schema.translate(quantity));
-            });
+            const std::string message = thrownMessage([&schema, &quantity] { static_cast<void>(schema.translate(quantity)); });
 
             EXPECT_NE(message.find("toNope"), std::string::npos) << "报错文案要指出未登记的名字，实际：" << message;
         }
@@ -274,10 +258,7 @@ namespace ExpressionEngine::Units
             const UnitsSchema schema{specification};
             const Quantity    quantity{1.0, Unit::Length};
 
-            const std::string message = thrownMessage([&schema, &quantity]
-            {
-                static_cast<void>(schema.translate(quantity));
-            });
+            const std::string message = thrownMessage([&schema, &quantity] { static_cast<void>(schema.translate(quantity)); });
 
             EXPECT_NE(message.find("兜底条目"), std::string::npos) << "实际：" << message;
         }
@@ -295,9 +276,9 @@ namespace ExpressionEngine::Units
             volume.setFormat(format);
 
             const UnitsSchema schema{specification};
-            double            factor    = 0.0;
+            double            factor = 0.0;
             std::string       unitString;
-            const std::string ownUnit   = volume.getUnit().getString();
+            const std::string ownUnit = volume.getUnit().getString();
 
             // 换算表只有 Length，体积照自身单位写出来，数值不被换算
             EXPECT_EQ(schema.translate(volume, factor, unitString), "1.00 " + ownUnit);
@@ -305,5 +286,5 @@ namespace ExpressionEngine::Units
             EXPECT_DOUBLE_EQ(factor, 1.0);
         }
 
-    }
+    } // namespace
 } // namespace ExpressionEngine::Units

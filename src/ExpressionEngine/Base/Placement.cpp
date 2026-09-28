@@ -15,13 +15,11 @@ namespace ExpressionEngine::Base
         fromMatrix(matrix);
     }
 
-    Placement::Placement(const Vector3d &position, const Rotation &rotation) :
-        m_position(position), m_rotation(rotation)
+    Placement::Placement(const Vector3d &position, const Rotation &rotation) : m_position(position), m_rotation(rotation)
     {
     }
 
-    Placement::Placement(const Vector3d &position, const Rotation &rotation, const Vector3d &center) :
-        m_rotation(rotation)
+    Placement::Placement(const Vector3d &position, const Rotation &rotation, const Vector3d &center) : m_rotation(rotation)
     {
         // 绕局部点 center 旋转：把 center 的像从位置中扣除，使其在变换后落在 center + position
         Vector3d rotatedCenter = center;
@@ -32,7 +30,7 @@ namespace ExpressionEngine::Base
     Placement Placement::fromDualQuaternion(const DualQuaternion &dualQuaternion)
     {
         // 实部就是旋转四元数，分量顺序为 x, y, z, w
-        const Rotation       rotation(dualQuaternion.x.real, dualQuaternion.y.real, dualQuaternion.z.real, dualQuaternion.w.real);
+        const Rotation rotation(dualQuaternion.x.real, dualQuaternion.y.real, dualQuaternion.z.real, dualQuaternion.w.real);
         // 平移按 t = 2·d·r* 还原：d 为对偶部、r* 为旋转共轭
         const DualQuaternion moveQuaternion = 2 * dualQuaternion.dual() * dualQuaternion.real().conjugate();
         return {Vector3d(moveQuaternion.x.real, moveQuaternion.y.real, moveQuaternion.z.real), rotation};

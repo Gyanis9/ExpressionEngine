@@ -30,7 +30,7 @@ namespace
 TEST(RotationTest, DefaultConstructorIsIdentity)
 {
     const Rotation rotation;
-    const double * values = rotation.getValue();
+    const double  *values = rotation.getValue();
     EXPECT_DOUBLE_EQ(values[0], 0.0);
     EXPECT_DOUBLE_EQ(values[1], 0.0);
     EXPECT_DOUBLE_EQ(values[2], 0.0);
@@ -325,7 +325,7 @@ TEST(RotationTest, EveryEulerSequenceRoundTrips)
     for (int value = Rotation::EulerAngles; value < Rotation::EulerSequenceLast; ++value)
     {
         const auto     sequence = static_cast<Rotation::EulerSequence>(value);
-        const Rotation rotation   = Rotation::fromEulerAngles(sequence, 30.0, 40.0, 50.0);
+        const Rotation rotation = Rotation::fromEulerAngles(sequence, 30.0, 40.0, 50.0);
 
         double alpha = 0.0;
         double beta  = 0.0;
@@ -348,8 +348,7 @@ TEST(RotationTest, EveryEulerSequenceRoundTrips)
  */
 TEST(Rotation, FromNormalVectorTurnsZToTheGivenDirection)
 {
-    for (const Vector3d &normal: {Vector3d(0.0, 0.0, 1.0), Vector3d(1.0, 0.0, 0.0), Vector3d(1.0, 2.0, 3.0), Vector3d(0.0, 0.0, -1.0),
-                                  Vector3d(0.0, 0.0, -5.0)})
+    for (const Vector3d &normal: {Vector3d(0.0, 0.0, 1.0), Vector3d(1.0, 0.0, 0.0), Vector3d(1.0, 2.0, 3.0), Vector3d(0.0, 0.0, -1.0), Vector3d(0.0, 0.0, -5.0)})
     {
         const Vector3d turned = Rotation::fromNormalVector(normal).multiplyVector(Vector3d(0.0, 0.0, 1.0));
         EXPECT_TRUE(turned == normal.normalized()) << "法向 " << normal.x << "," << normal.y << "," << normal.z;

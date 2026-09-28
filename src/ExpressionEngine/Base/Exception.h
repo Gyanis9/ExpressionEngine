@@ -58,8 +58,7 @@ namespace ExpressionEngine::Base
          * @param kind 故障类别；派生类带上自己的类别，宿主自己的派生类留默认值即可
          * @param location 抛出位置，默认由编译器在调用点填入
          */
-        explicit Exception(std::string message, ErrorKind kind = ErrorKind::Other,
-                           const std::source_location &location = std::source_location::current());
+        explicit Exception(std::string message, ErrorKind kind = ErrorKind::Other, const std::source_location &location = std::source_location::current());
 
         /**
          * @brief 取故障类别
@@ -137,9 +136,7 @@ namespace ExpressionEngine::Base
          *              处置方式不同的抛出点显式给出
          * @param location 抛出位置，默认由编译器在调用点填入
          */
-        explicit ParserError(std::string message, ErrorKind kind = ErrorKind::Parser,
-                             const std::source_location &location = std::source_location::current()) :
-            Exception(std::move(message), kind, location)
+        explicit ParserError(std::string message, ErrorKind kind = ErrorKind::Parser, const std::source_location &location = std::source_location::current()) : Exception(std::move(message), kind, location)
         {
         }
     };
@@ -156,8 +153,7 @@ namespace ExpressionEngine::Base
          * @param message 中文可操作文案
          * @param location 抛出位置，默认由编译器在调用点填入
          */
-        explicit UnitsMismatchError(std::string message, const std::source_location &location = std::source_location::current()) :
-            Exception(std::move(message), ErrorKind::UnitsMismatch, location)
+        explicit UnitsMismatchError(std::string message, const std::source_location &location = std::source_location::current()) : Exception(std::move(message), ErrorKind::UnitsMismatch, location)
         {
         }
     };
@@ -174,8 +170,7 @@ namespace ExpressionEngine::Base
          * @param message 中文可操作文案
          * @param location 抛出位置，默认由编译器在调用点填入
          */
-        explicit OverflowError(std::string message, const std::source_location &location = std::source_location::current()) :
-            Exception(std::move(message), ErrorKind::Overflow, location)
+        explicit OverflowError(std::string message, const std::source_location &location = std::source_location::current()) : Exception(std::move(message), ErrorKind::Overflow, location)
         {
         }
     };
@@ -192,8 +187,7 @@ namespace ExpressionEngine::Base
          * @param message 中文可操作文案
          * @param location 抛出位置，默认由编译器在调用点填入
          */
-        explicit UnderflowError(std::string message, const std::source_location &location = std::source_location::current()) :
-            Exception(std::move(message), ErrorKind::Underflow, location)
+        explicit UnderflowError(std::string message, const std::source_location &location = std::source_location::current()) : Exception(std::move(message), ErrorKind::Underflow, location)
         {
         }
     };
@@ -210,8 +204,7 @@ namespace ExpressionEngine::Base
          * @param message 中文可操作文案
          * @param location 抛出位置，默认由编译器在调用点填入
          */
-        explicit TypeError(std::string message, const std::source_location &location = std::source_location::current()) :
-            Exception(std::move(message), ErrorKind::Type, location)
+        explicit TypeError(std::string message, const std::source_location &location = std::source_location::current()) : Exception(std::move(message), ErrorKind::Type, location)
         {
         }
     };
@@ -228,8 +221,7 @@ namespace ExpressionEngine::Base
          * @param message 中文可操作文案
          * @param location 抛出位置，默认由编译器在调用点填入
          */
-        explicit ValueError(std::string message, const std::source_location &location = std::source_location::current()) :
-            Exception(std::move(message), ErrorKind::Value, location)
+        explicit ValueError(std::string message, const std::source_location &location = std::source_location::current()) : Exception(std::move(message), ErrorKind::Value, location)
         {
         }
     };
@@ -246,8 +238,7 @@ namespace ExpressionEngine::Base
          * @param message 中文可操作文案
          * @param location 抛出位置，默认由编译器在调用点填入
          */
-        explicit IndexError(std::string message, const std::source_location &location = std::source_location::current()) :
-            Exception(std::move(message), ErrorKind::Index, location)
+        explicit IndexError(std::string message, const std::source_location &location = std::source_location::current()) : Exception(std::move(message), ErrorKind::Index, location)
         {
         }
     };
@@ -264,8 +255,7 @@ namespace ExpressionEngine::Base
          * @param message 中文可操作文案
          * @param location 抛出位置，默认由编译器在调用点填入
          */
-        explicit AttributeError(std::string message, const std::source_location &location = std::source_location::current()) :
-            Exception(std::move(message), ErrorKind::Attribute, location)
+        explicit AttributeError(std::string message, const std::source_location &location = std::source_location::current()) : Exception(std::move(message), ErrorKind::Attribute, location)
         {
         }
     };
@@ -282,8 +272,7 @@ namespace ExpressionEngine::Base
          * @param message 中文可操作文案
          * @param location 抛出位置，默认由编译器在调用点填入
          */
-        explicit NameError(std::string message, const std::source_location &location = std::source_location::current()) :
-            Exception(std::move(message), ErrorKind::Name, location)
+        explicit NameError(std::string message, const std::source_location &location = std::source_location::current()) : Exception(std::move(message), ErrorKind::Name, location)
         {
         }
     };
@@ -300,8 +289,7 @@ namespace ExpressionEngine::Base
          * @param message 中文可操作文案
          * @param location 抛出位置，默认由编译器在调用点填入
          */
-        explicit ExpressionError(std::string message, const std::source_location &location = std::source_location::current()) :
-            Exception(std::move(message), ErrorKind::Expression, location)
+        explicit ExpressionError(std::string message, const std::source_location &location = std::source_location::current()) : Exception(std::move(message), ErrorKind::Expression, location)
         {
         }
     };

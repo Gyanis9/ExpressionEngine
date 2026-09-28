@@ -9,8 +9,7 @@
 namespace ExpressionEngine::Base
 {
     template<class FloatingType>
-    Vector3<FloatingType>::Vector3(FloatingType xValue, FloatingType yValue, FloatingType zValue) :
-        x(xValue), y(yValue), z(zValue)
+    Vector3<FloatingType>::Vector3(FloatingType xValue, FloatingType yValue, FloatingType zValue) : x(xValue), y(yValue), z(zValue)
     {
     }
 
@@ -271,7 +270,7 @@ namespace ExpressionEngine::Base
         const Vector3<FloatingType> toPoint   = *this - firstPoint;
         const FloatingType          dot       = toPoint * fromFirst;
         // 参数 t 夹紧到 [0,1]，使投影落在线段范围内
-        const FloatingType          t         = std::clamp(dot / squaredLength, static_cast<FloatingType>(0), static_cast<FloatingType>(1));
+        const FloatingType t = std::clamp(dot / squaredLength, static_cast<FloatingType>(0), static_cast<FloatingType>(1));
         return t * fromFirst - toPoint;
     }
 
@@ -399,7 +398,7 @@ namespace ExpressionEngine::Base
         {
             // 零向量没有方向：静默不做事会把调用方的错误藏起来，这里显式报错
             throw ValueError("零向量无法归一化（长度为 0，没有方向）；请先用 isNull() 判断并跳过，"
-                    "或改为先给向量赋值再归一化");
+                             "或改为先给向量赋值再归一化");
         }
 
         // 长度恰为 1 时无需除法，直接返回以省去三次除法

@@ -86,9 +86,8 @@ namespace ExpressionEngine::Expression
          */
         TEST(ExpressionNodes, OperatorTextRoundTrips)
         {
-            const std::vector<Operator> operators{Operator::Add,     Operator::Subtract, Operator::Multiply, Operator::Divide, Operator::Modulo, Operator::Power,
-                                                  Operator::Equal,   Operator::NotEqual, Operator::Less,     Operator::Greater,
-                                                  Operator::LessEqual, Operator::GreaterEqual};
+            const std::vector<Operator> operators{Operator::Add,   Operator::Subtract, Operator::Multiply, Operator::Divide,  Operator::Modulo,    Operator::Power,
+                                                  Operator::Equal, Operator::NotEqual, Operator::Less,     Operator::Greater, Operator::LessEqual, Operator::GreaterEqual};
 
             for (const Operator operation: operators)
             {
@@ -152,7 +151,7 @@ namespace ExpressionEngine::Expression
          */
         TEST(ExpressionNodes, CommentIsMetadataNotText)
         {
-            const ExpressionPtr plain   = ExpressionParser::parse(nullptr, "1 + 2");
+            const ExpressionPtr plain     = ExpressionParser::parse(nullptr, "1 + 2");
             const ExpressionPtr commented = ExpressionParser::parse(nullptr, "1 + 2");
             EXPECT_TRUE(plain->comment().empty());
 
@@ -196,8 +195,7 @@ namespace ExpressionEngine::Expression
             ASSERT_NE(multiply, nullptr);
             EXPECT_EQ(multiply->getOperator(), Operator::Multiply);
 
-            auto compact = binary(Operator::UnitScale, numberNode(2.0),
-                                  std::make_unique<UnitExpression>(nullptr, Units::Quantity(1.0, Units::Unit::Length), "mm"));
+            auto compact = binary(Operator::UnitScale, numberNode(2.0), std::make_unique<UnitExpression>(nullptr, Units::Quantity(1.0, Units::Unit::Length), "mm"));
             EXPECT_EQ(compact->toString(), "2 mm");
             const auto *unitOperand = dynamic_cast<const UnitExpression *>(compact->asOperatorExpression()->getRight());
             ASSERT_NE(unitOperand, nullptr);
@@ -232,8 +230,8 @@ namespace ExpressionEngine::Expression
         /// 取引用节点的路径三要素；根节点不是引用时让用例失败
         VariableExpression::Reference referenceOf(const std::string &text)
         {
-            const ExpressionPtr node = ExpressionParser::parse(nullptr, text);
-            const auto *variable = dynamic_cast<const VariableExpression *>(node.get());
+            const ExpressionPtr node     = ExpressionParser::parse(nullptr, text);
+            const auto         *variable = dynamic_cast<const VariableExpression *>(node.get());
             if (variable == nullptr)
             {
                 ADD_FAILURE() << text << " 的根节点不是变量引用，而是 " << node->nodeName();
@@ -288,8 +286,8 @@ namespace ExpressionEngine::Expression
         {
             for (const std::string &text: {"Length", "Box.Length", "<<Part>>.Box.Length", "<<Sheet#A1>>"})
             {
-                const ExpressionPtr node = ExpressionParser::parse(nullptr, text);
-                const std::string written = node->toString();
+                const ExpressionPtr node    = ExpressionParser::parse(nullptr, text);
+                const std::string   written = node->toString();
                 EXPECT_EQ(referenceOf(written), referenceOf(text)) << written << " 没能解析回原路径";
             }
 
@@ -308,9 +306,9 @@ namespace ExpressionEngine::Expression
          */
         TEST(ExpressionNodes, ComponentsCopyTheirSubExpressions)
         {
-            auto range = Expression::Component::rangeComponent(numberNode(1.0), numberNode(3.0), numberNode(2.0));
+            auto                        range = Expression::Component::rangeComponent(numberNode(1.0), numberNode(3.0), numberNode(2.0));
             const Expression::Component copied{range};
-            Expression::Component assigned;
+            Expression::Component       assigned;
             assigned = range;
 
             EXPECT_TRUE(range.isSame(copied));
@@ -323,8 +321,8 @@ namespace ExpressionEngine::Expression
             EXPECT_NE(range.step.get(), copied.step.get());
 
             // 自赋值要先接住再释放，否则子表达式会被自己清掉
-            Expression::Component       *self = &assigned;
-            assigned                          = *self;
+            Expression::Component *self = &assigned;
+            assigned                    = *self;
             EXPECT_TRUE(assigned.isSame(range));
             EXPECT_NE(assigned.index, nullptr);
         }
@@ -389,8 +387,7 @@ namespace ExpressionEngine::Expression
         /// 造一个只关心结构的变量引用节点，用例不接解析器
         ExpressionPtr makeListReference()
         {
-            return std::make_unique<VariableExpression>(
-                    nullptr, VariableExpression::Reference{.documentName = "", .objectName = "", .propertyName = "List"});
+            return std::make_unique<VariableExpression>(nullptr, VariableExpression::Reference{.documentName = "", .objectName = "", .propertyName = "List"});
         }
 
         /**
@@ -494,4 +491,4 @@ namespace ExpressionEngine::Expression
         }
 
     } // namespace
-}     // namespace ExpressionEngine::Expression
+} // namespace ExpressionEngine::Expression

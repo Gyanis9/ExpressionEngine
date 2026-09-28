@@ -29,7 +29,7 @@ namespace
     }
 
     /// 断言完整扫描的四个要点：状态、规范写法、值与消费字节数
-    void expectScanResult(const std::string_view     input, const NumericLocaleContext &locale, const std::string_view canonicalText, const double value, const std::size_t consumedBytes,
+    void expectScanResult(const std::string_view input, const NumericLocaleContext &locale, const std::string_view canonicalText, const double value, const std::size_t consumedBytes,
                           const NumericSyntaxContext syntax = NumericSyntaxContext::Standalone)
     {
         const auto result = scanLocalizedNumber(input, locale, syntax);
@@ -42,8 +42,7 @@ namespace
     }
 
     /// 断言扫描以指定状态与原因停下，并检查诊断定位落在输入范围内
-    void expectDiagnostic(const std::string_view     input, const NumericLocaleContext &locale, const LocalizedNumberResult::Status status, const NumericDiagnosticKind kind,
-                          const NumericSyntaxContext syntax = NumericSyntaxContext::Standalone)
+    void expectDiagnostic(const std::string_view input, const NumericLocaleContext &locale, const LocalizedNumberResult::Status status, const NumericDiagnosticKind kind, const NumericSyntaxContext syntax = NumericSyntaxContext::Standalone)
     {
         const auto result = scanLocalizedNumber(input, locale, syntax);
         ASSERT_EQ(result.status, status) << std::string(input);

@@ -98,7 +98,8 @@ namespace ExpressionEngine::Expression
                 if (offset < 0 || offset >= characters)
                 {
                     throw Base::IndexError(std::format("{}：文本下标 {} 越界；文本共 {} 个字符，"
-                                                       "也支持负下标从末尾计数", context, index, characters));
+                                                       "也支持负下标从末尾计数",
+                                                       context, index, characters));
                 }
                 const Base::Tools::CharacterSpan span = Base::Tools::locateUtf8Character(*text, static_cast<std::size_t>(offset));
                 return {text->substr(span.offset, span.length)};
@@ -110,7 +111,8 @@ namespace ExpressionEngine::Expression
                 if (offset < 0 || offset >= elementCount)
                 {
                     throw Base::IndexError(std::format("{}：序列下标 {} 越界；序列共 {} 个元素，"
-                                                       "也支持负下标从末尾计数", context, index, elementCount));
+                                                       "也支持负下标从末尾计数",
+                                                       context, index, elementCount));
                 }
                 return sequenceAt(*sequence, static_cast<std::size_t>(offset));
             }
@@ -131,12 +133,14 @@ namespace ExpressionEngine::Expression
             case Expression::ComponentKind::MapKey:
                 // 值模型里没有映射类型：键是宿主自定义属性的定位方式，不是值的一部分
                 throw Base::TypeError(std::format("{}：映射键分量 '{}' 在值层面无法使用——当前值模型没有映射类型，"
-                                                  "键分量只能用于宿主自定义属性；请改用属性路径或下标分量", context, component.name));
+                                                  "键分量只能用于宿主自定义属性；请改用属性路径或下标分量",
+                                                  context, component.name));
             case Expression::ComponentKind::Name:
                 // 名字分量指向对象的子属性，而值是纯数据、没有属性表可查
                 throw Base::AttributeError(std::format("{}：名字分量 '{}' 在值层面无法解析——它指向对象的子属性，"
                                                        "不是值的一部分；请在引用路径里补全该段（如 Box.{}.Length），"
-                                                       "或改用 [下标] 分量", context, component.name, component.name));
+                                                       "或改用 [下标] 分量",
+                                                       context, component.name, component.name));
             case Expression::ComponentKind::Range:
                 // 区间取出多个子值，整体作为一个序列取值：sum(v[0:2]) 与 sum(list(...)) 同路
                 return makeValueSequence(applyRangeComponent(value, component, context));
@@ -164,8 +168,7 @@ namespace ExpressionEngine::Expression
         {
             const std::vector<Value> &items = sequenceValues(*sequence);
             elements.assign(items.begin(), items.end());
-        }
-        else
+        } else
         {
             throw Base::TypeError(std::format("{}：{}不支持区间分量；区间分量支持向量（如 v[0:2]）与序列"
                                               "（如 list(1; 2; 3)[0:2]），其它类型请改用聚合函数或单个下标",
@@ -177,7 +180,7 @@ namespace ExpressionEngine::Expression
         {
             throw Base::IndexError(std::format("{}：空序列没有可取的区间；请先给出至少一个元素，或改用 count()", context));
         }
-        const long     step           = component.step != nullptr ? constantIndex(component.step, "区间步长", context) : 1;
+        const long step = component.step != nullptr ? constantIndex(component.step, "区间步长", context) : 1;
         if (step == 0)
         {
             throw Base::IndexError(std::format("{}：区间步长不能为 0；请给出非零步长，或省略步长按默认的 1 取值", context));
@@ -198,12 +201,14 @@ namespace ExpressionEngine::Expression
         if (begin < 0 || begin >= componentCount)
         {
             throw Base::IndexError(std::format("{}：区间起点越界（换算后为 {}）；可下标的取值共 {} 项，"
-                                               "下标只能是 0 到 {}", context, begin, componentCount, componentCount - 1));
+                                               "下标只能是 0 到 {}",
+                                               context, begin, componentCount, componentCount - 1));
         }
         if (end < 0 || end >= componentCount)
         {
             throw Base::IndexError(std::format("{}：区间终点越界（换算后为 {}）；可下标的取值共 {} 项，"
-                                               "下标只能是 0 到 {}", context, end, componentCount, componentCount - 1));
+                                               "下标只能是 0 到 {}",
+                                               context, end, componentCount, componentCount - 1));
         }
 
         // 两端都算在取值范围内；起点越过终点时结果为空，由聚合函数决定空集的处理方式

@@ -50,7 +50,7 @@ namespace ExpressionEngine::Units::UnitsSchemasData
          */
         TEST(UnitsSchemasDataTest, RunSpecialDispatchesByRegisteredName)
         {
-            double      factor     = 0.0;
+            double      factor = 0.0;
             std::string unitString;
 
             EXPECT_EQ(runSpecial("toDMS", 12.5125, 2, 8, factor, unitString), "12°30′45″");
@@ -74,7 +74,7 @@ namespace ExpressionEngine::Units::UnitsSchemasData
             std::set<std::string> names;
             std::size_t           defaultCount = 0;
 
-            for (const auto &schema : unitSchemasDataPack.specifications)
+            for (const auto &schema: unitSchemasDataPack.specifications)
             {
                 EXPECT_TRUE(numbers.insert(schema.number).second) << "方案编号重复：" << schema.number;
                 EXPECT_FALSE(schema.name.empty());
@@ -111,8 +111,7 @@ namespace ExpressionEngine::Units::UnitsSchemasData
 
                         if (row.factor == 0.0)
                         {
-                            EXPECT_TRUE(specials.contains(row.unitString) || row.callback != nullptr)
-                                    << schema.name << " 的 " << unitTypeName << " 引用了未登记的特殊函数 " << row.unitString;
+                            EXPECT_TRUE(specials.contains(row.unitString) || row.callback != nullptr) << schema.name << " 的 " << unitTypeName << " 引用了未登记的特殊函数 " << row.unitString;
                         }
                     }
                 }
@@ -146,8 +145,7 @@ namespace ExpressionEngine::Units::UnitsSchemasData
             const UnitsSchema notConverted{makeAngleSchema({0, "deg", 1.0})};
             const UnitsSchema plain{makeAngleSchema({0, "°", 1.0})};
 
-            for (const double value: {std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::infinity(),
-                                      -std::numeric_limits<double>::infinity()})
+            for (const double value: {std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::infinity(), -std::numeric_limits<double>::infinity()})
             {
                 Quantity quantity{value, Unit::Angle};
                 quantity.setFormat(QuantityFormat{QuantityFormat::NumberFormat::Fixed, 2});
@@ -162,5 +160,5 @@ namespace ExpressionEngine::Units::UnitsSchemasData
             EXPECT_EQ(plain.translate(finite), "1.50°");
         }
 
-    }
+    } // namespace
 } // namespace ExpressionEngine::Units::UnitsSchemasData

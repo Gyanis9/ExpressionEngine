@@ -41,8 +41,7 @@ namespace ExpressionEngine::Expression
 
     } // namespace
 
-    CellAddress::CellAddress(const int row, const int column, const bool absoluteRow, const bool absoluteColumn) :
-        m_row(-1), m_column(-1), m_absoluteRow(absoluteRow), m_absoluteColumn(absoluteColumn)
+    CellAddress::CellAddress(const int row, const int column, const bool absoluteRow, const bool absoluteColumn) : m_row(-1), m_column(-1), m_absoluteRow(absoluteRow), m_absoluteColumn(absoluteColumn)
     {
         // 越界坐标一律记为无效：静默截断会让引用悄悄落到别的单元格上
         if (row >= 0 && row < s_maxRows)
@@ -55,8 +54,7 @@ namespace ExpressionEngine::Expression
         }
     }
 
-    CellAddress::CellAddress(const std::string &address) :
-        CellAddress(stringToAddress(address))
+    CellAddress::CellAddress(const std::string &address) : CellAddress(stringToAddress(address))
     {
     }
 

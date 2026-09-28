@@ -80,8 +80,8 @@ namespace ExpressionEngine::Expression
      */
     struct EvaluationFailure
     {
-        std::string        message;                      ///< 中文可操作文案，与异常通道的消息逐字相同
-        Base::ErrorKind    kind = Base::ErrorKind::Other; ///< 故障类别，取自抛出的那个异常对象，与异常通道的 kind() 同源
+        std::string     message;                       ///< 中文可操作文案，与异常通道的消息逐字相同
+        Base::ErrorKind kind = Base::ErrorKind::Other; ///< 故障类别，取自抛出的那个异常对象，与异常通道的 kind() 同源
     };
 
     /**
@@ -905,8 +905,7 @@ namespace ExpressionEngine::Expression
          * @param falseExpression 条件为假时取值的分支
          * @throws Base::ParserError 分支使树深超过 maxAstDepth
          */
-        explicit ConditionalExpression(IObjectResolver *resolver        = nullptr, ExpressionPtr condition = nullptr, ExpressionPtr trueExpression = nullptr,
-                                       ExpressionPtr    falseExpression = nullptr);
+        explicit ConditionalExpression(IObjectResolver *resolver = nullptr, ExpressionPtr condition = nullptr, ExpressionPtr trueExpression = nullptr, ExpressionPtr falseExpression = nullptr);
 
         ~ConditionalExpression() override;
 
@@ -1128,8 +1127,7 @@ namespace ExpressionEngine::Expression
          * @throws Base::ParserError 函数是哨兵值，或函数需要宿主对象工厂
          * @throws Base::ParserError 某个实参使树深超过 maxAstDepth
          */
-        explicit FunctionExpression(IObjectResolver *          resolver  = nullptr, Function function = Function::None, std::string name = std::string(),
-                                    std::vector<ExpressionPtr> arguments = std::vector<ExpressionPtr>());
+        explicit FunctionExpression(IObjectResolver *resolver = nullptr, Function function = Function::None, std::string name = std::string(), std::vector<ExpressionPtr> arguments = std::vector<ExpressionPtr>());
 
         ~FunctionExpression() override;
 

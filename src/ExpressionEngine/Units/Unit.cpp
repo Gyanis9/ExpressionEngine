@@ -95,11 +95,7 @@ namespace ExpressionEngine::Units
     Unit::Unit(const int length, const int mass, const int time, const int electricCurrent, const int thermodynamicTemperature, const int amountOfSubstance, const int luminousIntensity, const int angle)
     {
         // 先夹到 int8 可表示范围再写入：越界值由 checkRange() 统一报错，不在这里静默回绕
-        const auto clampToExponent = [](const int value)
-        {
-            return static_cast<std::int8_t>(
-                std::clamp(value, static_cast<int>(std::numeric_limits<std::int8_t>::min()), static_cast<int>(std::numeric_limits<std::int8_t>::max())));
-        };
+        const auto clampToExponent = [](const int value) { return static_cast<std::int8_t>(std::clamp(value, static_cast<int>(std::numeric_limits<std::int8_t>::min()), static_cast<int>(std::numeric_limits<std::int8_t>::max()))); };
 
         m_exponents[0] = clampToExponent(length);
         m_exponents[1] = clampToExponent(mass);
@@ -278,7 +274,7 @@ namespace ExpressionEngine::Units
         return std::string(specification == unitSpecifications.end() ? std::string_view{} : specification->name);
     }
 
-    std::pair<std::vector<std::size_t>, std::vector<std::size_t> > Unit::nonZeroValueIndexes() const
+    std::pair<std::vector<std::size_t>, std::vector<std::size_t>> Unit::nonZeroValueIndexes() const
     {
         std::vector<std::size_t> positiveIndexes;
         std::vector<std::size_t> negativeIndexes;

@@ -52,7 +52,9 @@ namespace ExpressionEngine::Benchmarks
             /// 角秒常量：同上
             static constexpr const Units::Quantity &AngSecond = Units::Quantity::AngleSecond;
 
-            Quantity(const Units::Quantity &value) : Units::Quantity(value) {}
+            Quantity(const Units::Quantity &value) : Units::Quantity(value)
+            {
+            }
         };
 
         // 生成代码里的数学函数按 C 风格无限定名书写，这里把 std 版本引入本命名空间。
@@ -84,9 +86,9 @@ namespace ExpressionEngine::Benchmarks
          */
         double num_change(char *text, char decimalDelimiter, char groupDelimiter)
         {
-            constexpr std::size_t capacity = 40;
+            constexpr std::size_t      capacity = 40;
             std::array<char, capacity> buffer{};
-            std::size_t cursor = 0;
+            std::size_t                cursor = 0;
             for (char *character = text; *character != '\0'; ++character)
             {
                 if (*character == groupDelimiter)
@@ -115,14 +117,14 @@ namespace ExpressionEngine::Benchmarks
         // bison 的调用点需要先看到扫描器入口，Scanner 自身的声明在 Quantity.lex.c 里。
         int yylex(void);
 
-        // 上游 Quantity.cpp 同样把初始栈深压到 20：默认 200 会为每次解析多构造 200 个 Quantity。
-        #define YYINITDEPTH 20
-        #include "Quantity.tab.c"
-        #include "Quantity.lex.c"
-        #undef YYINITDEPTH
-        #undef YYSTYPE
-        #undef yyparse
-        #undef yyerror
+// 上游 Quantity.cpp 同样把初始栈深压到 20：默认 200 会为每次解析多构造 200 个 Quantity。
+#define YYINITDEPTH 20
+#include "Quantity.tab.c"
+#include "Quantity.lex.c"
+#undef YYINITDEPTH
+#undef YYSTYPE
+#undef yyparse
+#undef yyerror
 
         /**
          * @brief 跑一次生成代码：建扫描 buffer、复位结果、调解析器、清理 buffer 与扫描状态
@@ -140,8 +142,7 @@ namespace ExpressionEngine::Benchmarks
                 yy_delete_buffer(buffer);
                 BEGIN(INITIAL);
                 return result;
-            }
-            catch (...)
+            } catch (...)
             {
                 yy_delete_buffer(buffer);
                 BEGIN(INITIAL);

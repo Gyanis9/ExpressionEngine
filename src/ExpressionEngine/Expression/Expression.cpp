@@ -597,7 +597,7 @@ namespace ExpressionEngine::Expression
             {
                 Collector::collect(value);
                 m_result += value;
-                m_first  = false;
+                m_first = false;
             }
         };
 
@@ -825,9 +825,7 @@ namespace ExpressionEngine::Expression
             {
                 throw EvaluationError(std::format("区间 {} 共 {} 个单元格，超过单次聚合可读取的 {} 个上限；"
                                                   "请缩小区间，或分段汇总后再相加",
-                                                  range.rangeText(),
-                                                  cellCount,
-                                                  FunctionExpression::maxRangeCells));
+                                                  range.rangeText(), cellCount, FunctionExpression::maxRangeCells));
             }
 
             if (objectResolver == nullptr)
@@ -878,7 +876,7 @@ namespace ExpressionEngine::Expression
         void requireFiniteResult(const Expression &node, const Value &result)
         {
             const double *plain    = std::get_if<double>(&result);
-            const auto     quantity = std::get_if<Units::Quantity>(&result);
+            const auto    quantity = std::get_if<Units::Quantity>(&result);
             if (plain == nullptr && quantity == nullptr)
             {
                 return;
@@ -892,8 +890,7 @@ namespace ExpressionEngine::Expression
 
             throw Base::ValueError(std::format("表达式 {} 算出的是{}，不能当作参数交给宿主；请检查定义域与量级——"
                                                "开方要非负、对数要正数、除法分母不能为零、乘方别超出可表示范围",
-                                               node.toString(true),
-                                               std::isinf(value) ? "无穷大（溢出）" : "非数（NaN）"));
+                                               node.toString(true), std::isinf(value) ? "无穷大（溢出）" : "非数（NaN）"));
         }
 
         /// 把单个标量取值喂给收集器
@@ -971,14 +968,12 @@ namespace ExpressionEngine::Expression
     // 分量
     //
 
-    Expression::Component::Component(std::string componentName) :
-        kind(ComponentKind::Name), name(std::move(componentName))
+    Expression::Component::Component(std::string componentName) : kind(ComponentKind::Name), name(std::move(componentName))
     {
     }
 
     Expression::Component::Component(const Component &other) :
-        kind(other.kind), name(other.name), index(other.index ? other.index->copy() : nullptr), endIndex(other.endIndex ? other.endIndex->copy() : nullptr),
-        step(other.step ? other.step->copy() : nullptr)
+        kind(other.kind), name(other.name), index(other.index ? other.index->copy() : nullptr), endIndex(other.endIndex ? other.endIndex->copy() : nullptr), step(other.step ? other.step->copy() : nullptr)
     {
     }
 
@@ -1084,8 +1079,7 @@ namespace ExpressionEngine::Expression
     // 表达式基类
     //
 
-    Expression::Expression(IObjectResolver *resolver) :
-        m_resolver(resolver)
+    Expression::Expression(IObjectResolver *resolver) : m_resolver(resolver)
     {
     }
 
@@ -1110,7 +1104,7 @@ namespace ExpressionEngine::Expression
             throw Base::ParserError(std::format("表达式运算层数超过 {} 层上限，已拒绝；连续的同类运算请改用聚合函数"
                                                 "（如 sum(a, b, c)），或把长式子拆成几个属性",
                                                 maxAstDepth),
-                                                Base::ErrorKind::TooDeep);
+                                    Base::ErrorKind::TooDeep);
         }
         m_astDepth = std::max(m_astDepth, nextDepth);
     }
@@ -1351,8 +1345,7 @@ namespace ExpressionEngine::Expression
     // 单位节点
     //
 
-    UnitExpression::UnitExpression(IObjectResolver *resolver, const Units::Quantity &quantity, std::string unitText) :
-        Expression(resolver), m_quantity(quantity), m_unitText(std::move(unitText))
+    UnitExpression::UnitExpression(IObjectResolver *resolver, const Units::Quantity &quantity, std::string unitText) : Expression(resolver), m_quantity(quantity), m_unitText(std::move(unitText))
     {
     }
 
@@ -1423,8 +1416,7 @@ namespace ExpressionEngine::Expression
     // 数值节点
     //
 
-    NumberExpression::NumberExpression(IObjectResolver *resolver, const Units::Quantity &quantity) :
-        UnitExpression(resolver, quantity)
+    NumberExpression::NumberExpression(IObjectResolver *resolver, const Units::Quantity &quantity) : UnitExpression(resolver, quantity)
     {
     }
 
@@ -1480,8 +1472,7 @@ namespace ExpressionEngine::Expression
     // 命名常量节点
     //
 
-    ConstantExpression::ConstantExpression(IObjectResolver *resolver, std::string name, const Units::Quantity &quantity) :
-        NumberExpression(resolver, quantity), m_name(std::move(name))
+    ConstantExpression::ConstantExpression(IObjectResolver *resolver, std::string name, const Units::Quantity &quantity) : NumberExpression(resolver, quantity), m_name(std::move(name))
     {
     }
 
@@ -1528,8 +1519,7 @@ namespace ExpressionEngine::Expression
     // 运算符节点
     //
 
-    OperatorExpression::OperatorExpression(IObjectResolver *resolver, ExpressionPtr left, Operator operation, ExpressionPtr right) :
-        UnitExpression(resolver), m_operator(operation), m_left(std::move(left)), m_right(std::move(right))
+    OperatorExpression::OperatorExpression(IObjectResolver *resolver, ExpressionPtr left, Operator operation, ExpressionPtr right) : UnitExpression(resolver), m_operator(operation), m_left(std::move(left)), m_right(std::move(right))
     {
         if (m_left == nullptr)
         {
@@ -1850,7 +1840,7 @@ namespace ExpressionEngine::Expression
         {
             // 一元运算直接贴在操作数前，操作数优先级更低时补括号
             needsParentheses = m_left->priority() < priority();
-            text             += m_operator == Operator::Negate ? '-' : '+';
+            text += m_operator == Operator::Negate ? '-' : '+';
             if (needsParentheses)
             {
                 text += '(';
@@ -2215,8 +2205,8 @@ namespace ExpressionEngine::Expression
                 if (start < 0 || static_cast<std::size_t>(start) > characters)
                 {
                     throw Base::IndexError(std::format("substr() 的起点越界（换算后为 {}）；文本共 {} 个字符，起点可为 0 到 {}，"
-                                                      "也可用负数从末尾计数",
-                                                      start, characters, characters));
+                                                       "也可用负数从末尾计数",
+                                                       start, characters, characters));
                 }
 
                 std::size_t length = characters - static_cast<std::size_t>(start);
@@ -2280,8 +2270,8 @@ namespace ExpressionEngine::Expression
             case Function::ListJoin:
             {
                 // 序列元素按可读文本接起来，与 concat、str() 同一套排版
-                const Value   target   = arguments[0]->evaluate();
-                const auto *  sequence = std::get_if<ValueSequence>(&target);
+                const Value target   = arguments[0]->evaluate();
+                const auto *sequence = std::get_if<ValueSequence>(&target);
                 if (sequence == nullptr)
                 {
                     throw Base::TypeError(std::format("join() 的第一个参数需要序列，实际是{}；请先用 list(...) 给出序列，"
@@ -2289,9 +2279,9 @@ namespace ExpressionEngine::Expression
                                                       valueTypeName(target)));
                 }
 
-                const std::string        separator = textArgument(arguments, 1, label);
-                const std::vector<Value> &values   = sequenceValues(*sequence);
-                std::string              result;
+                const std::string         separator = textArgument(arguments, 1, label);
+                const std::vector<Value> &values    = sequenceValues(*sequence);
+                std::string               result;
                 for (std::size_t index = 0; index < values.size(); ++index)
                 {
                     if (index != 0)
@@ -2335,7 +2325,7 @@ namespace ExpressionEngine::Expression
                     if (std::fabs(matrix->determinant()) <= std::numeric_limits<double>::epsilon())
                     {
                         throw Base::ValueError("minvert() 的矩阵不可逆（行列式接近 0）；请检查矩阵是否退化，"
-                                "或改用可逆的构造方式");
+                                               "或改用可逆的构造方式");
                     }
                     Base::Matrix4D inverted = *matrix;
                     inverted.inverseGauss();
@@ -2404,10 +2394,8 @@ namespace ExpressionEngine::Expression
             case Function::MatrixRotateZ:
             {
                 const double         angle = angleArgument(arguments[1]->evaluate(), std::format("{}() 的第二个参数", label));
-                const Base::Rotation rotation(Base::Vector3d(function == Function::MatrixRotateX ? 1.0 : 0.0, function == Function::MatrixRotateY ? 1.0 : 0.0,
-                                                             function == Function::MatrixRotateZ ? 1.0 : 0.0),
-                                              angle);
-                Base::Matrix4D rotationMatrix;
+                const Base::Rotation rotation(Base::Vector3d(function == Function::MatrixRotateX ? 1.0 : 0.0, function == Function::MatrixRotateY ? 1.0 : 0.0, function == Function::MatrixRotateZ ? 1.0 : 0.0), angle);
+                Base::Matrix4D       rotationMatrix;
                 rotation.getValue(rotationMatrix);
                 return transformFirstArgument(arguments, rotationMatrix, label);
             }
@@ -2452,8 +2440,8 @@ namespace ExpressionEngine::Expression
                 {
                     elements[index] = numberArgument(arguments, index, label);
                 }
-                return Base::Matrix4D(elements[0], elements[1], elements[2], elements[3], elements[4], elements[5], elements[6], elements[7], elements[8], elements[9],
-                                      elements[10], elements[11], elements[12], elements[13], elements[14], elements[15]);
+                return Base::Matrix4D(elements[0], elements[1], elements[2], elements[3], elements[4], elements[5], elements[6], elements[7], elements[8], elements[9], elements[10], elements[11], elements[12], elements[13], elements[14],
+                                      elements[15]);
             }
             case Function::Placement:
             {
@@ -2479,7 +2467,7 @@ namespace ExpressionEngine::Expression
 
                 const Base::Vector3d position      = vectorArgument(arguments, 0, label);
                 const Value          rotationValue = arguments[1]->evaluate();
-                const auto *         rotation      = std::get_if<Base::Rotation>(&rotationValue);
+                const auto          *rotation      = std::get_if<Base::Rotation>(&rotationValue);
                 if (rotation == nullptr)
                 {
                     throw Base::TypeError(std::format("placement() 的第二个参数需要旋转，实际是{}；"
@@ -2526,7 +2514,7 @@ namespace ExpressionEngine::Expression
             case Function::ParseQuantity:
             {
                 const Value       value        = arguments[0]->evaluate();
-                const auto *      text         = std::get_if<std::string>(&value);
+                const auto       *text         = std::get_if<std::string>(&value);
                 const std::string quantityText = text != nullptr ? *text : valueText(value);
                 try
                 {
@@ -2826,13 +2814,12 @@ namespace ExpressionEngine::Expression
                 unit = firstQuantity.getUnit();
                 break;
             case Function::TranslationMatrix:
-                if (firstQuantity.isDimensionlessOrUnit(Units::Unit::Length) && secondQuantity->isDimensionlessOrUnit(Units::Unit::Length) &&
-                    thirdQuantity->isDimensionlessOrUnit(Units::Unit::Length))
+                if (firstQuantity.isDimensionlessOrUnit(Units::Unit::Length) && secondQuantity->isDimensionlessOrUnit(Units::Unit::Length) && thirdQuantity->isDimensionlessOrUnit(Units::Unit::Length))
                 {
                     break;
                 }
                 throw Base::UnitsMismatchError("translationm() 的三个平移分量必须是长度量或纯数；"
-                        "请改用 mm、in 这类长度单位");
+                                               "请改用 mm、in 这类长度单位");
             case Function::LogicalNot:
                 // 只看数值不看量纲
                 unit = Units::Unit();
@@ -2905,12 +2892,10 @@ namespace ExpressionEngine::Expression
                 output = std::pow(value, secondQuantity->getValue());
                 break;
             case Function::Hypotenuse:
-                output = std::sqrt(std::pow(firstQuantity.getValue(), 2) + std::pow(secondQuantity->getValue(), 2) +
-                                   (thirdQuantity.has_value() ? std::pow(thirdQuantity->getValue(), 2) : 0.0));
+                output = std::sqrt(std::pow(firstQuantity.getValue(), 2) + std::pow(secondQuantity->getValue(), 2) + (thirdQuantity.has_value() ? std::pow(thirdQuantity->getValue(), 2) : 0.0));
                 break;
             case Function::Cathetus:
-                output = std::sqrt(std::pow(firstQuantity.getValue(), 2) - std::pow(secondQuantity->getValue(), 2) -
-                                   (thirdQuantity.has_value() ? std::pow(thirdQuantity->getValue(), 2) : 0.0));
+                output = std::sqrt(std::pow(firstQuantity.getValue(), 2) - std::pow(secondQuantity->getValue(), 2) - (thirdQuantity.has_value() ? std::pow(thirdQuantity->getValue(), 2) : 0.0));
                 break;
             case Function::Round:
                 output = std::round(value);
@@ -2927,9 +2912,7 @@ namespace ExpressionEngine::Expression
             case Function::RotationX:
             case Function::RotationY:
             case Function::RotationZ:
-                return Base::Rotation(
-                        Base::Vector3d(function == Function::RotationX ? 1.0 : 0.0, function == Function::RotationY ? 1.0 : 0.0, function == Function::RotationZ ? 1.0 : 0.0),
-                        value);
+                return Base::Rotation(Base::Vector3d(function == Function::RotationX ? 1.0 : 0.0, function == Function::RotationY ? 1.0 : 0.0, function == Function::RotationZ ? 1.0 : 0.0), value);
             case Function::TranslationMatrix:
             {
                 Base::Matrix4D matrix;
@@ -3252,8 +3235,7 @@ namespace ExpressionEngine::Expression
     // 变量引用节点
     //
 
-    VariableExpression::VariableExpression(IObjectResolver *resolver, Reference reference) :
-        UnitExpression(resolver), m_reference(std::move(reference))
+    VariableExpression::VariableExpression(IObjectResolver *resolver, Reference reference) : UnitExpression(resolver), m_reference(std::move(reference))
     {
     }
 
@@ -3296,7 +3278,7 @@ namespace ExpressionEngine::Expression
 
     IProperty *VariableExpression::resolveProperty() const
     {
-        IObjectResolver * objectResolver = resolver();
+        IObjectResolver  *objectResolver = resolver();
         const std::string path           = pathText();
         if (objectResolver == nullptr)
         {
@@ -3360,7 +3342,7 @@ namespace ExpressionEngine::Expression
 
     Value VariableExpression::evaluateNode() const
     {
-        IProperty *                property = resolveProperty();
+        IProperty                 *property = resolveProperty();
         const std::optional<Value> value    = property->value();
         if (!value.has_value())
         {
@@ -3389,8 +3371,7 @@ namespace ExpressionEngine::Expression
     // 文本节点
     //
 
-    StringExpression::StringExpression(IObjectResolver *resolver, std::string text) :
-        Expression(resolver), m_text(std::move(text))
+    StringExpression::StringExpression(IObjectResolver *resolver, std::string text) : Expression(resolver), m_text(std::move(text))
     {
     }
 
@@ -3433,8 +3414,7 @@ namespace ExpressionEngine::Expression
     // 取值节点
     //
 
-    ValueExpression::ValueExpression(IObjectResolver *resolver, Value value) :
-        Expression(resolver), m_value(std::move(value))
+    ValueExpression::ValueExpression(IObjectResolver *resolver, Value value) : Expression(resolver), m_value(std::move(value))
     {
     }
 
@@ -3473,8 +3453,7 @@ namespace ExpressionEngine::Expression
     // 单元格区间节点
     //
 
-    RangeExpression::RangeExpression(IObjectResolver *resolver, std::string begin, std::string end) :
-        Expression(resolver), m_begin(std::move(begin)), m_end(std::move(end))
+    RangeExpression::RangeExpression(IObjectResolver *resolver, std::string begin, std::string end) : Expression(resolver), m_begin(std::move(begin)), m_end(std::move(end))
     {
     }
 

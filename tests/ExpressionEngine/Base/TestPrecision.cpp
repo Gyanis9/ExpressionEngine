@@ -71,4 +71,4 @@ namespace ExpressionEngine::Base
         }
 
     } // namespace
-}     // namespace ExpressionEngine::Base
+} // namespace ExpressionEngine::Base

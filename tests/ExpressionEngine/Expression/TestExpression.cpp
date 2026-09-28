@@ -67,7 +67,7 @@ namespace ExpressionEngine::Expression
 
         /// 造一个函数调用节点；实参逐个 move 进参数表（unique_ptr 无法从初始化列表拷贝）
         template<class... Arguments>
-        ExpressionPtr function(const Function functionKind, Arguments &&... arguments)
+        ExpressionPtr function(const Function functionKind, Arguments &&...arguments)
         {
             std::vector<ExpressionPtr> parameterList;
             parameterList.reserve(sizeof...(Arguments));
@@ -183,8 +183,7 @@ namespace ExpressionEngine::Expression
              * @param propertyTypeName 属性类型名
              * @param initialValue 初值，空表示尚未赋值
              */
-            FakeProperty(std::string propertyName, std::string propertyTypeName, std::optional<Value> initialValue) :
-                m_name(std::move(propertyName)), m_typeName(std::move(propertyTypeName)), m_value(std::move(initialValue))
+            FakeProperty(std::string propertyName, std::string propertyTypeName, std::optional<Value> initialValue) : m_name(std::move(propertyName)), m_typeName(std::move(propertyTypeName)), m_value(std::move(initialValue))
             {
             }
 
@@ -245,8 +244,7 @@ namespace ExpressionEngine::Expression
              * @param objectName 对象名
              * @param documentName 所属文档名
              */
-            explicit FakeObject(std::string objectName, std::string documentName = std::string()) :
-                m_name(std::move(objectName)), m_documentName(std::move(documentName))
+            explicit FakeObject(std::string objectName, std::string documentName = std::string()) : m_name(std::move(objectName)), m_documentName(std::move(documentName))
             {
             }
 
@@ -359,7 +357,7 @@ namespace ExpressionEngine::Expression
 
         private:
             std::vector<FakeObject> m_objects;                ///< 对象表
-            FakeObject *            m_currentObject{nullptr}; ///< 当前对象，供未限定名的引用使用
+            FakeObject             *m_currentObject{nullptr}; ///< 当前对象，供未限定名的引用使用
         };
 
         /**
@@ -439,8 +437,7 @@ namespace ExpressionEngine::Expression
         TEST(ExpressionTest, UnitPropagation)
         {
             // 2 mm：数值节点与单位节点相乘
-            auto twoMillimetres = std::make_unique<OperatorExpression>(nullptr, number(2.0), Operator::UnitScale,
-                                                                       std::make_unique<UnitExpression>(nullptr, Units::Quantity(1.0, Units::Unit::Length), "mm"));
+            auto twoMillimetres = std::make_unique<OperatorExpression>(nullptr, number(2.0), Operator::UnitScale, std::make_unique<UnitExpression>(nullptr, Units::Quantity(1.0, Units::Unit::Length), "mm"));
             EXPECT_EQ(twoMillimetres->toString(), "2 mm");
             const Units::Quantity length = quantityOf(twoMillimetres->evaluate());
             EXPECT_DOUBLE_EQ(length.getValue(), 2.0);
@@ -478,8 +475,7 @@ namespace ExpressionEngine::Expression
 
             // 取余：同量纲可算，异量纲报错
             EXPECT_DOUBLE_EQ(quantityOf(binary(Operator::Modulo, quantity(7.0, Units::Unit::Length), quantity(2.0, Units::Unit::Length))->evaluate()).getValue(), 1.0);
-            EXPECT_THROW(static_cast<void>(binary(Operator::Modulo, quantity(7.0, Units::Unit::Length), quantity(2.0, Units::Unit::TimeSpan))->evaluate()),
-                         Base::UnitsMismatchError);
+            EXPECT_THROW(static_cast<void>(binary(Operator::Modulo, quantity(7.0, Units::Unit::Length), quantity(2.0, Units::Unit::TimeSpan))->evaluate()), Base::UnitsMismatchError);
         }
 
         /**
@@ -510,8 +506,7 @@ namespace ExpressionEngine::Expression
          */
         TEST(ExpressionTest, ConditionalSemantics)
         {
-            auto conditional = std::make_unique<ConditionalExpression>(nullptr, binary(Operator::Less, number(1.0), number(2.0)),
-                                                                       std::make_unique<StringExpression>(nullptr, "yes"), std::make_unique<StringExpression>(nullptr, "no"));
+            auto conditional = std::make_unique<ConditionalExpression>(nullptr, binary(Operator::Less, number(1.0), number(2.0)), std::make_unique<StringExpression>(nullptr, "yes"), std::make_unique<StringExpression>(nullptr, "no"));
             EXPECT_EQ(textOf(conditional->evaluate()), "yes");
             EXPECT_EQ(conditional->priority(), 2);
             EXPECT_EQ(conditional->toString(), "1 < 2 ? <<yes>> : <<no>>");
@@ -528,9 +523,8 @@ namespace ExpressionEngine::Expression
             EXPECT_THROW(static_cast<void>(textCondition->evaluate()), Base::TypeError);
 
             // 条件化简后是常量：simplify 直接返回被选中分支的化简结果
-            auto constantCondition = std::make_unique<ConditionalExpression>(nullptr, number(0.0), std::make_unique<StringExpression>(nullptr, "yes"),
-                                                                             std::make_unique<StringExpression>(nullptr, "no"));
-            ExpressionPtr simplified = constantCondition->simplify();
+            auto          constantCondition = std::make_unique<ConditionalExpression>(nullptr, number(0.0), std::make_unique<StringExpression>(nullptr, "yes"), std::make_unique<StringExpression>(nullptr, "no"));
+            ExpressionPtr simplified        = constantCondition->simplify();
             EXPECT_EQ(simplified->nodeName(), "String");
             EXPECT_EQ(simplified->toString(), "<<no>>");
 
@@ -579,8 +573,7 @@ namespace ExpressionEngine::Expression
             EXPECT_EQ(angle.getUnit(), Units::Unit::Angle);
             EXPECT_NEAR(angle.getValue(), 45.0, 1e-9);
             // atan2 要求两侧单位一致
-            EXPECT_THROW(static_cast<void>(function(Function::ArcTangent2, quantity(1.0, Units::Unit::Length), quantity(1.0, Units::Unit::TimeSpan))->evaluate()),
-                         Base::UnitsMismatchError);
+            EXPECT_THROW(static_cast<void>(function(Function::ArcTangent2, quantity(1.0, Units::Unit::Length), quantity(1.0, Units::Unit::TimeSpan))->evaluate()), Base::UnitsMismatchError);
 
             // 逻辑非只看数值
             EXPECT_DOUBLE_EQ(quantityOf(function(Function::LogicalNot, number(0.0))->evaluate()).getValue(), 1.0);
@@ -639,17 +632,14 @@ namespace ExpressionEngine::Expression
             EXPECT_NEAR(scaled.y, 3.0, 1e-12);
             EXPECT_NEAR(scaled.z, 4.0, 1e-12);
             EXPECT_NEAR(vectorOf(function(Function::VectorScaleY, vectorNode(1.0, 1.0, 1.0), number(5.0))->evaluate()).y, 5.0, 1e-12);
-            EXPECT_THROW(static_cast<void>(function(Function::VectorScaleX, vectorNode(1.0, 1.0, 1.0), quantity(5.0, Units::Unit::TimeSpan))->evaluate()),
-                         Base::UnitsMismatchError);
+            EXPECT_THROW(static_cast<void>(function(Function::VectorScaleX, vectorNode(1.0, 1.0, 1.0), quantity(5.0, Units::Unit::TimeSpan))->evaluate()), Base::UnitsMismatchError);
 
             // 点到直线的距离带长度单位
-            const Units::Quantity distance =
-                    quantityOf(function(Function::VectorLineDistance, vectorNode(0.0, 1.0, 0.0), vectorNode(0.0, 0.0, 0.0), vectorNode(1.0, 0.0, 0.0))->evaluate());
+            const Units::Quantity distance = quantityOf(function(Function::VectorLineDistance, vectorNode(0.0, 1.0, 0.0), vectorNode(0.0, 0.0, 0.0), vectorNode(1.0, 0.0, 0.0))->evaluate());
             EXPECT_EQ(distance.getUnit(), Units::Unit::Length);
             EXPECT_NEAR(distance.getValue(), 1.0, 1e-12);
             // 点在线上的投影
-            const Base::Vector3d projection =
-                    vectorOf(function(Function::VectorLineProjection, vectorNode(1.0, 2.0, 0.0), vectorNode(0.0, 0.0, 0.0), vectorNode(1.0, 0.0, 0.0))->evaluate());
+            const Base::Vector3d projection = vectorOf(function(Function::VectorLineProjection, vectorNode(1.0, 2.0, 0.0), vectorNode(0.0, 0.0, 0.0), vectorNode(1.0, 0.0, 0.0))->evaluate());
             EXPECT_NEAR(projection.x, 1.0, 1e-12);
             EXPECT_NEAR(projection.y, 0.0, 1e-12);
 
@@ -663,10 +653,10 @@ namespace ExpressionEngine::Expression
         TEST(ExpressionTest, MatrixAndPlacementFunctions)
         {
             // 16 个分量按行优先拼出单位矩阵
-            EXPECT_TRUE(matrixOf(function(Function::Matrix, number(1.0), number(0.0), number(0.0), number(0.0), number(0.0), number(1.0), number(0.0), number(0.0), number(0.0),
-                            number(0.0), number(1.0), number(0.0), number(0.0), number(0.0), number(0.0), number(1.0))
-                        ->evaluate())
-                    .isUnity());
+            EXPECT_TRUE(matrixOf(function(Function::Matrix, number(1.0), number(0.0), number(0.0), number(0.0), number(0.0), number(1.0), number(0.0), number(0.0), number(0.0), number(0.0), number(1.0), number(0.0), number(0.0),
+                                          number(0.0), number(0.0), number(1.0))
+                                         ->evaluate())
+                                .isUnity());
             // 实参个数只能是 1 到 16 个：0 个与 3 个都在构造期或求值期被拒
             EXPECT_THROW(static_cast<void>(function(Function::Matrix)->evaluate()), EvaluationError);
             EXPECT_THROW(static_cast<void>(function(Function::Matrix, number(1.0), number(0.0), number(0.0))->evaluate()), EvaluationError);
@@ -677,8 +667,7 @@ namespace ExpressionEngine::Expression
             EXPECT_NEAR(translation[1][3], 2.0, 1e-12);
             EXPECT_NEAR(translation[2][3], 3.0, 1e-12);
             // 三个分量形式要求长度量或纯数
-            EXPECT_THROW(static_cast<void>(function(Function::TranslationMatrix, quantity(1.0, Units::Unit::TimeSpan), number(2.0), number(3.0))->evaluate()),
-                         Base::UnitsMismatchError);
+            EXPECT_THROW(static_cast<void>(function(Function::TranslationMatrix, quantity(1.0, Units::Unit::TimeSpan), number(2.0), number(3.0))->evaluate()), Base::UnitsMismatchError);
 
             // mrotatez：绕 Z 轴转 90 度，X 轴映射到 Y 轴
             auto                  rotateZ          = function(Function::MatrixRotateZ, valueNode(Value(Base::Placement())), number(90.0));
@@ -687,20 +676,17 @@ namespace ExpressionEngine::Expression
             EXPECT_NEAR(mapped.x, 0.0, 1e-12);
             EXPECT_NEAR(mapped.y, 1.0, 1e-12);
             // 旋转角度必须是无量纲或角度量
-            EXPECT_THROW(static_cast<void>(function(Function::MatrixRotateZ, valueNode(Value(Base::Placement())), quantity(1.0, Units::Unit::Length))->evaluate()),
-                         Base::UnitsMismatchError);
+            EXPECT_THROW(static_cast<void>(function(Function::MatrixRotateZ, valueNode(Value(Base::Placement())), quantity(1.0, Units::Unit::Length))->evaluate()), Base::UnitsMismatchError);
             // 第一个参数必须是矩阵、位姿或旋转
             EXPECT_THROW(static_cast<void>(function(Function::MatrixRotateZ, number(1.0), number(90.0))->evaluate()), Base::TypeError);
 
             // mscale：两个参数时第二个参数是向量
-            const Base::Matrix4D scaledMatrix =
-                    matrixOf(function(Function::MatrixScale, valueNode(Value(Base::Matrix4D())), function(Function::Vector, number(2.0), number(2.0), number(2.0)))->evaluate());
-            const Base::Vector3d scaledPoint = scaledMatrix * Base::Vector3d(1.0, 1.0, 1.0);
+            const Base::Matrix4D scaledMatrix = matrixOf(function(Function::MatrixScale, valueNode(Value(Base::Matrix4D())), function(Function::Vector, number(2.0), number(2.0), number(2.0)))->evaluate());
+            const Base::Vector3d scaledPoint  = scaledMatrix * Base::Vector3d(1.0, 1.0, 1.0);
             EXPECT_NEAR(scaledPoint.x, 2.0, 1e-12);
 
             // minvert：位姿求逆得到反向平移
-            const Base::Placement inverted =
-                    placementOf(function(Function::MatrixInvert, valueNode(Value(Base::Placement(Base::Vector3d(1.0, 2.0, 3.0), Base::Rotation()))))->evaluate());
+            const Base::Placement inverted = placementOf(function(Function::MatrixInvert, valueNode(Value(Base::Placement(Base::Vector3d(1.0, 2.0, 3.0), Base::Rotation()))))->evaluate());
             EXPECT_NEAR(inverted.getPosition().x, -1.0, 1e-12);
             // 奇异矩阵不可逆
             Base::Matrix4D singular;
@@ -720,8 +706,7 @@ namespace ExpressionEngine::Expression
             EXPECT_THROW(static_cast<void>(function(Function::Rotation, number(1.0), number(2.0))->evaluate()), Base::TypeError);
 
             // placement(位置; 旋转)
-            const Base::Placement placement =
-                    placementOf(function(Function::Placement, vectorNode(1.0, 2.0, 3.0), function(Function::Rotation, vectorNode(0.0, 0.0, 1.0), number(0.0)))->evaluate());
+            const Base::Placement placement = placementOf(function(Function::Placement, vectorNode(1.0, 2.0, 3.0), function(Function::Rotation, vectorNode(0.0, 0.0, 1.0), number(0.0)))->evaluate());
             EXPECT_NEAR(placement.getPosition().y, 2.0, 1e-12);
             // 单参数形式需要矩阵或位姿
             EXPECT_THROW(static_cast<void>(function(Function::Placement, number(1.0))->evaluate()), Base::TypeError);
@@ -746,8 +731,7 @@ namespace ExpressionEngine::Expression
             const Units::Quantity total = quantityOf(function(Function::Sum, quantity(1.0, Units::Unit::Length), quantity(2.0, Units::Unit::Length))->evaluate());
             EXPECT_EQ(total.getUnit(), Units::Unit::Length);
             EXPECT_DOUBLE_EQ(total.getValue(), 3.0);
-            EXPECT_THROW(static_cast<void>(function(Function::Sum, quantity(1.0, Units::Unit::Length), quantity(2.0, Units::Unit::TimeSpan))->evaluate()),
-                         Base::UnitsMismatchError);
+            EXPECT_THROW(static_cast<void>(function(Function::Sum, quantity(1.0, Units::Unit::Length), quantity(2.0, Units::Unit::TimeSpan))->evaluate()), Base::UnitsMismatchError);
 
             // 样本标准差：长度量的标准差仍是长度
             const Units::Quantity deviation = quantityOf(function(Function::StandardDeviation, quantity(1.0, Units::Unit::Length), quantity(3.0, Units::Unit::Length))->evaluate());
@@ -769,7 +753,7 @@ namespace ExpressionEngine::Expression
         TEST(ExpressionTest, RangeAggregateReadsCells)
         {
             FakeResolver resolver;
-            FakeObject & sheet = resolver.addObject("Sheet", "Doc");
+            FakeObject  &sheet = resolver.addObject("Sheet", "Doc");
             sheet.addProperty("A1", "Length", Value(Units::Quantity(1.0, Units::Unit::Length)));
             sheet.addProperty("A2", "Length", Value(Units::Quantity(2.0, Units::Unit::Length)));
             resolver.setCurrentObject(&sheet);
@@ -818,7 +802,7 @@ namespace ExpressionEngine::Expression
         TEST(ExpressionTest, RangeCellCountIsCappedBeforeExpansion)
         {
             FakeResolver resolver;
-            FakeObject & sheet = resolver.addObject("Sheet", "Doc");
+            FakeObject  &sheet = resolver.addObject("Sheet", "Doc");
             sheet.addProperty("A1", "Length", Value(Units::Quantity(1.0, Units::Unit::Length)));
             resolver.setCurrentObject(&sheet);
 
@@ -836,9 +820,7 @@ namespace ExpressionEngine::Expression
 
             const auto failed = overLimitSum->tryEvaluate();
             ASSERT_FALSE(failed.has_value());
-            EXPECT_NE(failed.error().message.find("个单元格，超过单次聚合可读取的 " + std::to_string(FunctionExpression::maxRangeCells) + " 个上限"),
-                      std::string::npos)
-                    << failed.error().message;
+            EXPECT_NE(failed.error().message.find("个单元格，超过单次聚合可读取的 " + std::to_string(FunctionExpression::maxRangeCells) + " 个上限"), std::string::npos) << failed.error().message;
             EXPECT_EQ(failed.error().kind, Base::ErrorKind::Expression);
             EXPECT_THROW(static_cast<void>(overLimitSum->evaluate()), EvaluationError);
         }
@@ -857,11 +839,9 @@ namespace ExpressionEngine::Expression
             sheet.addProperty("Width", "Length", Value(Units::Quantity(3.0, Units::Unit::Length)));
             resolver.setCurrentObject(&sheet);
 
-            auto length = std::make_unique<VariableExpression>(
-                    &resolver, VariableExpression::Reference{.documentName = "", .objectName = "", .propertyName = "Length"});
-            auto width = std::make_unique<VariableExpression>(
-                    &resolver, VariableExpression::Reference{.documentName = "", .objectName = "", .propertyName = "Width"});
-            const ExpressionPtr tree = binary(Operator::Add, binary(Operator::Multiply, std::move(length), number(2.0)), std::move(width));
+            auto                length = std::make_unique<VariableExpression>(&resolver, VariableExpression::Reference{.documentName = "", .objectName = "", .propertyName = "Length"});
+            auto                width  = std::make_unique<VariableExpression>(&resolver, VariableExpression::Reference{.documentName = "", .objectName = "", .propertyName = "Width"});
+            const ExpressionPtr tree   = binary(Operator::Add, binary(Operator::Multiply, std::move(length), number(2.0)), std::move(width));
 
             const double      expectedValue = quantityOf(tree->evaluate()).getValue();
             const std::string expectedText  = tree->toString();
@@ -900,7 +880,7 @@ namespace ExpressionEngine::Expression
         TEST(ExpressionTest, VariableResolutionAndWriteBack)
         {
             FakeResolver resolver;
-            FakeObject & box = resolver.addObject("Box", "Doc");
+            FakeObject  &box = resolver.addObject("Box", "Doc");
             box.addProperty("Length", "Length", Value(Units::Quantity(2.0, Units::Unit::Length)));
 
             VariableExpression::Reference reference;
@@ -998,8 +978,7 @@ namespace ExpressionEngine::Expression
             keyed->addComponent(Expression::Component::mapKey("Length"));
             EXPECT_EQ(keyed->toString(), "(1)[<<Length>>]");
             auto ranged = std::make_unique<NumberExpression>(nullptr, Units::Quantity(1.0));
-            ranged->addComponent(Expression::Component::rangeComponent(std::make_unique<NumberExpression>(nullptr, Units::Quantity(1.0)),
-                                                                       std::make_unique<NumberExpression>(nullptr, Units::Quantity(3.0))));
+            ranged->addComponent(Expression::Component::rangeComponent(std::make_unique<NumberExpression>(nullptr, Units::Quantity(1.0)), std::make_unique<NumberExpression>(nullptr, Units::Quantity(3.0))));
             EXPECT_EQ(ranged->toString(), "(1)[1:3]");
         }
 
@@ -1014,7 +993,7 @@ namespace ExpressionEngine::Expression
             EXPECT_EQ(folded->toString(), "5");
 
             FakeResolver resolver;
-            FakeObject & box = resolver.addObject("Box", "Doc");
+            FakeObject  &box = resolver.addObject("Box", "Doc");
             box.addProperty("Length", "Length", Value(Units::Quantity(2.0, Units::Unit::Length)));
             auto variable = std::make_unique<VariableExpression>(&resolver, VariableExpression::Reference{.documentName = "", .objectName = "Box", .propertyName = "Length"});
 
@@ -1027,11 +1006,7 @@ namespace ExpressionEngine::Expression
             // 函数实参全为常量时折叠求值
             EXPECT_EQ(function(Function::Sine, number(30.0))->simplify()->nodeName(), "Number");
             // 含引用的函数保持结构
-            EXPECT_EQ(function(Function::Absolute,
-                          std::make_unique<VariableExpression>(&resolver, VariableExpression::Reference{.documentName = "", .objectName = "Box", .propertyName = "Length"}))
-                      ->simplify()
-                      ->nodeName(),
-                      "Function");
+            EXPECT_EQ(function(Function::Absolute, std::make_unique<VariableExpression>(&resolver, VariableExpression::Reference{.documentName = "", .objectName = "Box", .propertyName = "Length"}))->simplify()->nodeName(), "Function");
 
             // evaluateToConstantNode 把取值包成常量节点
             EXPECT_EQ(number(4.0)->evaluateToConstantNode()->nodeName(), "Number");
@@ -1193,4 +1168,4 @@ namespace ExpressionEngine::Expression
             EXPECT_THROW(static_cast<void>(plainNode->evaluate()), Base::ValueError);
         }
     } // namespace
-}     // namespace ExpressionEngine::Expression
+} // namespace ExpressionEngine::Expression

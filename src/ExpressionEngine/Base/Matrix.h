@@ -23,11 +23,11 @@ namespace ExpressionEngine::Base
      */
     enum class ScaleType
     {
-        Other = -1,          ///< 投影、剪切等不属于单纯缩放的矩阵
-        NoScaling = 0,       ///< 无缩放
-        NonUniformRight = 1, ///< 从右侧作用的非均匀缩放
-        NonUniformLeft = 2,  ///< 从左侧作用的非均匀缩放
-        Uniform = 3          ///< 均匀缩放
+        Other           = -1, ///< 投影、剪切等不属于单纯缩放的矩阵
+        NoScaling       = 0,  ///< 无缩放
+        NonUniformRight = 1,  ///< 从右侧作用的非均匀缩放
+        NonUniformLeft  = 2,  ///< 从左侧作用的非均匀缩放
+        Uniform         = 3   ///< 均匀缩放
     };
 
     /**
@@ -65,10 +65,7 @@ namespace ExpressionEngine::Base
          * @param a43 第 4 行第 3 列
          * @param a44 第 4 行第 4 列
          */
-        Matrix4D(float a11, float a12, float a13, float a14,
-                 float a21, float a22, float a23, float a24,
-                 float a31, float a32, float a33, float a34,
-                 float a41, float a42, float a43, float a44);
+        Matrix4D(float a11, float a12, float a13, float a14, float a21, float a22, float a23, float a24, float a31, float a32, float a33, float a34, float a41, float a42, float a43, float a44);
 
         /**
          * @brief 按 16 个双精度元素构造（行优先）
@@ -89,10 +86,7 @@ namespace ExpressionEngine::Base
          * @param a43 第 4 行第 3 列
          * @param a44 第 4 行第 4 列
          */
-        Matrix4D(double a11, double a12, double a13, double a14,
-                 double a21, double a22, double a23, double a24,
-                 double a31, double a32, double a33, double a34,
-                 double a41, double a42, double a43, double a44);
+        Matrix4D(double a11, double a12, double a13, double a14, double a21, double a22, double a23, double a24, double a31, double a32, double a33, double a34, double a41, double a42, double a43, double a44);
 
         /**
          * @brief 拷贝构造

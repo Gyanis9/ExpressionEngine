@@ -67,7 +67,7 @@ namespace ExpressionEngine::Base
         for (std::size_t byte = 0; byte < counts.size(); ++byte)
         {
             dispatch.buckets[byte] = {static_cast<std::uint16_t>(begin), static_cast<std::uint16_t>(counts[byte])};
-            begin                  += counts[byte];
+            begin += counts[byte];
         }
 
         std::array<std::size_t, 256> cursors{};

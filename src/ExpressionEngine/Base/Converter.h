@@ -40,8 +40,7 @@ namespace ExpressionEngine::Base
          * @brief 绑定被转换的向量
          * @param vector 源向量，本对象只持引用，源必须存活到 get() 之后
          */
-        explicit VectorTraits(const VectorType &vector) :
-            m_vector(vector)
+        explicit VectorTraits(const VectorType &vector) : m_vector(vector)
         {
         }
 
@@ -71,8 +70,7 @@ namespace ExpressionEngine::Base
          * @brief 绑定被转换的向量
          * @param vector 源向量，本对象只持引用，源必须存活到 get() 之后
          */
-        explicit VectorTraits(const VectorType &vector) :
-            m_vector(vector)
+        explicit VectorTraits(const VectorType &vector) : m_vector(vector)
         {
         }
 
@@ -102,8 +100,7 @@ namespace ExpressionEngine::Base
          * @brief 绑定被转换的旋转
          * @param rotation 源旋转，本对象只持引用，源必须存活到 get() 之后
          */
-        explicit VectorTraits(const VectorType &rotation) :
-            m_rotation(rotation)
+        explicit VectorTraits(const VectorType &rotation) : m_rotation(rotation)
         {
         }
 

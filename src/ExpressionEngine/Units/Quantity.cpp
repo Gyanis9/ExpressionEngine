@@ -16,13 +16,11 @@
 
 namespace ExpressionEngine::Units
 {
-    QuantityFormat::QuantityFormat() :
-        option(OmitGroupSeparator | RejectGroupSeparator), format(NumberFormat::Fixed), m_precision(-1), m_denominator(-1)
+    QuantityFormat::QuantityFormat() : option(OmitGroupSeparator | RejectGroupSeparator), format(NumberFormat::Fixed), m_precision(-1), m_denominator(-1)
     {
     }
 
-    QuantityFormat::QuantityFormat(const QuantityFormat::NumberFormat format, const int decimals) :
-        option(OmitGroupSeparator | RejectGroupSeparator), format(format), m_precision(decimals), m_denominator(-1)
+    QuantityFormat::QuantityFormat(const QuantityFormat::NumberFormat format, const int decimals) : option(OmitGroupSeparator | RejectGroupSeparator), format(format), m_precision(decimals), m_denominator(-1)
     {
     }
 
@@ -45,13 +43,11 @@ namespace ExpressionEngine::Units
         return denominator;
     }
 
-    Quantity::Quantity() :
-        m_value{0.0}
+    Quantity::Quantity() : m_value{0.0}
     {
     }
 
-    Quantity::Quantity(const double value, const Unit &unit) :
-        m_value{value}, m_unit{unit}
+    Quantity::Quantity(const double value, const Unit &unit) : m_value{value}, m_unit{unit}
     {
     }
 
@@ -363,7 +359,7 @@ namespace ExpressionEngine::Units
                 }
 
                 normalized += result.canonicalText;
-                position   += result.consumedBytes;
+                position += result.consumedBytes;
             }
 
             return normalized;
@@ -436,7 +432,7 @@ namespace ExpressionEngine::Units
 
     const Quantity Quantity::MilePerHour(mile / 3600, Unit::Velocity);
 
-    const Quantity Quantity::SquareFoot(foot * foot, Unit::Area);
+    const Quantity Quantity::SquareFoot(foot *foot, Unit::Area);
     const Quantity Quantity::CubicFoot(foot * foot * foot, Unit::Volume);
 
     const Quantity Quantity::Pound(pound, Unit::Mass);

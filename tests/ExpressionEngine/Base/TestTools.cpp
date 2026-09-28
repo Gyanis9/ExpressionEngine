@@ -92,16 +92,21 @@ namespace ExpressionEngine::Base::Tools
          */
         TEST(ToolsTest, CountAndLocateAgreeOnMalformedBytes)
         {
-            const std::string strayContinuation("\x80" "A", 2);
+            const std::string strayContinuation("\x80"
+                                                "A",
+                                                2);
             EXPECT_EQ(countUtf8Characters(strayContinuation), 2U);
             EXPECT_EQ(locateUtf8Character(strayContinuation, 1).offset, 1U);
             EXPECT_EQ(locateUtf8Character(strayContinuation, 1).length, 1U);
 
             for (const std::string_view sample: {std::string_view{"abc"},
-                                                 std::string_view{"\x80" "A", 2},
-                                                 std::string_view{"a\xE4\xB8", 3},
-                                                 std::string_view{"\xF0\x9F\x98", 3},
-                                                 std::string_view{"\xC2" " A", 3}})
+                                                 std::string_view{"\x80"
+                                                                  "A",
+                                                                  2},
+                                                 std::string_view{"a\xE4\xB8", 3}, std::string_view{"\xF0\x9F\x98", 3},
+                                                 std::string_view{"\xC2"
+                                                                  " A",
+                                                                  3}})
             {
                 const std::size_t characters = countUtf8Characters(sample);
 

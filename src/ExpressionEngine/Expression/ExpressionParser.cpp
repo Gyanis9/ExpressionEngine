@@ -24,10 +24,10 @@ namespace ExpressionEngine::Expression
         constexpr int additiveBinding       = 3;
         constexpr int multiplicativeBinding = 4;
         /// 单位后置与乘除同级：使 "1/2 mm" 归约为 (1/2) mm，同时不会钻进乘除的右操作数
-        constexpr int unitPostfixBinding    = 4;
-        constexpr int powerBinding          = 6;
+        constexpr int unitPostfixBinding = 4;
+        constexpr int powerBinding       = 6;
         /// 一元正负比乘方结合更紧，因此 -2^2 是 (-2)^2，与 Expression.y 的优先级声明一致
-        constexpr int unaryBinding          = 7;
+        constexpr int unaryBinding = 7;
 
         /**
          * @brief 允许的嵌套层数上限
@@ -174,13 +174,13 @@ namespace ExpressionEngine::Expression
                 ExpressionParserImplementation &m_parser;
             };
 
-            IObjectResolver        *m_resolver; ///< 对象解析器，可为空
-            const FunctionRegistry &m_registry; ///< 自定义函数注册表，内置表查不到时来此查询
-            ExpressionLexer         m_lexer;    ///< 词法分析器
-            ExpressionToken         m_current;  ///< 当前记号
-            ExpressionToken         m_next;     ///< 下一记号，用于识别英制两段写法与文档引用
-            int                     m_nestingDepth{}; ///< 已占用的嵌套额度，只用于限深
-            mutable std::optional<int> m_failureColumn; ///< 最近一次写进报错文案的定位列，供非异常通道取出
+            IObjectResolver           *m_resolver;       ///< 对象解析器，可为空
+            const FunctionRegistry    &m_registry;       ///< 自定义函数注册表，内置表查不到时来此查询
+            ExpressionLexer            m_lexer;          ///< 词法分析器
+            ExpressionToken            m_current;        ///< 当前记号
+            ExpressionToken            m_next;           ///< 下一记号，用于识别英制两段写法与文档引用
+            int                        m_nestingDepth{}; ///< 已占用的嵌套额度，只用于限深
+            mutable std::optional<int> m_failureColumn;  ///< 最近一次写进报错文案的定位列，供非异常通道取出
         };
 
         void ExpressionParserImplementation::advance()
@@ -196,9 +196,8 @@ namespace ExpressionEngine::Expression
             {
                 throw Base::ParserError(std::format("{}：表达式嵌套超过 {} 层，已停止解析；请把长表达式拆成几个属性，"
                                                     "或减少括号与函数的层数",
-                                                    m_parser.locationOf(m_parser.m_current),
-                                                    maxNestingDepth),
-                                                    Base::ErrorKind::TooDeep);
+                                                    m_parser.locationOf(m_parser.m_current), maxNestingDepth),
+                                        Base::ErrorKind::TooDeep);
             }
             ++m_parser.m_nestingDepth;
         }
@@ -279,9 +278,9 @@ namespace ExpressionEngine::Expression
         {
             const NestingGuard guard(*this); // 括号、实参、一元与二元右操作数都从这里递归，限深即可护住整棵树
 
-            ExpressionPtr left                      = parsePrefix();
+            ExpressionPtr left = parsePrefix();
             // 英制两段写法要求第一段带英制单位（如 5' 6"），因此单独跟踪上一次是否附着了英制单位
-            bool          lastAttachmentWasImperial = false;
+            bool lastAttachmentWasImperial = false;
 
             for (;;)
             {
@@ -294,8 +293,7 @@ namespace ExpressionEngine::Expression
                 }
 
                 // 英制两段：5' 6" 按「第一段 + 第二段」计算，与 Expression.y 的 USUNIT 规则一致
-                if (lastAttachmentWasImperial && (m_current.kind == ExpressionTokenKind::Number || m_current.kind == ExpressionTokenKind::Integer) &&
-                    m_next.kind == ExpressionTokenKind::UsUnit)
+                if (lastAttachmentWasImperial && (m_current.kind == ExpressionTokenKind::Number || m_current.kind == ExpressionTokenKind::Integer) && m_next.kind == ExpressionTokenKind::UsUnit)
                 {
                     ExpressionPtr segment = makeNumber(m_current.kind == ExpressionTokenKind::Integer ? static_cast<double>(m_current.integerValue) : m_current.numberValue);
                     advance();

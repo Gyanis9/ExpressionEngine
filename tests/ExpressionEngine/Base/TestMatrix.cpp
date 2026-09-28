@@ -370,8 +370,8 @@ TEST(Matrix4D, MultiplyVectorWritesToTheGivenDestination)
 
     Matrix4D scaledFloat;
     scaledFloat.scale(Vector3f(2.0f, 3.0f, 4.0f));
-    Vector3f       sourceF(1.0f, 2.0f, 3.0f);
-    Vector3f       destinationF;
+    Vector3f sourceF(1.0f, 2.0f, 3.0f);
+    Vector3f destinationF;
     scaledFloat.multiplyVector(sourceF, destinationF);
     EXPECT_TRUE(destinationF == Vector3f(2.0f, 6.0f, 12.0f));
 }
@@ -493,8 +493,7 @@ TEST(Matrix4D, AxisAngleRejectsSkewedAndClampsRounding)
     EXPECT_FALSE(scaled.toAxisAngle(base, direction, angle, slide));
 
     // 连乘之后的单位阵迹会略大于 3：不夹 acos 的定义域就会返回 NaN 角度并静默报成功
-    const double drifted[16] = {1.0000000000000002, 0.0, 0.0, 0.0, 0.0, 1.0000000000000002, 0.0, 0.0, 0.0, 0.0, 1.0000000000000002,
-                                0.0, 0.0, 0.0, 0.0, 1.0};
+    const double drifted[16] = {1.0000000000000002, 0.0, 0.0, 0.0, 0.0, 1.0000000000000002, 0.0, 0.0, 0.0, 0.0, 1.0000000000000002, 0.0, 0.0, 0.0, 0.0, 1.0};
     Matrix4D     nearlyUnity;
     nearlyUnity.setMatrix(drifted);
 

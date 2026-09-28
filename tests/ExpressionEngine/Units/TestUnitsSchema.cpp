@@ -192,10 +192,10 @@ namespace ExpressionEngine::Units
         TEST(UnitsApiTest, HostPackReplacesTheGlobalSchemaCollection)
         {
             UnitsSchemaSpecification custom;
-            custom.number                 = 42;
-            custom.name                   = "Custom";
-            custom.basicLengthUnitString  = "in";
-            custom.description            = "host pack";
+            custom.number                              = 42;
+            custom.name                                = "Custom";
+            custom.basicLengthUnitString               = "in";
+            custom.description                         = "host pack";
             custom.translationSpecifications["Length"] = {{0, "in", 1.0}};
 
             const UnitsSchemasDataPack pack{.specifications = {custom}, .defaultDecimals = 5, .defaultDenominator = 32};
@@ -252,5 +252,5 @@ namespace ExpressionEngine::Units
             EXPECT_EQ(UnitsApi::schemaTranslate(Quantity(1.0e-6, Unit::ThermalExpansionCoefficient)), "1.00 µm/m/K");
         }
 
-    }
+    } // namespace
 } // namespace ExpressionEngine::Units

@@ -92,7 +92,7 @@ namespace ExpressionEngine::Base
                 matrix[4 * pivotColumn + pivotColumn] = 1.0;
                 for (int column = 0; column < 4; ++column)
                 {
-                    matrix[4 * pivotColumn + column]  *= pivotInverse;
+                    matrix[4 * pivotColumn + column] *= pivotInverse;
                     inverse[4 * pivotColumn + column] *= pivotInverse;
                 }
 
@@ -106,7 +106,7 @@ namespace ExpressionEngine::Base
                     const double factor = matrix[4 * row + pivotColumn];
                     for (int column = 0; column < 4; ++column)
                     {
-                        matrix[4 * row + column]  -= matrix[4 * pivotColumn + column] * factor;
+                        matrix[4 * row + column] -= matrix[4 * pivotColumn + column] * factor;
                         inverse[4 * row + column] -= inverse[4 * pivotColumn + column] * factor;
                     }
                     // 该位置理论上已为零，显式写 0 避免留下舍入残差
@@ -130,47 +130,31 @@ namespace ExpressionEngine::Base
         }
     } // namespace
 
-    Matrix4D::Matrix4D() :
-        m_matrix{{{1.0, 0.0, 0.0, 0.0}, {0.0, 1.0, 0.0, 0.0}, {0.0, 0.0, 1.0, 0.0}, {0.0, 0.0, 0.0, 1.0}}}
+    Matrix4D::Matrix4D() : m_matrix{{{1.0, 0.0, 0.0, 0.0}, {0.0, 1.0, 0.0, 0.0}, {0.0, 0.0, 1.0, 0.0}, {0.0, 0.0, 0.0, 1.0}}}
     {
     }
 
-    Matrix4D::Matrix4D(const float a11, const float a12, const float a13, const float a14,
-                       const float a21, const float a22, const float a23, const float a24,
-                       const float a31, const float a32, const float a33, const float a34,
-                       const float a41, const float a42, const float a43, const float a44) :
-        m_matrix{{{a11, a12, a13, a14},
-                  {a21, a22, a23, a24},
-                  {a31, a32, a33, a34},
-                  {a41, a42, a43, a44}}}
+    Matrix4D::Matrix4D(const float a11, const float a12, const float a13, const float a14, const float a21, const float a22, const float a23, const float a24, const float a31, const float a32, const float a33, const float a34,
+                       const float a41, const float a42, const float a43, const float a44) : m_matrix{{{a11, a12, a13, a14}, {a21, a22, a23, a24}, {a31, a32, a33, a34}, {a41, a42, a43, a44}}}
     {
     }
 
-    Matrix4D::Matrix4D(const double a11, const double a12, const double a13, const double a14,
-                       const double a21, const double a22, const double a23, const double a24,
-                       const double a31, const double a32, const double a33, const double a34,
-                       const double a41, const double a42, const double a43, const double a44) :
-        m_matrix{{{a11, a12, a13, a14},
-                  {a21, a22, a23, a24},
-                  {a31, a32, a33, a34},
-                  {a41, a42, a43, a44}}}
+    Matrix4D::Matrix4D(const double a11, const double a12, const double a13, const double a14, const double a21, const double a22, const double a23, const double a24, const double a31, const double a32, const double a33, const double a34,
+                       const double a41, const double a42, const double a43, const double a44) : m_matrix{{{a11, a12, a13, a14}, {a21, a22, a23, a24}, {a31, a32, a33, a34}, {a41, a42, a43, a44}}}
     {
     }
 
-    Matrix4D::Matrix4D(const Matrix4D &other) :
-        Matrix4D()
+    Matrix4D::Matrix4D(const Matrix4D &other) : Matrix4D()
     {
         (*this) = other;
     }
 
-    Matrix4D::Matrix4D(const Vector3f &base, const Vector3f &direction, float angle) :
-        Matrix4D()
+    Matrix4D::Matrix4D(const Vector3f &base, const Vector3f &direction, float angle) : Matrix4D()
     {
         rotateLine(base, direction, angle);
     }
 
-    Matrix4D::Matrix4D(const Vector3d &base, const Vector3d &direction, double angle) :
-        Matrix4D()
+    Matrix4D::Matrix4D(const Vector3d &base, const Vector3d &direction, double angle) : Matrix4D()
     {
         rotateLine(base, direction, angle);
     }
@@ -248,8 +232,8 @@ namespace ExpressionEngine::Base
         const double lowerBlockMinor4 = m_matrix[2][1] * m_matrix[3][3] - m_matrix[2][3] * m_matrix[3][1];
         const double lowerBlockMinor5 = m_matrix[2][2] * m_matrix[3][3] - m_matrix[2][3] * m_matrix[3][2];
 
-        return upperBlockMinor0 * lowerBlockMinor5 - upperBlockMinor1 * lowerBlockMinor4 + upperBlockMinor2 * lowerBlockMinor3 + upperBlockMinor3 * lowerBlockMinor2 -
-               upperBlockMinor4 * lowerBlockMinor1 + upperBlockMinor5 * lowerBlockMinor0;
+        return upperBlockMinor0 * lowerBlockMinor5 - upperBlockMinor1 * lowerBlockMinor4 + upperBlockMinor2 * lowerBlockMinor3 + upperBlockMinor3 * lowerBlockMinor2 - upperBlockMinor4 * lowerBlockMinor1 +
+               upperBlockMinor5 * lowerBlockMinor0;
     }
 
     double Matrix4D::determinant3() const
@@ -291,7 +275,7 @@ namespace ExpressionEngine::Base
         scaleMatrix.m_matrix[1][1] = vector.y;
         scaleMatrix.m_matrix[2][2] = vector.z;
         // 缩放左乘到当前矩阵上，次序固定以保证结果可复现
-        (*this)                    = scaleMatrix * (*this);
+        (*this) = scaleMatrix * (*this);
     }
 
     void Matrix4D::rotateX(const double angle)
@@ -444,8 +428,7 @@ namespace ExpressionEngine::Base
                 return false;
             }
             // 与下一列的内积必须为 0
-            if (std::abs(m_matrix[0][index] * m_matrix[0][(index + 1) % 3] + m_matrix[1][index] * m_matrix[1][(index + 1) % 3] +
-                         m_matrix[2][index] * m_matrix[2][(index + 1) % 3]) > 0.01)
+            if (std::abs(m_matrix[0][index] * m_matrix[0][(index + 1) % 3] + m_matrix[1][index] * m_matrix[1][(index + 1) % 3] + m_matrix[2][index] * m_matrix[2][(index + 1) % 3]) > 0.01)
             {
                 return false;
             }
@@ -533,8 +516,7 @@ namespace ExpressionEngine::Base
             {
                 // 半圈时该因子的真实值 cot(A/2) 趋于 0，去掉噪声项后基点就是垂足的一半
                 base = 0.5 * translationPoint;
-            }
-            else
+            } else
             {
                 const double factor = 0.5 * (1.0 + traceValue) / std::sin(angle);
                 base.x              = (0.5 * (translationPoint.x + factor * (direction.y * translationPoint.z - direction.z * translationPoint.y)));
@@ -612,7 +594,7 @@ namespace ExpressionEngine::Base
         {
             // 奇异矩阵没有逆：与其返回垃圾结果，不如让调用方先处理可逆性问题
             throw ValueError("矩阵奇异（高斯消元找不到非零主元），无法求逆；请先用 determinant() 确认矩阵可逆，"
-                    "或改用 inverseOrthogonal() 处理只含旋转与平移的矩阵");
+                             "或改用 inverseOrthogonal() 处理只含旋转与平移的矩阵");
         }
 
         // 秩亏矩阵未必会在消元中撞上零主元，因此用 M * M^-1 近似单位阵来复核
@@ -628,7 +610,7 @@ namespace ExpressionEngine::Base
         if (!((*this) * candidate).isUnity(tolerance))
         {
             throw ValueError("矩阵接近奇异，求逆结果不可信；请先检查 determinant() 是否远离 0，"
-                    "或对坐标做缩放/归一化后再求逆");
+                             "或对坐标做缩放/归一化后再求逆");
         }
 
         setOpenGlMatrix(result.data());
@@ -723,7 +705,7 @@ namespace ExpressionEngine::Base
 
     void Matrix4D::fromString(const std::string &text)
     {
-        const char *      cursor = text.data();
+        const char       *cursor = text.data();
         const char *const end    = text.data() + text.size();
 
         for (int row = 0; row < 4; ++row)
@@ -736,7 +718,7 @@ namespace ExpressionEngine::Base
                     ++cursor;
                 }
 
-                double     value         = 0.0;
+                double value             = 0.0;
                 const auto [next, error] = std::from_chars(cursor, end, value);
                 if (error != std::errc{})
                 {
@@ -814,8 +796,7 @@ namespace ExpressionEngine::Base
                     } else
                     {
                         // 正交但行列式不是 ±1：带旋转的缩放，行列式为负说明含镜像
-                        text = std::format("Scale and Rotate {}[ {}, {}, {}]", subDeterminant < 0.0 ? "and Invert " : "", std::sqrt(gramMatrix[0][0]), std::sqrt(gramMatrix[1][1]),
-                                           std::sqrt(gramMatrix[2][2]));
+                        text = std::format("Scale and Rotate {}[ {}, {}, {}]", subDeterminant < 0.0 ? "and Invert " : "", std::sqrt(gramMatrix[0][0]), std::sqrt(gramMatrix[1][1]), std::sqrt(gramMatrix[2][2]));
                     }
                 } else
                 {

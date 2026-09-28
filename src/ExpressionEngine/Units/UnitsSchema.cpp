@@ -86,8 +86,7 @@ namespace ExpressionEngine::Units
             if (nameIsRegistered)
             {
                 const QuantityFormat &format = quant.getFormat();
-                return UnitsSchemasData::runSpecial(unitSpecification->unitString, value, static_cast<std::size_t>(format.getPrecision()),
-                                                    static_cast<std::size_t>(format.getDenominator()), factor, unitString);
+                return UnitsSchemasData::runSpecial(unitSpecification->unitString, value, static_cast<std::size_t>(format.getPrecision()), static_cast<std::size_t>(format.getDenominator()), factor, unitString);
             }
 
             // 回调自己负责整段文本，因此换算因子与单位串保持未换算的默认值
@@ -106,9 +105,8 @@ namespace ExpressionEngine::Units
         const double          convertedValue = quant.getValue() / factor;
 
         // 非有限值无法套用区域数字格式，直接按最短往返写法输出，避免排版成 "nan"
-        const std::string valueString = std::isfinite(convertedValue) ? formatNumericValue(convertedValue, format.getPrecision(), format.format,
-                                                                                           (format.option & QuantityFormat::OmitGroupSeparator) != 0, formatting)
-                                                                      : std::to_string(convertedValue);
+        const std::string valueString =
+                std::isfinite(convertedValue) ? formatNumericValue(convertedValue, format.getPrecision(), format.format, (format.option & QuantityFormat::OmitGroupSeparator) != 0, formatting) : std::to_string(convertedValue);
 
         // 角度与英制的单位符号是上标式记号，与数值之间不留空格才符合书写习惯
         const auto needsSeparator = [](const std::string_view unit) { return !unit.empty() && unit != "°" && unit != "″" && unit != "′" && unit != "\"" && unit != "'"; };

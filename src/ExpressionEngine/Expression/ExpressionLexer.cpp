@@ -130,35 +130,11 @@ namespace ExpressionEngine::Expression
         // —— 单位符号表 ——
         /// 国际单位符号表：逐条对应 Expression.l 的单位规则；顺序即规则顺序，等长匹配时靠前者胜出
         constexpr std::string_view unitSymbols[]{
-                "nm", "um", "µm", "mm", "cm", "dm", "m", "km",
-                "l", "ml",
-                "Hz", "kHz", "MHz", "GHz", "THz",
-                "ug", "µg", "mg", "g", "kg", "t",
-                "s", "min", "h",
-                "A", "nA", "uA", "µA", "mA", "kA", "MA",
-                "K", "mK", "µK", "uK",
-                "mol", "nmol", "µmol", "umol", "mmol",
-                "cd",
-                "in", "ft", "thou", "mil", "yd", "mi",
-                "mph", "sqft", "cft",
-                "lb", "lbm", "oz", "st", "cwt",
-                "lbf",
-                "N", "mN", "kN", "MN",
-                "Pa", "kPa", "MPa", "GPa",
-                "bar", "mbar",
-                "Torr", "mTorr", "uTorr", "µTorr",
-                "psi", "ksi", "Mpsi",
-                "W", "nW", "uW", "µW", "mW", "kW", "VA",
-                "V", "kV", "mV",
-                "MS", "kS", "S", "mS", "uS", "µS",
-                "Ohm", "kOhm", "MOhm",
-                "C",
-                "T", "mT", "G",
-                "Wb",
-                "F", "mF", "µF", "uF", "nF", "pF",
-                "H", "mH", "µH", "uH", "nH",
-                "J", "mJ", "kJ", "Nm", "VAs", "CV", "Ws", "kWh", "eV", "keV", "MeV", "cal", "kcal",
-                "°", "deg", "rad", "gon", "M", "′", "AS", "″",
+                "nm", "um", "µm",  "mm",  "cm", "dm", "m",  "km", "l",   "ml",  "Hz",   "kHz",  "MHz",  "GHz",  "THz",  "ug",    "µg",    "mg",    "g",   "kg",  "t",    "s",   "min",  "h",   "A",  "nA",
+                "uA", "µA", "mA",  "kA",  "MA", "K",  "mK", "µK", "uK",  "mol", "nmol", "µmol", "umol", "mmol", "cd",   "in",    "ft",    "thou",  "mil", "yd",  "mi",   "mph", "sqft", "cft", "lb", "lbm",
+                "oz", "st", "cwt", "lbf", "N",  "mN", "kN", "MN", "Pa",  "kPa", "MPa",  "GPa",  "bar",  "mbar", "Torr", "mTorr", "uTorr", "µTorr", "psi", "ksi", "Mpsi", "W",   "nW",   "uW",  "µW", "mW",
+                "kW", "VA", "V",   "kV",  "mV", "MS", "kS", "S",  "mS",  "uS",  "µS",   "Ohm",  "kOhm", "MOhm", "C",    "T",     "mT",    "G",     "Wb",  "F",   "mF",   "µF",  "uF",   "nF",  "pF", "H",
+                "mH", "µH", "uH",  "nH",  "J",  "mJ", "kJ", "Nm", "VAs", "CV",  "Ws",   "kWh",  "eV",   "keV",  "MeV",  "cal",   "kcal",  "°",     "deg", "rad", "gon",  "M",   "′",    "AS",  "″",
         };
 
         /// 英制建筑单位符号：`"` 英寸、`'` 英尺（Expression.l 里返回 USUNIT 的两条规则）
@@ -172,8 +148,7 @@ namespace ExpressionEngine::Expression
         };
 
         /// 单位符号候选总表：国际单位在前、英制建筑单位在后，各带上记号类别
-        constexpr std::array<UnitSymbolEntry, std::size(unitSymbols) + std::size(usUnitSymbols)>
-        buildUnitSymbolEntries()
+        constexpr std::array<UnitSymbolEntry, std::size(unitSymbols) + std::size(usUnitSymbols)> buildUnitSymbolEntries()
         {
             std::array<UnitSymbolEntry, std::size(unitSymbols) + std::size(usUnitSymbols)> entries{};
             std::size_t                                                                    index = 0;
@@ -189,14 +164,9 @@ namespace ExpressionEngine::Expression
         }
 
         /// 候选总表与它的首字节分派表；静态存储期、编译期建好，无运行时初始化与堆分配
-        constexpr auto                                                               unitSymbolEntries  = buildUnitSymbolEntries();
-        constexpr Base::FirstByteDispatch<UnitSymbolEntry, unitSymbolEntries.size()> unitSymbolDispatch = Base::buildFirstByteDispatch(
-                unitSymbolEntries,
-                [](const UnitSymbolEntry &entry)
-                {
-                    return static_cast<std::size_t>(static_cast<unsigned char>(entry.symbol.front()));
-                }
-                );
+        constexpr auto                                                               unitSymbolEntries = buildUnitSymbolEntries();
+        constexpr Base::FirstByteDispatch<UnitSymbolEntry, unitSymbolEntries.size()> unitSymbolDispatch =
+                Base::buildFirstByteDispatch(unitSymbolEntries, [](const UnitSymbolEntry &entry) { return static_cast<std::size_t>(static_cast<unsigned char>(entry.symbol.front())); });
 
         /// 单位符号匹配结果
         struct UnitMatch
@@ -364,8 +334,7 @@ namespace ExpressionEngine::Expression
             ConstantMatch best;
             for (const auto &[literal, canonicalName, value]: constantSpecifications)
             {
-                if (literal.size() > best.length && text.size() - offset >= literal.size() &&
-                    text.compare(offset, literal.size(), literal) == 0)
+                if (literal.size() > best.length && text.size() - offset >= literal.size() && text.compare(offset, literal.size(), literal) == 0)
                 {
                     best = {.length = literal.size(), .canonicalName = canonicalName, .value = value};
                 }
@@ -643,8 +612,7 @@ namespace ExpressionEngine::Expression
         }
     } // namespace
 
-    ExpressionLexer::ExpressionLexer(const std::string_view text) :
-        m_text(text)
+    ExpressionLexer::ExpressionLexer(const std::string_view text) : m_text(text)
     {
     }
 
@@ -672,7 +640,7 @@ namespace ExpressionEngine::Expression
     std::string_view ExpressionLexer::takeRawText(const std::size_t byteCount)
     {
         const std::string_view rawText = m_text.substr(m_offset, byteCount);
-        m_offset                       += byteCount;
+        m_offset += byteCount;
         // 列号按 UTF-8 码点推进：续字节不单独计数；换行之后从 1 重新开始
         for (const char character: rawText)
         {
@@ -763,7 +731,7 @@ namespace ExpressionEngine::Expression
                 const long long value = parseIntegerValue(rawText, tokenColumn);
                 token.numberValue     = static_cast<double>(value);
                 // 记号里的整数字段是 int；更大的整数由 numberValue 携带，越界已在上面按 long long 校过
-                token.integerValue    = static_cast<int>(value);
+                token.integerValue = static_cast<int>(value);
                 break;
             }
             case ExpressionTokenKind::String:

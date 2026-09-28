@@ -137,7 +137,7 @@ namespace ExpressionEngine::Base::Tools
             if (codePoint > 0xFFFF)
             {
                 const std::uint32_t offset = codePoint - 0x10000u;
-                result                     += std::format("\\u{:04X}\\u{:04X}", 0xD800u + (offset >> 10), 0xDC00u + (offset & 0x3FFu));
+                result += std::format("\\u{:04X}\\u{:04X}", 0xD800u + (offset >> 10), 0xDC00u + (offset & 0x3FFu));
             } else
             {
                 result += std::format("\\u{:04X}", codePoint);

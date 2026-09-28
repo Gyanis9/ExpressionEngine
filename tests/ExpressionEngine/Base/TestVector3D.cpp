@@ -172,7 +172,7 @@ TEST(Vector3D, PerComponentInPlaceOperations)
 
     // 右手定则：绕 X 转正 90° 把 Y 带到 Z，绕 Y 转正 90° 把 Z 带到 X
     const double quarterTurn = std::asin(1.0);
-    Vector3d aroundX(0.0, 1.0, 0.0);
+    Vector3d     aroundX(0.0, 1.0, 0.0);
     aroundX.rotateX(quarterTurn);
     EXPECT_NEAR(aroundX.x, 0.0, 1e-12);
     EXPECT_NEAR(aroundX.y, 0.0, 1e-12);
@@ -190,8 +190,7 @@ TEST(Vector3D, PerComponentInPlaceOperations)
     EXPECT_TRUE(point == Vector3d(1.0, 1.0, 0.0));
     // 两条方向平行时补不出第三轴，报错而不是给一套退化的基
     Vector3d degenerate(1.0, 1.0, 1.0);
-    EXPECT_THROW(degenerate.transformToCoordinateSystem(Vector3d(), Vector3d(1.0, 0.0, 0.0), Vector3d(2.0, 0.0, 0.0)),
-                 ValueError);
+    EXPECT_THROW(degenerate.transformToCoordinateSystem(Vector3d(), Vector3d(1.0, 0.0, 0.0), Vector3d(2.0, 0.0, 0.0)), ValueError);
 
     // 分量类型转换按逐个分量拷贝
     const Vector3f shortened = toVector<float>(Vector3d(1.5, -2.5, 3.5));

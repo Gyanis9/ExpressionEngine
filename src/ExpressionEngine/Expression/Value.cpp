@@ -67,8 +67,7 @@ namespace ExpressionEngine::Expression
             std::string text = "Matrix(";
             for (unsigned int row = 0; row < 4; ++row)
             {
-                text += std::format("({:.{}}, {:.{}}, {:.{}}, {:.{}})", matrix[row][0], s_geometryDigits, matrix[row][1], s_geometryDigits, matrix[row][2], s_geometryDigits,
-                                    matrix[row][3], s_geometryDigits);
+                text += std::format("({:.{}}, {:.{}}, {:.{}}, {:.{}})", matrix[row][0], s_geometryDigits, matrix[row][1], s_geometryDigits, matrix[row][2], s_geometryDigits, matrix[row][3], s_geometryDigits);
                 if (row != 3)
                 {
                     text += ", ";
@@ -82,18 +81,16 @@ namespace ExpressionEngine::Expression
         std::string formatRotation(const Base::Rotation &rotation)
         {
             const double *quaternion = rotation.getValue();
-            return std::format("Rotation ({:.{}}, {:.{}}, {:.{}}, {:.{}})", quaternion[0], s_geometryDigits, quaternion[1], s_geometryDigits, quaternion[2], s_geometryDigits,
-                               quaternion[3], s_geometryDigits);
+            return std::format("Rotation ({:.{}}, {:.{}}, {:.{}}, {:.{}})", quaternion[0], s_geometryDigits, quaternion[1], s_geometryDigits, quaternion[2], s_geometryDigits, quaternion[3], s_geometryDigits);
         }
 
         /// 位姿按位置与旋转排版，形如 "Placement [Pos=(0, 0, 0), Rot=(0, 0, 0, 1)]"
         std::string formatPlacement(const Base::Placement &placement)
         {
             const Base::Vector3d &position   = placement.getPosition();
-            const double *        quaternion = placement.getRotation().getValue();
-            return std::format("Placement [Pos=({:.{}}, {:.{}}, {:.{}}), Rot=({:.{}}, {:.{}}, {:.{}}, {:.{}})]", position.x, s_geometryDigits, position.y, s_geometryDigits,
-                               position.z, s_geometryDigits, quaternion[0], s_geometryDigits, quaternion[1], s_geometryDigits, quaternion[2], s_geometryDigits, quaternion[3],
-                               s_geometryDigits);
+            const double         *quaternion = placement.getRotation().getValue();
+            return std::format("Placement [Pos=({:.{}}, {:.{}}, {:.{}}), Rot=({:.{}}, {:.{}}, {:.{}}, {:.{}})]", position.x, s_geometryDigits, position.y, s_geometryDigits, position.z, s_geometryDigits, quaternion[0], s_geometryDigits,
+                               quaternion[1], s_geometryDigits, quaternion[2], s_geometryDigits, quaternion[3], s_geometryDigits);
         }
 
         /// 把数值型取值看成数量；非数值型返回空
@@ -158,8 +155,7 @@ namespace ExpressionEngine::Expression
         const std::vector<Value> &values = sequenceValues(sequence);
         if (index >= values.size())
         {
-            throw Base::IndexError(std::format("序列只有 {} 个元素，却要取第 {} 个；下标从 0 到 {}；请改用范围内的下标",
-                                               values.size(), index, values.size() == 0 ? 0 : values.size() - 1));
+            throw Base::IndexError(std::format("序列只有 {} 个元素，却要取第 {} 个；下标从 0 到 {}；请改用范围内的下标", values.size(), index, values.size() == 0 ? 0 : values.size() - 1));
         }
         return values[index];
     }
@@ -171,8 +167,7 @@ namespace ExpressionEngine::Expression
 
     bool isGeometric(const Value &value)
     {
-        return std::holds_alternative<Base::Vector3d>(value) || std::holds_alternative<Base::Matrix4D>(value) || std::holds_alternative<Base::Rotation>(value) ||
-               std::holds_alternative<Base::Placement>(value);
+        return std::holds_alternative<Base::Vector3d>(value) || std::holds_alternative<Base::Matrix4D>(value) || std::holds_alternative<Base::Rotation>(value) || std::holds_alternative<Base::Placement>(value);
     }
 
     bool isSequence(const Value &value)
@@ -535,8 +530,7 @@ namespace ExpressionEngine::Expression
                     {
                         // 备选类型只剩位姿；若 Value 将来新增备选，这里的静态断言会先报出来
                         static_assert(std::is_same_v<LeftType, Base::Placement>, "Value 增加了新的备选类型，请同步更新相等判定");
-                        return leftValue.getPosition().isEqual(rightValue.getPosition(), Base::Precision::confusion()) &&
-                               leftValue.getRotation().isSame(rightValue.getRotation(), Base::Precision::angular());
+                        return leftValue.getPosition().isEqual(rightValue.getPosition(), Base::Precision::confusion()) && leftValue.getRotation().isSame(rightValue.getRotation(), Base::Precision::angular());
                     }
                 },
                 left, right);
