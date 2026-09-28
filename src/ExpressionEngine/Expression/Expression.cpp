@@ -818,6 +818,18 @@ namespace ExpressionEngine::Expression
         {
             const Range      range          = rangeExpression.getRange();
             IObjectResolver *objectResolver = context.resolver();
+
+            // 展开之前先按格数拒绝：走完循环的代价由地址两端相乘决定，与输入长度不成比例
+            const std::size_t cellCount = static_cast<std::size_t>(range.size());
+            if (cellCount > FunctionExpression::maxRangeCells)
+            {
+                throw EvaluationError(std::format("区间 {} 共 {} 个单元格，超过单次聚合可读取的 {} 个上限；"
+                                                  "请缩小区间，或分段汇总后再相加",
+                                                  range.rangeText(),
+                                                  cellCount,
+                                                  FunctionExpression::maxRangeCells));
+            }
+
             if (objectResolver == nullptr)
             {
                 throw Base::NameError(std::format("聚合函数要读取单元格区间 {}，但表达式没有绑定对象解析器"

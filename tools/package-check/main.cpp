@@ -134,6 +134,16 @@ namespace
         const auto wide = ExpressionParser::tryParse(nullptr, "sum(1, 2, 3, 4, 5)");
         check(wide.has_value() && wide.value()->astDepth() == 1, "聚合实参是兄弟节点，不叠树深");
 
+        // 单元格区间按格数在展开之前拒绝：十几个字符的文本不该要到整张网格
+        Dictionary cellHost;
+        const auto cells  = ExpressionParser::tryParse(&cellHost, "sum(A1:E16384)");
+        check(cells.has_value(), "超大区间的写法本身合法");
+        if (cells.has_value())
+        {
+            const auto expanded = (*cells)->tryEvaluate();
+            check(!expanded.has_value() && expanded.error().message.find("上限") != std::string::npos, "超格数的区间在展开之前被拒绝");
+        }
+
         // 文本函数按 UTF-8 字符计，不做 Unicode 大小写映射（非 ASCII 字母原样留着）
         const auto folded = evaluate("upper(<<aB1>>)");
         check(folded.has_value() && std::holds_alternative<std::string>(*folded) && std::get<std::string>(*folded) == "AB1", "upper 只做 ASCII 大小写折叠");

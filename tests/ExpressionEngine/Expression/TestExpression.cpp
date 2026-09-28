@@ -809,6 +809,38 @@ namespace ExpressionEngine::Expression
         }
 
         /**
+         * @brief 钉住：区间按格数在展开之前拒绝，超限不是一段很长的求值而是一条可读的错
+         * @details 两端地址各自合法不等于展开后的格数可控：地址受网格上限（702 列 × 16384 行）管，
+         *          于是十几个字符的文本就能要到整张网格，而每一格都要回调宿主一次。
+         */
+        TEST(ExpressionTest, RangeCellCountIsCappedBeforeExpansion)
+        {
+            FakeResolver resolver;
+            FakeObject & sheet = resolver.addObject("Sheet", "Doc");
+            sheet.addProperty("A1", "Length", Value(Units::Quantity(1.0, Units::Unit::Length)));
+            resolver.setCurrentObject(&sheet);
+
+            // 顶到上限：4 列 × 16384 行，照常走完，空单元格仍然只是跳过
+            std::vector<ExpressionPtr> atLimit;
+            atLimit.push_back(std::make_unique<RangeExpression>(&resolver, "A1", "D16384"));
+            auto atLimitSum = std::make_unique<FunctionExpression>(&resolver, Function::Sum, "sum", std::move(atLimit));
+            EXPECT_EQ(static_cast<std::size_t>(RangeExpression(&resolver, "A1", "D16384").getRange().size()), FunctionExpression::maxRangeCells);
+            EXPECT_DOUBLE_EQ(quantityOf(atLimitSum->evaluate()).getValue(), 1.0);
+
+            // 多一列就过线，两条通道给出同一份文案；错误发生在循环之前
+            std::vector<ExpressionPtr> overLimit;
+            overLimit.push_back(std::make_unique<RangeExpression>(&resolver, "A1", "E16384"));
+            auto overLimitSum = std::make_unique<FunctionExpression>(&resolver, Function::Sum, "sum", std::move(overLimit));
+
+            const auto failed = overLimitSum->tryEvaluate();
+            ASSERT_FALSE(failed.has_value());
+            EXPECT_NE(failed.error().message.find("个单元格，超过单次聚合可读取的 " + std::to_string(FunctionExpression::maxRangeCells) + " 个上限"),
+                      std::string::npos)
+                    << failed.error().message;
+            EXPECT_THROW(static_cast<void>(overLimitSum->evaluate()), EvaluationError);
+        }
+
+        /**
          * @brief 钉住：变量引用按文档名与对象名解析属性，缺失解析器、对象、属性、取值都报错
          */
         TEST(ExpressionTest, VariableResolutionAndWriteBack)
