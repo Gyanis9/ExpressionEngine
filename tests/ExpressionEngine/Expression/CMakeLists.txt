@@ -8,5 +8,6 @@ set_property(GLOBAL APPEND PROPERTY ExpressionEngineExpressionTestSources
         ${CMAKE_CURRENT_LIST_DIR}/TestExpressionParser.cpp
         ${CMAKE_CURRENT_LIST_DIR}/TestFunctionRegistry.cpp
         ${CMAKE_CURRENT_LIST_DIR}/TestRange.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/TestUntrustedInput.cpp
         ${CMAKE_CURRENT_LIST_DIR}/TestValue.cpp
 )
