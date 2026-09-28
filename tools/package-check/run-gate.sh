@@ -21,9 +21,28 @@ clone="$work/clone"
 prefix="$work/prefix"
 rc=0
 
+# 交给 Windows 一侧（git、cmake/ctest 与被构建出来的 .exe）的路径必须是本机原生写法。
+# 在 MSYS/Git Bash 里把 /tmp/... 原样递过去会被改写：实测 `-D TEST_EXECUTABLE=/tmp/...` 变成盘符相对的
+# `\tmp/...`，gtest 的构建期用例于是报 "Error running test executable ... no such file or directory"，
+# 整棵树以 *_NOT_BUILT 收场——看起来像代码坏了，其实只是路径被吞；而带 MSYS_NO_PATHCONV=1 跑时同一条
+# `/tmp/...` 又不转，git 会把克隆落到「当前盘:\tmp\...」，与 cygpath 报出的目录不是同一处。
+# 所以克隆目的地与 Windows 工具用的都是 cygpath 转出来的那份，POSIX 形态只留给本 shell 的
+# find、日志与清理——两者指向磁盘上同一个目录，第 27 行的「克隆到」就是这个前提的自检。
+native()
+{
+    if command -v cygpath >/dev/null 2>&1; then
+        cygpath -w "$1"
+    else
+        printf '%s\n' "$1"
+    fi
+}
+
+clone_native=$(native "$clone")
+prefix_native=$(native "$prefix")
+
 echo "gate: 分支 $branch_or_head HEAD=$head 构建档 $kind 工作目录 $work"
 
-git clone -q "$root" "$clone" || { echo "clone 失败"; exit 1; }
+git clone -q "$root" "$clone_native" || { echo "clone 失败"; exit 1; }
 echo "克隆到 $(cd "$clone" && git rev-parse --short HEAD)"
 
 run_step()
@@ -39,13 +58,13 @@ run_step()
     fi
 }
 
-run_step configure cmake -S "$clone" --preset "$kind" -B "$clone/build/$kind"
-run_step build cmake --build "$clone/build/$kind"
-run_step tests ctest --test-dir "$clone/build/$kind" --output-on-failure
-run_step install cmake --install "$clone/build/$kind" --prefix "$prefix"
-run_step consumer-configure cmake -S "$clone/tools/package-check" -B "$clone/tools/package-check/build" -G Ninja -DCMAKE_BUILD_TYPE=Debug \
-    -DCMAKE_PREFIX_PATH="$prefix"
-run_step consumer-build cmake --build "$clone/tools/package-check/build"
+run_step configure cmake -S "$clone_native" --preset "$kind" -B "$(native "$clone/build/$kind")"
+run_step build cmake --build "$(native "$clone/build/$kind")"
+run_step tests ctest --test-dir "$(native "$clone/build/$kind")" --output-on-failure
+run_step install cmake --install "$(native "$clone/build/$kind")" --prefix "$prefix_native"
+run_step consumer-configure cmake -S "$(native "$clone/tools/package-check")" -B "$(native "$clone/tools/package-check/build")" -G Ninja -DCMAKE_BUILD_TYPE=Debug \
+    -DCMAKE_PREFIX_PATH="$prefix_native"
+run_step consumer-build cmake --build "$(native "$clone/tools/package-check/build")"
 
 if [ "$rc" -eq 0 ]; then
     # 产物名与位置随平台、生成器而变（Windows 带 .exe；VS 多配置放进 <配置>/ 子目录），按实际文件找
