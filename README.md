@@ -111,6 +111,7 @@ else
 内置函数不用自己抄清单：`FunctionExpression::builtInFunctions()` 给出 78 个写法与「是否聚合函数」，
 `FunctionExpression::acceptsArgumentCount(名字, 个数)` 用解析期同一套规则回答「这个函数收几个参数」。
 宿主自己登记的函数不在这里，走 `FunctionRegistry::names()`——两份合起来才是界面该列的全集。
+单位符号同理：`ExpressionLexer::supportedUnitSymbols()` 列出词法器认得的全部写法（并标出英制两记号）。
 
 把结果写回宿主属性不在表达式里：文本没有赋值语句，写回走 C++ 侧的
 `VariableExpression::assignValue()`（属性只读时抛 `Base::AttributeError`）。
@@ -264,7 +265,7 @@ ctest --test-dir build/release --output-on-failure
 - 样式门也在 CI 里：`.github/workflows/linux-ci.yml` 的 `style` 作业跑的就是上面那条脚本，
   `main` 上每次推送都判。
 - CI（`.github/workflows/windows-ci.yml`）在 `main` 上跑 Debug + AddressSanitizer 全量用例，之后
-  `cmake --install` 到临时前缀、另起 `tools/package-check/` 工程编译并跑 44 条宿主可见行为断言——
+  `cmake --install` 到临时前缀、另起 `tools/package-check/` 工程编译并跑 46 条宿主可见行为断言——
   导出头漏装、包配置写错这类缺陷只有仓库外消费者才看得见。
 
 ## 性能

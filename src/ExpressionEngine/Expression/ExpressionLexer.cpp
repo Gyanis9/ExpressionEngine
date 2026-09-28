@@ -612,6 +612,23 @@ namespace ExpressionEngine::Expression
         }
     } // namespace
 
+    const std::vector<ExpressionLexer::UnitSymbolInfo> &ExpressionLexer::supportedUnitSymbols()
+    {
+        // 读词法匹配用的那份表：目录与匹配行为同源，不会出现「目录里有、词法器不认」
+        static const std::vector<UnitSymbolInfo> catalog = []
+        {
+            std::vector<UnitSymbolInfo> collected;
+            collected.reserve(unitSymbolEntries.size());
+            for (const UnitSymbolEntry &entry: unitSymbolEntries)
+            {
+                collected.push_back(UnitSymbolInfo{.symbol = entry.symbol, .isUsUnit = entry.kind == ExpressionTokenKind::UsUnit});
+            }
+            return collected;
+        }();
+
+        return catalog;
+    }
+
     ExpressionLexer::ExpressionLexer(const std::string_view text) : m_text(text)
     {
     }

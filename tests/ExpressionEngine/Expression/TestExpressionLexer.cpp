@@ -1,11 +1,14 @@
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <string>
 #include <string_view>
 #include <vector>
 
 #include <ExpressionEngine/Base/Exception.h>
 #include <ExpressionEngine/Expression/ExpressionLexer.h>
+#include <ExpressionEngine/Expression/ExpressionParser.h>
+#include <ExpressionEngine/Units/QuantityParser.h>
 
 namespace
 {
@@ -423,4 +426,37 @@ TEST(ExpressionLexerTest, EscapedHashAndGreaterSignInStringBody)
     const std::vector<ExpressionToken> reference = tokenize("<<Doc#A1>>");
     ASSERT_EQ(reference.size(), 1U);
     EXPECT_EQ(reference[0].kind, ExpressionTokenKind::DocumentRef);
+}
+
+/**
+ * @brief 钉住：单位符号目录可枚举，且列出的写法真的能被引擎认下
+ * @details 宿主的单位选择器只有这一份可靠来源。「目录里有、用起来报错」是最难查的漂移：
+ *          词法器认的写法与单位表认的符号是两张表，所以这里逐条要求「列出的每一写法既能查到量、
+ *          也能真的解析成一条表达式」。
+ */
+TEST(SupportedUnitSymbols, EveryListedSpellingIsUsable)
+{
+    const auto &symbols = ExpressionLexer::supportedUnitSymbols();
+    EXPECT_EQ(symbols.size(), 131U);
+
+    for (const auto &entry: symbols)
+    {
+        EXPECT_FALSE(entry.symbol.empty());
+        EXPECT_EQ(std::ranges::count(symbols, entry.symbol, &ExpressionLexer::UnitSymbolInfo::symbol), 1) << "表里有重名：" << entry.symbol;
+        EXPECT_NE(ExpressionEngine::Units::findPredefinedUnit(entry.symbol), nullptr) << entry.symbol;
+    }
+
+    // 英制两记号（双引号与单引号）被单独标出来：它们只跟在数字后面，不能写成 "1 \""
+    EXPECT_EQ(std::ranges::count(symbols, true, &ExpressionLexer::UnitSymbolInfo::isUsUnit), 2);
+
+    for (const auto &entry: symbols)
+    {
+        if (entry.isUsUnit)
+        {
+            continue;
+        }
+
+        const auto parsed = ExpressionEngine::Expression::ExpressionParser::tryParse(nullptr, std::string("1 ") + std::string(entry.symbol));
+        ASSERT_TRUE(parsed.has_value()) << entry.symbol << " 的文案：" << parsed.error().message;
+    }
 }

@@ -11,6 +11,7 @@
 
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace ExpressionEngine::Expression
 {
@@ -86,6 +87,25 @@ namespace ExpressionEngine::Expression
          * @throws Base::OverflowError 整数字面量超出 long long 的表示范围
          */
         ExpressionToken next();
+
+        /**
+         * @brief 一个可写在表达式里的单位符号
+         */
+        struct UnitSymbolInfo
+        {
+            std::string_view symbol;   ///< 原文写法，大小写与重音符号都要照抄（µm 与 um 是两条）
+            bool             isUsUnit; ///< 是否英制建筑记号（双引号与单引号），它们只跟在数字后面
+        };
+
+        /**
+         * @brief 列出词法器认得的全部单位符号
+         * @details 宿主的单位选择器以此为准：表里的写法都是能被词法器认出来的，不必再抄一份。
+         *          用例逐条验证「列出来的都能被单位表查到」与「列出来的（除英制两记号）都能真的
+         *          解析成功」，所以这份目录不会给出一个让用户选了却用不上的符号。
+         *          顺序与词法匹配一致：先国际单位与派生单位，再英制建筑记号。
+         * @return 单位符号目录，首次调用组装一次后只读
+         */
+        [[nodiscard]] static const std::vector<UnitSymbolInfo> &supportedUnitSymbols();
 
     private:
         /// 跳过空白：空格、制表符、回车与换行；换行把列号重置为 1

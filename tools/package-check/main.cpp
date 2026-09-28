@@ -12,6 +12,7 @@
 
 #include <ExpressionEngine/Base/Exception.h>
 #include <ExpressionEngine/Expression/Dictionary.h>
+#include <ExpressionEngine/Expression/ExpressionLexer.h>
 #include <ExpressionEngine/Expression/Expression.h>
 #include <ExpressionEngine/Expression/ExpressionParser.h>
 #include <ExpressionEngine/Expression/FunctionRegistry.h>
@@ -31,6 +32,7 @@ namespace
     using ExpressionEngine::Base::ValueError;
     using ExpressionEngine::Expression::CustomFunctionSpec;
     using ExpressionEngine::Expression::Dictionary;
+    using ExpressionEngine::Expression::ExpressionLexer;
     using ExpressionEngine::Expression::Expression;
     using ExpressionEngine::Expression::ExpressionParser;
     using ExpressionEngine::Expression::ExpressionPtr;
@@ -155,6 +157,16 @@ namespace
         check(catalog.size() == 78 && FunctionExpression::functionFromName(catalog.front().name) != FunctionExpression::Function::None, "装出来的包能列内置函数目录");
         check(FunctionExpression::acceptsArgumentCount("sqrt", 1) && !FunctionExpression::acceptsArgumentCount("sqrt", 2), "参数个数查询与解析期同判据");
         check(!FunctionExpression::acceptsArgumentCount("nosuchfunction", 1), "不认识的函数名只回答不收");
+
+        // 单位符号同样只有一份可查的目录：宿主的选择器不必抄表，抄的那份会与词法器漂移
+        const auto &unitSymbols = ExpressionLexer::supportedUnitSymbols();
+        check(unitSymbols.size() > 100, "安装包能枚举单位符号目录");
+        bool allUnitsResolvable = true;
+        for (const auto &symbol: unitSymbols)
+        {
+            allUnitsResolvable = allUnitsResolvable && ExpressionEngine::Units::findPredefinedUnit(symbol.symbol) != nullptr;
+        }
+        check(allUnitsResolvable, "列出的每个单位写法都能在单位表里查到量");
 
         // 超深的运算链在构造期就报可读的错，宿主不会被一次无法捕获的栈溢出带走
         std::string longChain = "1";
