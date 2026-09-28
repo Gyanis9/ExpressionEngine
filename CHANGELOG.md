@@ -20,6 +20,18 @@
   sanitizer 构建补上 `-fno-sanitize-recover=all`：UBSan 默认只打印诊断并继续执行，那样门禁永远
   全绿；现在未定义行为直接中止进程。
 
+- **样式门**：`.clang-format` 从「作者本地的偏好」变成有判据的规范——新增 `tools/format-check.sh`，
+  CI 的 `style` 作业跑的是同一条脚本，工具版本钉死 clang-format 23.1.1（不同大版本会把同一份文件
+  排成两种形状，不钉版本这道门会在某天全体变红）。配置补上四项关键设置：`ReflowComments: false`
+  （中文 Doxygen 的折行是排版的一部分，不许重新绕线）、`SortIncludes: false` 加
+  `IncludeBlocks: Preserve`（包含顺序按「自己的头 / 标准库 / 项目内头」三段由人维护）、
+  `SortUsingDeclarations: false`（`using` 声明按「异常 → 表达式 → 单位」分层手写，重排会打散分组）。
+  全仓 83 个 C++ 文件已按它归一：逐文件比对「去掉全部空白后的字节序列」与「非 ASCII 字节数」两项
+  指纹，只有 4 个文件有文字改动，全是 `FixNamespaceComments` 补上的命名空间结尾注释，其余纯属空白
+  与折行；归一后 Debug、Release、Debug+ASan 三档 318 条用例全绿零告警。判据本身验过三处：塞入一处
+  坏排版报 6 行违规并退出码 1、把版本要求指成 99.0.0 当场拒绝、清单为空也拒绝（空清单会被读成
+  「零违规」，那是假绿）。
+
 - **Linux 构建矩阵**：新增 `linux-ci.yml`，在 GCC 与 Clang 下各跑一遍构建 + 全量用例（Debug 档
   开 ASan 与 UBSan），并同样跑一遍安装包的仓库外消费者。
 

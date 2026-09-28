@@ -253,6 +253,12 @@ ctest --test-dir build/release --output-on-failure
 - 开关：`EXPRESSIONENGINE_BUILD_TESTS`（默认 ON）、`EXPRESSIONENGINE_BUILD_BENCHMARKS`（默认 OFF）。
 - 零编译告警是提交硬判据：MSVC 用 `/W4 /permissive- /utf-8 /Zc:__cplusplus`，其它编译器用
   `-Wall -Wextra -Wpedantic`。
+- 排版同样有判据：`bash tools/format-check.sh` 按仓库根的 `.clang-format` 校全部受版本控制的
+  C++ 文件，工具版本钉死 clang-format 23.1.1（换大版本会把同一份文件排成另一种形状）。
+  本机的可执行文件不在 PATH 上时给 `CLANG_FORMAT` 指路径。自动修复：
+  `clang-format -i $(git ls-files '*.h' '*.hpp' '*.cpp')`。
+- 样式门也在 CI 里：`.github/workflows/linux-ci.yml` 的 `style` 作业跑的就是上面那条脚本，
+  `main` 上每次推送都判。
 - CI（`.github/workflows/windows-ci.yml`）在 `main` 上跑 Debug + AddressSanitizer 全量用例，之后
   `cmake --install` 到临时前缀、另起 `tools/package-check/` 工程编译并跑 41 条宿主可见行为断言——
   导出头漏装、包配置写错这类缺陷只有仓库外消费者才看得见。

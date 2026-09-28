@@ -23,6 +23,27 @@ on:
   workflow_dispatch:
 
 jobs:
+  # 样式门：.clang-format 既然随仓库发布，就必须有判据——否则它只是作者本地的偏好，
+  # 谁改一行代码都能顺手换一种排版而没人看得见。工具版本钉死：不同 clang-format 大版本
+  # 会把同一份文件排成两种形状，不钉版本这道门会在某天全体变红。判据本身复用仓库里的
+  # tools/format-check.sh，本地与 CI 走同一条脚本，不会出现「本地过了 CI 红」的两套标准。
+  style:
+    name: 代码格式（clang-format 23.1.1）
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v7
+
+      # 与下面 Conan 那步同理：镜像的系统 Python 受 PEP 668 保护，只能装进 venv
+      - name: 安装钉定版本的 clang-format
+        run: |
+          python3 -m venv "${RUNNER_TEMP}/format-venv"
+          "${RUNNER_TEMP}/format-venv/bin/pip" install "clang-format==23.1.1"
+
+      - name: 检查全部受版本控制的 C++ 文件
+        run: CLANG_FORMAT="${RUNNER_TEMP}/format-venv/bin/clang-format" bash tools/format-check.sh
+
   build-and-test:
     runs-on: ubuntu-latest
     timeout-minutes: 45
