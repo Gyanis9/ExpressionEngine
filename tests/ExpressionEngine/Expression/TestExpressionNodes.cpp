@@ -402,14 +402,40 @@ namespace ExpressionEngine::Expression
          *          `Box.Length.<<A>>` 的名字分量曾裸写成 `.A`，而单独一个 A 会被词法器读成安培
          *          单位，于是文本再解析就报「需要分量名」。判据取最省事的形态：解析→写文本→
          *          再解析→再写文本，两次文本必须相同、中间不得解析失败，且重解析出的树要
-         *          与原树同形。圈子里只放名字段那类（`Box.<<a.b>>`、分量 `.A`）：单位并写与 `%`
-         *          混用的文本还有歧义——`5%m m`（树是 (5 % m) * m）与 `5 % m * m`（树是
-         *          5 % (m * m)）打出同一个文本，成因已定位、修法待选，见 CHANGELOG「已知边界」。
+         *          与原树同形。圈子里两类形状都放：名字段的引号（`Box.<<a.b>>`、分量 `.A`），
+         *          以及单位因子链造成的同级歧义（`5 % m * m` 曾同时代表两棵树，现在左操作数
+         *          落在单位上就一定带括号）。
          */
         TEST(ExpressionNodes, PersistentTextIsAFixpoint)
         {
-            for (const std::string input: {"Box.Length.<<A>>", "Box.Length.<<mm>>", "Box.Length.<<True>>", "Box.<<a.b>>.<<pi>>", "Ф.<<A>>.<<A>>", "(vector(1; 2; 3))[0]", "sum(A1:A10)", "sqrt(16) + abs(-7)", "1 ? 2 : 3 + 4",
-                                           "Box.<<x y>>[1]", "<<Doc>>.Box.Length.<<A>>"})
+            for (const std::string input: {"Box.Length.<<A>>",
+                                           "Box.Length.<<mm>>",
+                                           "Box.Length.<<True>>",
+                                           "Box.<<a.b>>.<<pi>>",
+                                           "Ф.<<A>>.<<A>>",
+                                           "(vector(1; 2; 3))[0]",
+                                           "sum(A1:A10)",
+                                           "sqrt(16) + abs(-7)",
+                                           "1 ? 2 : 3 + 4",
+                                           "Box.<<x y>>[1]",
+                                           "<<Doc>>.Box.Length.<<A>>",
+                                           "5%m m",
+                                           "2 mm",
+                                           "1/2 mm",
+                                           "2 m/s",
+                                           "3 mm * 4 mm",
+                                           "1 m + 2 mm",
+                                           "5 * (2 mm)",
+                                           "10 - 2 mm",
+                                           "1 m m m",
+                                           "2' 6\"",
+                                           "1 m^2",
+                                           "100 / 2 m",
+                                           "1 - 2 - 3",
+                                           "2 ^ 3 ^ 2",
+                                           ".<<a.b>>",
+                                           "<<Sheet#A1>> + .<<x y>>",
+                                           "Box.<<a.b>>.<<True>>"})
             {
                 auto first = ExpressionParser::tryParse(nullptr, input);
                 ASSERT_TRUE(first.has_value() && *first != nullptr) << input;
@@ -422,8 +448,10 @@ namespace ExpressionEngine::Expression
 
             // 名字段的引号规则不改裸写形态：能裸写的仍然裸写
             EXPECT_EQ(ExpressionParser::parse(nullptr, "Box.Length")->toString(true), "Box.Length");
-            // 单位并写与 % 混用的文本歧义修好后恢复这一条（届时模糊判据里那两条一起放开）：
-            // EXPECT_EQ(ExpressionParser::parse(nullptr, "5%m m")->toString(true), "(5 % m) * m");
+            // 单位并写与 % 混用的文本歧义：左操作数落在单位上时必须带括号，否则读回来换一棵树
+            EXPECT_EQ(ExpressionParser::parse(nullptr, "5%m m")->toString(true), "(5 % m) * m");
+            // 「当前对象上的带点名字」必须保留开头那个点：去掉点就成了一段字符串字面量
+            EXPECT_EQ(ExpressionParser::parse(nullptr, ".<<a.b>>")->toString(true), ".<<a.b>>");
         }
 
         /**

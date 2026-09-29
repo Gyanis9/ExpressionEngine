@@ -172,9 +172,11 @@ namespace ExpressionEngine::Expression
      * @details 引用路径的跨文档写法 <<文档#目标>> 需要把名字嵌在同一对定界符里，
      *          因此转义规则与 quoteExpressionText() 共用一份，不另写一遍。
      * @param text 待转义的正文，可含任意字节
+     * @param escapeSeparator 是否把 '#' 也转义掉。文档名槽要留 false：'#' 是那一写法自己的
+     *                        分隔符，转义后词法器就不再把它当引用而是当字符串字面量
      * @return 转义后的正文（不含左右定界符）
      */
-    [[nodiscard]] std::string escapeExpressionText(std::string_view text);
+    [[nodiscard]] std::string escapeExpressionText(std::string_view text, bool escapeSeparator = true);
 
     /**
      * @brief 取值的表达式写法，保证能被解析器读回同一个值

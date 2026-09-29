@@ -66,6 +66,29 @@ namespace ExpressionEngine::Expression
             }
         }
 
+        /**
+         * @brief 这条表达式文本的右端是不是落在一个单位上
+         * @details 解析器把「单位因子链」按同级左结合吸收：`5 % m * m` 会读成 5 % (m * m)，
+         *          因为 '%' 的右操作数 `m` 是单位，紧跟其后的 `* m` 被吸进单位链。于是
+         *          (5 % m) * m 与 5 % (m * m) 打出同一个文本 `5 % m * m`。
+         *          这种节点当左操作数时必须带括号，才能让持久文本唯一地解析回同一棵树。
+         * @param node 待判节点，可为空指针（视作不落在单位上）
+         * @return 文本最右端是单位节点时为 true
+         */
+        bool endsWithUnit(const Expression *node)
+        {
+            if (node == nullptr)
+            {
+                return false;
+            }
+            if (const auto *operation = node->asOperatorExpression())
+            {
+                const Expression *right = operation->getRight();
+                return right != nullptr ? endsWithUnit(right) : endsWithUnit(operation->getLeft());
+            }
+            return node->nodeName() == "Unit";
+        }
+
         /// 引用路径里一个名字段的写法：能裸写就裸写，否则退回 <<...>> 文本记号（内容按文本规则转义）
         std::string nameSegmentText(const std::string &name)
         {
@@ -1913,6 +1936,11 @@ namespace ExpressionEngine::Expression
         {
             // 优先级更低的操作数必须加括号，否则文本会被解析成另一棵树
             needsParentheses = true;
+        } else if (m_left->priority() == priority() && leftOperator != m_operator && endsWithUnit(m_left.get()))
+        {
+            // 同级、异运算符、且左操作数的文本落在单位上：不括就会被单位因子链重排
+            // （(5 % m) * m 与 5 % (m * m) 会打成同一串）
+            needsParentheses = true;
         } else if (leftOperator == m_operator && !isLeftAssociative())
         {
             needsParentheses = true;
@@ -3367,20 +3395,36 @@ namespace ExpressionEngine::Expression
         {
             if (m_reference.documentName.empty())
             {
-                // 未限定对象与文档：按局部作用域的写法显示
-                return nameSegmentText(m_reference.propertyName);
+                // 未限定对象与文档：按局部作用域的写法显示。名字需要引号时**保留开头那个点**：
+                // `.<<a.b>>` 才是「当前对象上名叫 a.b 的属性」，去掉点就成了一段字符串字面量，
+                // 再解析回来的不是同一条路径（模糊判据抓到的第五个形状）
+                const std::string &name = m_reference.propertyName;
+                if (!name.empty() && canWriteBareName(name) && hasComponent())
+                {
+                    // 裸的局部属性名后面还跟着名字分量时，必须保留开头的点：
+                    // `Pz.ct.P3` 会被读成「对象 Pz 的属性 ct 的 P3 分量」，
+                    // 而原树是「当前对象的属性 Pz，再取 ct、P3 两个分量」——两点不同路径
+                    return "." + name;
+                }
+                if (name.empty())
+                {
+                    // 属性名为空是宿主自建的越界路径（解析器不产出），没有可解析回的写法；
+                    // 打成 `.<<>>` 也不会更对，按原样留空，边界见本类的 @details
+                    return name;
+                }
+                return canWriteBareName(name) ? name : "." + quoteExpressionText(name);
             }
-            if (canWriteBareName(m_reference.documentName))
+            // 只给了文档与目标（跨文档读单元格）：必须回到 <<文档#目标>> 的写法，否则文本丢了文档，
+            // 再解析就落到当前文档上。这一写法对文档名只有一条硬要求——不含 '#'，因为解析器在
+            // 解码后的第一个 '#' 处切分；其余字节（非 ASCII、'?' 之类）在定界符内原样可读。
+            // 注意没有 <<文档>>#目标 这种「更保守」的形态：'>' 之后跟 '#' 在语法里根本不成词。
+            if (m_reference.documentName.find('#') == std::string::npos)
             {
-                // 只给了文档与目标（跨文档读单元格）：必须回到 <<文档#目标>> 的写法，
-                // 否则文本丢了文档，再解析就落到当前文档上。目标里的特殊字符按正文规则转义；
-                // 解析器在**解码后**的第一个 '#' 处切分，因此文档名（裸写法）保证不含 '#'。
-                return "<<" + m_reference.documentName + "#" + escapeExpressionText(m_reference.propertyName) + ">>";
+                return "<<" + escapeExpressionText(m_reference.documentName, false) + "#" + escapeExpressionText(m_reference.propertyName) + ">>";
             }
-            // 文档名本身含 '#'：<<文档#目标>> 会在第一个 '#' 处切错，而这个模型里没有第三种
-            // 写法能表达「带 # 的文档名 + 无对象名的目标」。按最接近的形态打出来，
-            // 并把失配留在文档里说明（见 VariableExpression 的类注释）。
-            return quoteExpressionText(m_reference.documentName) + "#" + nameSegmentText(m_reference.propertyName);
+            // 文档名本身含 '#'：三格模型里没有能解析回来的写法（切分点必然落在第一个 '#'），
+            // 仍按最接近的形态打出，边界写在 VariableExpression 的类注释里。
+            return "<<" + m_reference.documentName + "#" + escapeExpressionText(m_reference.propertyName) + ">>";
         }
         if (m_reference.documentName.empty())
         {

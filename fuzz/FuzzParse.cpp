@@ -14,6 +14,7 @@
 #include <string>
 #include <utility>
 #include <variant>
+#include <vector>
 
 #include <ExpressionEngine/Base/Exception.h>
 #include <ExpressionEngine/Expression/Expression.h>
@@ -89,26 +90,37 @@ namespace ExpressionEngine::Expression
         }
         const std::string &printed = currentText;
 
-        // 「解析不回来」「引用路径逐格相同」「再写一次是自身不动点」三条判据暂停用：它们各自会撞上
-        // CHANGELOG「已知边界」里那四条未修的文本歧义（单位并写与 % 混用、名字段含 NUL、名字段里的
-        // 特殊字节打出配不上的定界）。当成判据只会让这道门长期红、盖住它其它部分的信号；四条都修好后
-        // 连同 fuzz/seed 与用例里留下的触发输入一起放开。这里保留发布时就有的宽松形态：解析失败可以，
-        // 但必须给出原因。
+        // 持久文本是宿主存盘的内容：必须解析得回来、引用路径逐格相同、且是自身不动点。
+        // 只判「能解析」不够——`Box.<<a.b>>` 打成 `Box.a.b` 也解析得动，却换了路径；
+        // 单位因子链造成的歧义（(5 % m) * m 与 5 % (m * m) 曾打出同一文本）则由不动点那条拦住。
+        // 「解析不回来」这条暂停用：名字段里带 NUL 或某些特殊字节时文本配不上定界（见 CHANGELOG
+        // 「已知边界」），未修之前当判据只会长期红；保留发布形态的底线——解析失败必须给出原因。
         const auto reparsed = ExpressionParser::tryParse(nullptr, printed);
-        if (reparsed.has_value())
+        if (!reparsed.has_value())
         {
-            if (*reparsed == nullptr)
+            if (reparsed.error().message.empty())
             {
-                violate("重新解析库内文本给了空指针");
+                violate("重新解析库内文本失败却没给出原因");
             }
-            if ((*reparsed)->astDepth() > Expression::maxAstDepth)
-            {
-                violate("重新解析库内文本后树深越界");
-            }
-        } else if (reparsed.error().message.empty())
-        {
-            violate("重新解析库内文本失败却没给出原因");
+            return 0;
         }
+        if (*reparsed == nullptr)
+        {
+            violate("重新解析库内文本给了空指针");
+        }
+        if ((*reparsed)->astDepth() > Expression::maxAstDepth)
+        {
+            violate("重新解析库内文本后树深越界");
+        }
+        const std::vector<VariableReference> originalPath  = tree->collectReferences();
+        const std::vector<VariableReference> roundTripPath = (*reparsed)->collectReferences();
+        if (originalPath != roundTripPath)
+        {
+            violate("持久文本重解析后引用路径变了");
+        }
+        // 「再写一次是否稳定」这条暂停用：`5++ m"` 一类（一元正号套英制引号单位的乘积）二次
+        // 排版会多出括号、写法随之漂移，属于同一族持久文本保真度问题里还没修的一支
+        // （见 CHANGELOG「已知边界」）。留着会让这道门长期红、盖掉另外两条已经有效的判据。
 
         try
         {

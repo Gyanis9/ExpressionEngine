@@ -310,7 +310,7 @@ namespace ExpressionEngine::Expression
         return std::string(buffer.data(), static_cast<std::size_t>(result.ptr - buffer.data()));
     }
 
-    std::string escapeExpressionText(const std::string_view text)
+    std::string escapeExpressionText(const std::string_view text, const bool escapeSeparator)
     {
         std::string body;
         body.reserve(text.size());
@@ -326,8 +326,9 @@ namespace ExpressionEngine::Expression
                     body += "\\>";
                     break;
                 case '#':
-                    // 未转义的 '#' 会把整段文本当成 <<文档#单元格>> 引用
-                    body += "\\#";
+                    // 未转义的 '#' 会把整段文本当成 <<文档#单元格>> 引用。文档名槽刻意不转义：
+                    // 那里的 '#' 正是这一写法自己的分隔符，转义后词法器就把它降级成字符串字面量
+                    body += escapeSeparator ? "\\#" : "#";
                     break;
                 case '\n':
                     body += "\\n";

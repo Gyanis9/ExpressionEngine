@@ -613,9 +613,12 @@ namespace ExpressionEngine::Expression
                 EXPECT_DOUBLE_EQ(right.getValue(), left.getValue()) << printed;
             }
 
-            // 「要速度请写 (2 m) / (4 s)」是 README 给的写法：它的回写文本必须还能解析回来
+            // 「要速度请写 (2 m) / (4 s)」是 README 给的写法：它的回写文本必须还能解析回来。
+            // 左操作数现在也带括号：`(2 * m)` 的文本右端落在单位上，而解析器会让单位因子链把后面的
+            // `/ (4 * s)` 一起吸走（`2 * m / (4 * s)` 读回来是 2 * (m / (4 * s))）——同级异运算符
+            // 且落在单位时必须括，才能让持久文本唯一地解析回同一棵树
             const std::string velocityText = ExpressionParser::parse(nullptr, "(2 m) / (4 s)")->toString(true, true);
-            EXPECT_EQ(velocityText, "(2 * m / (4 * s))");
+            EXPECT_EQ(velocityText, "((2 * m) / (4 * s))");
             EXPECT_EQ(std::get<Units::Quantity>(ExpressionParser::parse(nullptr, velocityText)->evaluate()).getUnit(), Units::Unit::Velocity);
         }
 
