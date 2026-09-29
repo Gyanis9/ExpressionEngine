@@ -23,3 +23,6 @@ cmake-build-*/
 CMakeUserPresets.json
 conanbuild.bat
 conanrun.bat
+
+# 分发包产物
+dist/
