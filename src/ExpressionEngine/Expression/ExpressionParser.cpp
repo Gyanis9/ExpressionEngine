@@ -1,6 +1,10 @@
 #include <ExpressionEngine/Expression/ExpressionParser.h>
 
+#include <bit>
+#include <cstddef>
+#include <cstdint>
 #include <format>
+#include <functional>
 #include <memory>
 #include <numbers>
 #include <optional>
@@ -39,10 +43,59 @@ namespace ExpressionEngine::Expression
          *          `OperatorExpression::appendText`），于是**库自己写出来的文本**比它读进去的写法
          *          更深。两头对不上的表现是「存的公式读不回来」——模糊门在「持久文本必须解析得回来」
          *          这条判据上抓到过一次（列 1017 处的「超过 100 层」）。
-         *          取 4 倍：每层「一个右操作数 + 两对括号」也还在门内，而实测约 700 层 abs() 嵌套
-         *          才耗尽默认 1 MB 线程栈，256 仍留 2.7 倍余量；宿主的小栈线程请按这条上限规划。
+         *          取 4 倍：每层「一个右操作数 + 两对括号」也还在门内。
+         *          这条门数的是**被守卫的递归边**：parseExpression 之外，函数调用、实参与索引器各挂一处，
+         *          因为一层写法在栈上压出好几个帧，只数 parseExpression 的那一格数不到真实代价。
+         *          但帧数仍然只是**形状**的上界：插桩构建里一个帧大到让 `abs()` 一层吃 6.5 KB、
+         *          `Box.a[...]` 一层吃 9.9 KB，而合法输入（树深贴着公开上限 64）最深实测 618 KB——
+         *          把门按帧数收到能避开崩溃的值，就会把合法输入一起拒掉。栈这一头因此由
+         *          maxNestingStackBytes 直接量字节。
          */
         constexpr int maxNestingDepth = 4 * static_cast<int>(Expression::maxAstDepth);
+
+        /**
+         * @brief 一次解析允许额外占用的栈字节预算
+         * @details 实测 MSVC Debug+AddressSanitizer（1 MB 线程栈）：`abs()` 与 `Box.a[...]` 这类
+         *          每层多帧的写法在 100~200 层就 `stack-overflow`，而同一构建里合法输入（树深 63）
+         *          最深实测 618 KB。768 KB 落在两者之间：合法输入全部吃得下，超限输入在崩之前先给出原因。
+         *          宿主线程栈小于 1 MB 时，请按这条预算给解析留足空间。
+         */
+        constexpr std::size_t maxNestingStackBytes = 768ULL * 1024;
+
+        /**
+         * @brief 取当前调用点在栈上的地址，写入 out（数值，从不解引用）
+         * @details 基准帧与每一层守卫都用这同一个取样点取地址，差值才是这次解析额外吃掉的栈。
+         *          两族编译器的取法不同，而且都必须这么取：
+         *          ① GCC/Clang 下不能用「取某个局部变量的地址」——ASan 的 use-after-return 检测会把
+         *             地址外泄的局部搬进一块假栈，量到的是假槽位之间的距离（实测把一行式 `Length * 2`
+         *             报成「已用完 768 KB 栈预算」，79 条用例连带变红）；守卫对象的 this 同样会被搬走。
+         *             `__builtin_frame_address(0)` 给的是真实帧地址，与假栈无关。
+         *          ② MSVC 没有这个内建函数，但 MSVC 的 ASan 不做假栈，取局部地址即为真实栈地址
+         *             （实测与崩溃边界吻合：合法输入 618 KB、超限输入 972 KB 时撞穿 1 MB）。
+         *          地址经数值参数带出而不是返回：MSVC 把「返回局部变量的地址」判为 C4172。
+         * @param out 写入当前调用点的栈地址数值
+         */
+        void stackSample(std::uintptr_t &out)
+        {
+#if defined(__GNUC__) || defined(__clang__)
+            out = std::bit_cast<std::uintptr_t>(__builtin_frame_address(0));
+#else
+            char probe{};
+            out = std::bit_cast<std::uintptr_t>(&probe);
+#endif
+        }
+
+        /**
+         * @brief 取两个栈地址之间的字节距离
+         * @details 栈的生长方向不由标准规定，故先用 std::less 排序再相减；只比地址数值，从不解引用。
+         * @param base 解析入口帧的样本地址
+         * @param here 当前递归帧的样本地址
+         * @return 两帧之间的字节数
+         */
+        [[nodiscard]] std::size_t stackBytesBetween(const std::uintptr_t base, const std::uintptr_t here)
+        {
+            return std::less<std::uintptr_t>{}(here, base) ? base - here : here - base;
+        }
 
         /// 二元运算符的记号、运算符节点取值与结合功率
         struct BinaryOperatorInfo
@@ -187,6 +240,7 @@ namespace ExpressionEngine::Expression
             ExpressionToken            m_current;        ///< 当前记号
             ExpressionToken            m_next;           ///< 下一记号，用于识别英制两段写法与文档引用
             int                        m_nestingDepth{}; ///< 已占用的嵌套额度，只用于限深
+            std::uintptr_t             m_stackBase{};    ///< 解析入口帧的样本地址（只比数值，从不解引用），栈预算从它往下量
             mutable std::optional<int> m_failureColumn;  ///< 最近一次写进报错文案的定位列，供非异常通道取出
         };
 
@@ -198,12 +252,24 @@ namespace ExpressionEngine::Expression
 
         ExpressionParserImplementation::NestingGuard::NestingGuard(ExpressionParserImplementation &parser) : m_parser(parser)
         {
+            // 两条门各管一件事：帧数管形状（合法写法都要留得下），栈字节管活下来（帧大小随构建配置浮动）。
+            // 先判帧数再判栈——帧数的判据与内存布局无关，报错文案也就更稳定。
+            std::uintptr_t here{};
+            stackSample(here);
+
             // 额度不够时先报错再计数，异常往上抛的途中不用归还本层
             if (m_parser.m_nestingDepth >= maxNestingDepth)
             {
                 throw Base::ParserError(std::format("{}：表达式嵌套超过 {} 层，已停止解析；请把长表达式拆成几个属性，"
                                                     "或减少括号与函数的层数",
                                                     m_parser.locationOf(m_parser.m_current), maxNestingDepth),
+                                        Base::ErrorKind::TooDeep);
+            }
+            if (stackBytesBetween(m_parser.m_stackBase, here) > maxNestingStackBytes)
+            {
+                throw Base::ParserError(std::format("{}：表达式嵌套过深，解析已用完 {} KB 的栈预算，已停止解析；"
+                                                    "请把长表达式拆成几个属性，或减少括号与函数的层数",
+                                                    m_parser.locationOf(m_parser.m_current), maxNestingStackBytes / 1024),
                                         Base::ErrorKind::TooDeep);
             }
             ++m_parser.m_nestingDepth;
@@ -276,6 +342,9 @@ namespace ExpressionEngine::Expression
                 throw Base::ParserError("表达式为空，请填入要计算的表达式", Base::ErrorKind::EmptyInput);
             }
 
+            // 栈预算的基准：解析入口这一帧。之后每层守卫用同一个取样函数与它相减（见 stackSample）。
+            stackSample(m_stackBase);
+
             ExpressionPtr result = parseExpression(0);
 
             // 顶层只允许一个表达式：剩下的记号说明写法有误（如 "1 2"）
@@ -289,7 +358,7 @@ namespace ExpressionEngine::Expression
 
         ExpressionPtr ExpressionParserImplementation::parseExpression(const int minimumBinding)
         {
-            const NestingGuard guard(*this); // 括号、实参、一元与二元右操作数都从这里递归，限深即可护住整棵树
+            const NestingGuard guard(*this); // 每一层递归的入口都占一格额度：这一层管括号、一元与二元右操作数
 
             ExpressionPtr left = parsePrefix();
             // 英制两段写法要求第一段带英制单位（如 5' 6"），因此单独跟踪上一次是否附着了英制单位
@@ -538,6 +607,9 @@ namespace ExpressionEngine::Expression
 
         Expression::Component ExpressionParserImplementation::parseIndexer()
         {
+            // 索引器自成一条递归边（Box.a[...] 的方括号里又是一整个表达式），门要数到这一帧
+            const NestingGuard guard(*this);
+
             expect(ExpressionTokenKind::LeftBracket, "左方括号 '['");
 
             ExpressionPtr begin;
@@ -585,6 +657,9 @@ namespace ExpressionEngine::Expression
 
         ExpressionPtr ExpressionParserImplementation::parseFunctionCall(const std::string &name)
         {
+            // 函数调用自成一条递归边：一层 abs(...) 在栈上是 parseExpression 之外的第二个帧
+            const NestingGuard guard(*this);
+
             advance(); // 函数记号自带左括号
 
             std::vector<ExpressionPtr> arguments;
@@ -621,6 +696,9 @@ namespace ExpressionEngine::Expression
 
         ExpressionPtr ExpressionParserImplementation::parseArgument()
         {
+            // 实参自成一条递归边：函数名与左括号之间还压着这一帧
+            const NestingGuard guard(*this);
+
             // 聚合函数实参可以是区间写法 A1:B2
             if ((m_current.kind == ExpressionTokenKind::Identifier || m_current.kind == ExpressionTokenKind::CellAddress) && m_next.kind == ExpressionTokenKind::Colon)
             {

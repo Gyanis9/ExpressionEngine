@@ -704,24 +704,69 @@ namespace ExpressionEngine::Expression
         /**
          * @brief 钉住：超深嵌套按解析错拒绝，而不是撞穿宿主进程的栈
          * @details 栈溢出是不可捕获的故障，用例能跑到断言就说明解析器活着返回了。
+         *          样本按「每层的栈代价」排：`abs()` 与 `Box.a[...]` 这类写法每层要吃好几种记号
+         *          的递归帧，实测在 MSVC Debug+AddressSanitizer（1 MB 线程栈）里 150~175 层就撞穿，
+         *          而当时的层数门要 256 层才开口——门在栈之后打开，就等于没有门（CI 实测红过一次）。
+         *          因此这一条同时钉两道门：层数与栈预算，样本必须涵盖每种递归写法。
          */
         TEST(ExpressionParserTest, OverlyDeepNestingIsRejected)
         {
             const std::vector<std::string> samples{
+                    // 括号层
                     nestText("(", "1", ")", 2000),
+                    // 函数实参层
                     nestText("abs(", "1", ")", 2000),
+                    // 一元运算与幂的右操作数层
                     nestText("-", "1", "", 2000),
                     nestText("2^", "2", "", 2000),
+                    // 二元运算的右操作数里再开括号
                     nestText("1/(", "1", ")", 2000),
-                    // 单位链里的括号最终也回到表达式的括号层，同样受限深管住
+                    nestText("1*(", "1", ")", 2000),
+                    // 聚合函数的多个实参
+                    nestText("sum(1, ", "1", ")", 2000),
+                    // 三元运算的两个分支
+                    nestText("1>0?(", "1", ":0)", 2000),
+                    // 单位链的括号：写法上自成一套形状，同样要落在门内
                     "1 m" + nestText("/(m", "", ")", 2000),
+                    // 索引器：Box[...] 与 list(...)[...] 各自再开一层表达式
+                    nestText("list(1; 2)[", "1", "]", 2000),
+                    nestText("list(1; 2)[(", "1", ")]", 2000),
+                    nestText("Box.a[", "1", "]", 2000),
             };
 
             for (const std::string &sample: samples)
             {
                 const auto parsed = ExpressionParser::tryParse(nullptr, sample);
                 ASSERT_FALSE(parsed.has_value()) << "超深嵌套应当被拒绝：" << sample.substr(0, 12);
+                EXPECT_EQ(parsed.error().kind, Base::ErrorKind::TooDeep) << parsed.error().message;
                 EXPECT_NE(parsed.error().message.find("嵌套"), std::string::npos) << parsed.error().message;
+            }
+        }
+
+        /**
+         * @brief 钉住：栈预算不得拦住在公开树深上限内的合法写法
+         * @details 预算（见 ExpressionParser.cpp 的 maxNestingStackBytes）拦的是「超限输入」，
+         *          它一旦低到把合法输入也拒了，就是把「存得进的公式读不回来」换了个表现形式。
+         *          这里挑每层栈帧最多的几种写法，把树深贴着公开上限摆，要求仍然解析得回来。
+         *          插桩构建（MSVC Debug+AddressSanitizer）里每层的栈代价是 Release 的数倍，
+         *          这条用例必须在那个配置里跑，才量得到最坏的一头。
+         */
+        TEST(ExpressionParserTest, StackBudgetKeepsEveryLegalDepthShape)
+        {
+            // 每层的 AST 深度增量固定为 1，因此 63 层正好贴着公开上限（maxAstDepth = 64）
+            const std::vector<std::string> samples{
+                    nestText("abs(", "1", ")", 63), nestText("list(1; 2)[", "1", "]", 63), nestText("list(1; 2)[(", "1", ")]", 63), nestText("Box.a[", "1", "]", 63), nestText("(", "1", ")", 63), "1 m" + nestText("/(m", "", ")", 63),
+            };
+
+            for (const std::string &sample: samples)
+            {
+                const auto parsed = ExpressionParser::tryParse(nullptr, sample);
+                ASSERT_TRUE(parsed.has_value()) << "公开上限内的写法被栈预算拒了：" << parsed.error().message << " ← " << sample.substr(0, 16);
+                EXPECT_LE((*parsed)->astDepth(), Expression::maxAstDepth) << sample.substr(0, 16);
+
+                // 库写得出的文本库自己必读得回：持久文本也要走一遍
+                const auto reparsed = ExpressionParser::tryParse(nullptr, (*parsed)->toString(true));
+                ASSERT_TRUE(reparsed.has_value()) << "持久文本读不回来：" << reparsed.error().message;
             }
         }
 

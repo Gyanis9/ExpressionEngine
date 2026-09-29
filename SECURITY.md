@@ -31,12 +31,18 @@
 - 非异常通道：`ExpressionParser::tryParse`、`Expression::tryEvaluate`、`QuantityParser::tryParse`
   以 `std::expected` 返回失败，**承诺不抛异常**；异常通道是 `parse` / `evaluate`。
 - 递归深度：`Expression::maxAstDepth = 64`，超限按错误拒绝（解析与化简两条路都判）。
+  解析期还有第二道门：一次解析额外占用的栈以 768 KB 为预算（`ExpressionParser.cpp` 的
+  `maxNestingStackBytes`），越过即按 `Base::ErrorKind::TooDeep` 拒绝。两道门的存在理由是同一层
+  在不同写法下吃 6.5~10 KB 栈（插桩构建实测）、且每层实际压出的帧数随写法不同——只按层数收门会把
+  合法输入一起拒掉，只按层数放门又会在插桩构建里把「超限输入」变成「撞穿宿主栈」。
+  宿主在小于 1 MB 可用栈的线程上解析深表达式时，请按这条预算规划。
 - 区间规模：`FunctionExpression::maxRangeCells = 65536`，超出拒绝，避免一条文本放大成无界遍历。
 - 取值：求值出口不把 NaN 或无穷大交给宿主（`Base::ValueError`），除零早已报错。
 - 单位与文本写法：持久文本（`toString(true)`）必须能解析回同一棵树——这条有模糊测试门与
   两万条随机不可信文本用例在判（见 `fuzz/` 与 `tools/fuzz.sh`）。
 - 内存安全：CI 在 GCC 与 Clang 两档带 AddressSanitizer + UndefinedBehaviorSanitizer
-  跑全量用例，另有 ThreadSanitizer 作业与 libFuzzer 作业（每目标 120 秒）。
+  跑全量用例，另有 ThreadSanitizer 作业与 libFuzzer 作业（合进 main 每目标 240 秒，
+  每天另有一档 30 分钟并把现场存成制品）。
 
 ## 不算漏洞的情况
 
