@@ -9,6 +9,8 @@
 
 #pragma once
 
+#include <cmath>
+
 #include <ExpressionEngine/Base/Exception.h>
 
 namespace ExpressionEngine::Base
