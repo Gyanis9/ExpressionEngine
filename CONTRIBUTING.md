@@ -31,6 +31,24 @@ cmake --preset debug -DENABLE_THREAD_SANITIZER=ON    # ThreadSanitizer，仅 GCC
 TSAN_OPTIONS=halt_on_error=1 ctest --test-dir build/debug   # TSan 默认只打印报告、退出码 0，必须加
 ```
 
+插桩构建只用于跑用例，**不要拿它当交付形态验包**：ASan/UBSan 插桩过的静态库里留着一堆对
+`__asan_report_*` / `__ubsan_handle_*_abort` 的外部引用，要靠最终可执行体链接时把检测运行时带进来，
+而仓库外的消费者按默认标志链接拿不到它们（Linux CI 首跑实测：`undefined reference to '__asan_report_store1'`）。
+MSVC 侧因为 ASan 是 DLL 运行期才看起来"没问题"，那也不是用户拿到的那一版。装包与包消费者因此跑在一份
+不带插桩的 Release 树上，本地同形：
+
+```bash
+cmake -S . -B build/pkg -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=23 \
+  -DCMAKE_CXX_STANDARD_REQUIRED=ON -DCMAKE_CXX_EXTENSIONS=OFF -DEXPRESSIONENGINE_BUILD_TESTS=OFF
+cmake --build build/pkg && cmake --install build/pkg --prefix /tmp/ee-pfx
+cmake -S tools/package-check -B /tmp/ee-consumer -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=/tmp/ee-pfx
+cmake --build /tmp/ee-consumer && /tmp/ee-consumer/consumerCheck
+```
+
+Linux 上的 Clang 取 **20 或以上**：libstdc++ 13/14 把 `<expected>` 整段挡在 `__cpp_concepts >= 202002L`
+之后，Clang ≤ 18 只报 `201907L`，于是 `std::expected` 直接不可见；换 libc++ 又撞上 libc++ 18 的浮点
+`from_chars` 是删除的。两条都是上游的事，绕法见 README「已验证的编译器」。
+
 覆盖率门只在 GCC/Clang 上有数据（gcov 是 GNU 系的设施，MSVC 侧没有对应插桩），因此它算 CI 的判据而不是
 本地的第三条硬判据：
 

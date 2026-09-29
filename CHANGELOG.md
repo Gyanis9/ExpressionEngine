@@ -218,7 +218,37 @@
   塞进一个多余的头 → 报数量对不上；改掉包里的头删掉它的 `#include <optional>` → 报不自洽且错误路径
   指向安装前缀（证明读的是装出来的副本，不是源码树）。
 
+- **Linux CI 第一次真实执行给出的两条红，都按成因修掉了**（首跑：`main`@`7931c32`，Windows 侧全绿）：
+
+  ① `build-and-test (gcc)` 红在「安装并运行包消费者」：那一步把**带 ASan/UBSan 插桩**的静态库装进前缀，
+  再让仓库外的普通消费者按默认标志链接，于是 `undefined reference to '__asan_report_store1'`、
+  `'__ubsan_handle_type_mismatch_v1_abort'` 一串报出来——插桩运行时要靠最终可执行体链接时带进来，
+  消费者不该知道我们内部开过什么开关。修法是把交付形态拆成独立一份**不带插桩的 Release 树**
+  （`-DEXPRESSIONENGINE_BUILD_TESTS=OFF`，库本体零外部依赖因此不经 Conan），顺带把 Release 档纳入
+  GCC 与 Clang 两腿的构建覆盖。Windows 侧同一形状看起来没事，只因 MSVC 的 ASan 是 DLL 运行期、
+  作业又给消费者补了那行 PATH——那不是用户拿到的那一版，这条不对称已写进 `windows-ci.yml` 的注释。
+
+  ② `build-and-test (clang)` 红在构建：`no template named 'expected' in namespace 'std'`。回上游取证据：
+  libstdc++ 把 `<expected>` 整段挡在 `__cpp_concepts >= 202002L` 之后（`/usr/include/c++/13/expected:34`，
+  14 的 `bits/version.h:1507` 是同一道闸），而同一份最小用例下 g++ 13.3 报 `__cpp_concepts=202002L`、
+  Clang 18 报 `201907L`、Clang 20.1.2 报 `202002`——是编译器与标准库对同一宏的取值分歧，不是本库的缺陷。
+  Clang 腿因此钉 `clang-20`（Ubuntu 自带仓库里就有，不引第三方源）。换 libc++ 这条路也实测过、不走：
+  Clang 18 + libc++ 18 绕开了 `<expected>` 那道闸，却撞上 libc++ 18 的浮点 `from_chars` 是删除的
+  （本库四个调用点报 `call to deleted function 'from_chars'`）。
+
+  两条修法都在容器里按 CI 的形状预先跑过再推：ubuntu24 + Clang 20.1.2 + libstdc++ 13 的 Debug+ASan/UBSan
+  零告警、324/324 全绿、无 sanitizer 报告；两腿的交付形态各跑一遍「Release 构建 → 装到独立前缀 →
+  包内 32 个头逐个编 → 仓库外消费者 46 项断言零失败」。附带一处工具链事实：Clang + Ninja + 缺
+  `clang-scan-deps` 时 CMake 会把 `NOTFOUND` 写进编译规则而在 `project()` 处炸（Ubuntu 的 clang-18 不带
+  该工具、llvm-20 才带），故 CI 显式关掉模块扫描——本库不用模块，这一步只是去掉一个工具依赖。
+
 ### 变更
+
+- **README 补「已验证的编译器」表，把「支持 C++23」落到具体档上**：三档实测（MSVC 14.51、GCC 13.3 +
+  libstdc++ 13、Clang 20.1 + libstdc++ 13）各自写明验到判据的哪一步，并明说表外的组合按「未实测」对待；
+  上面那两条上游分歧也写进同一节，免得下一个人再去撞一遍 Clang 18 或 libc++ 18。
+  `CONTRIBUTING.md` 补了对应的两条本地复现：交付形态为何不能用插桩树装（附同形命令），以及 Linux 上
+  用 Clang 要取 20 或以上。
 
 - **README 的性能口径改成实测抖动，不再暗示 µs 数字可复现**：那一节原先写「同机多次跑有 ±5%~20% 抖动」，
   本轮同日连跑三次同一份 Release 基准，同一行中位数是 `1 + 2 * 3` 0.54 / 0.86 / 0.92 µs、

@@ -6,10 +6,12 @@
 #
 # 矩阵两个编译器：GCC 与 Clang；Debug 档打开 ASan + UBSan。CMake 的非 MSVC 分支带
 # -fno-sanitize-recover=all，未定义行为会中止进程，ctest 才真的会红——不加它 UBSan 只打印
-# 诊断并继续执行，门禁永远全绿。
+# 诊断并继续执行，门禁永远全绿。Clang 钉 20：Clang 18 看不见 libstdc++ 的 std::expected
+# （判据与实测见下面那一步的注释）。
 #
-# 最后一步是安装到临时前缀后编译并运行 tools/package-check：导出头与安装规则的跨平台接线
+# 最后两步是安装到临时前缀后编译并运行 tools/package-check：导出头与安装规则的跨平台接线
 # 只有在装出来的包上才看得见（/utf-8 只在 MSVC 分支加，Linux 侧靠编译器默认 UTF-8 源码）。
+# 装的是不带插桩的 Release 树——插桩静态库链不进普通消费者。
 
 name: Linux CI
 
@@ -57,11 +59,26 @@ jobs:
       # Conan 的包缓存搬进工作区，便于下面的 actions/cache 缓存它
       CONAN_HOME: ${{ github.workspace }}/.conan2
       # conan profile detect 认这两个变量，选出的 profile 与矩阵项一致
-      CC: ${{ matrix.compiler == 'gcc' && 'gcc' || 'clang' }}
-      CXX: ${{ matrix.compiler == 'gcc' && 'g++' || 'clang++' }}
+      CC: ${{ matrix.compiler == 'gcc' && 'gcc' || 'clang-20' }}
+      CXX: ${{ matrix.compiler == 'gcc' && 'g++' || 'clang++-20' }}
 
     steps:
       - uses: actions/checkout@v7
+
+      # Clang 腿钉 20 而不是镜像默认的 18，原因在上游两边对不上：libstdc++ 把 <expected> 的整段
+      # 内容挡在 `__cplusplus > 202002L && __cpp_concepts >= 202002L` 之后（/usr/include/c++/13/
+      # expected:34，14 的 bits/version.h:1507 同一道闸），而 Clang 18 只把 __cpp_concepts 报成
+      # 201907L——于是 Clang 18 + 任意 libstdc++ 都看不见 std::expected，本库当场编不过（Linux CI
+      # 首跑实测：`no template named 'expected' in namespace 'std'`）。Clang 20 报 202002，闸开了。
+      # 换 libc++ 也堵不上另一半：libc++ 18 的浮点 from_chars 是删除的（四个调用点报
+      # "call to deleted function 'from_chars'"，本机容器实测），所以走「更新的 Clang + libstdc++」。
+      # 包在 Ubuntu 自带仓库里就有，不引第三方源；已装则 apt 不动它。
+      - name: 安装钉定的 Clang 20
+        if: matrix.compiler == 'clang'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y clang-20
+          clang++-20 --version | head -1
 
       - name: 缓存 Conan 依赖
         uses: actions/cache@v6
@@ -80,8 +97,12 @@ jobs:
         run: conan profile detect --force
 
       # gtest 由 conan_provider.cmake 在配置阶段按需构建（Linux 上没有可复用的预编译包）
+      # 关掉模块扫描：本库不用 C++20 模块，而 Ninja + Clang 下 CMake 会去找 clang-scan-deps，
+      # 这件工具在 Ubuntu 的打包里换过归属（clang-18 那份不带、llvm-20 才带），缺时 CMake 会把
+      # NOTFOUND 原样写进编译规则，配置在 project() 那一步就炸（容器内实测的失败形状：
+      # "CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS-NOTFOUND: not found"）。
       - name: 配置（Debug + AddressSanitizer/UndefinedBehaviorSanitizer）
-        run: cmake --preset debug -DENABLE_SANITIZERS=ON
+        run: cmake --preset debug -DENABLE_SANITIZERS=ON -DCMAKE_CXX_SCAN_FOR_MODULES=OFF
 
       # 零告警判据由构建期开关兜住：EXPRESSIONENGINE_WARNINGS_AS_ERRORS 默认 ON，
       # GNU 系下等价 -Werror、MSVC 下等价 /WX，这一步有告警就红。换编译器小版本带来
@@ -106,13 +127,28 @@ jobs:
           path: build/debug/Testing/Temporary/LastTest.log
           if-no-files-found: ignore
 
+      # 装出去给人用的那份不能带 sanitizer：插桩过的静态库里到处是对 __asan_report_* /
+      # __ubsan_handle_*_abort 的外部引用，这些要靠最终可执行体链接时把检测运行时带进来。
+      # 仓库外的普通消费者按默认标志链接必然当场报 undefined reference——Linux CI 首跑就是这个形状
+      # （普通消费者链上面那份 ASan 树：undefined reference to `__asan_report_store1'）。
+      # 上面那份插桩树只负责跑用例；交付形态单独配一份 Release、不开用例（库本身零外部依赖，
+      # 因此这一步不经过 Conan），顺带把 GCC/Clang 的 Release 档也纳入构建覆盖。
+      # 编译器不在这一步重指：作业级 env 的 CC/CXX 就是矩阵那档，下面 configure 步骤的
+      # tools/package-check 也按同一份 env 走——标准库选型必须和被安装的包一致。
+      - name: 配置并构建交付形态（Release，不开用例）
+        run: |
+          cmake -S . -B build/pkg -G Ninja -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_CXX_STANDARD=23 -DCMAKE_CXX_STANDARD_REQUIRED=ON -DCMAKE_CXX_EXTENSIONS=OFF \
+            -DEXPRESSIONENGINE_BUILD_TESTS=OFF
+          cmake --build build/pkg
+
       - name: 安装并运行包消费者
         run: |
-          cmake --install build/debug --prefix "${RUNNER_TEMP}/ee-install"
+          cmake --install build/pkg --prefix "${RUNNER_TEMP}/ee-install"
           # 装出来的头按宿主看到的模样再编一遍，并核「受版本控制的公开头都真的进了包」：
           # 安装规则的 PATTERN 或目录写错时会漏装，而消费者只 include 两三个头，看不见漏掉的那一个。
           bash tools/header-selfcheck.sh --prefix "${RUNNER_TEMP}/ee-install"
-          cmake -S tools/package-check -B tools/package-check/build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH="${RUNNER_TEMP}/ee-install"
+          cmake -S tools/package-check -B tools/package-check/build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="${RUNNER_TEMP}/ee-install"
           cmake --build tools/package-check/build
           ./tools/package-check/build/consumerCheck
 
@@ -122,8 +158,9 @@ jobs:
   #
   # 说明本机验证到哪一步：库在 g++ 13.3 + -fsanitize=thread 下编译链接均零告警零失败（容器内实测），
   # 但本机容器跑不起 TSan 运行时（WSL2 内核的高位 ASLR 让影子内存映射失败，报
-  # "unexpected memory mapping" 后以 66 退出，容器内也无法 setarch -R）。因此这一作业的第一次
-  # runner 执行才是「无竞争」的真正证明；红了对应的用例与报告，不要直接关掉它。
+  # "unexpected memory mapping" 后以 66 退出，容器内也无法 setarch -R）。runner 补上了这一段：
+  # 首跑（main@7931c32）这一作业绿，即 324 条用例在 halt_on_error=1 下没有竞争报告。
+  # 以后这一作业红了，对应的用例与报告都要捞，不要直接关掉它。
   tsan:
     name: 线程检测（ThreadSanitizer）
     runs-on: ubuntu-latest

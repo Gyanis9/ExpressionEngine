@@ -262,6 +262,20 @@ cmake --build build/release
 ctest --test-dir build/release --output-on-failure
 ```
 
+已验证的编译器（下表之外的组合按「未实测」对待，不是「已支持」）：
+
+| 编译器 | 标准库 | 实测到哪一步 |
+| --- | --- | --- |
+| MSVC 14.51 | 自带 | 全量用例 + AddressSanitizer（Windows CI）、交付门与分发包自检 |
+| GCC 13.3 | libstdc++ 13 | 全量用例 + ASan/UBSan/LSan、ThreadSanitizer、覆盖率、装出来的包消费者 |
+| Clang 20.1 | libstdc++ 13 | 全量用例 + ASan/UBSan 零告警零报告（本机容器实测），CI 与之一致 |
+
+另两档编不过，成因在上游对不上而不是本库的缺陷：Clang ≤ 18 把 `__cpp_concepts` 报成 `201907L`，
+而 libstdc++ 13 与 14 都把 `<expected>` 整段挡在 `__cpp_concepts >= 202002L` 之后——同一份最小用例，
+GCC 13.3 与 Clang 20.1 都编得过、跑得通，Clang 18 当场报 `no template named 'expected' in namespace 'std'`。
+换 libc++ 能绕开这道闸，却撞上 libc++ 18 的浮点 `from_chars` 是删除的（四个调用点报
+`call to deleted function 'from_chars'`）。所以在 Linux 上用 Clang 就取 20 或以上，配 libstdc++。
+
 - 库本体零外部依赖；构建用例时才需要 GoogleTest——预设经 `conan_provider.cmake` 自动执行
   `conan install`（首次需要本机已装 Conan）。
 - 开关：`EXPRESSIONENGINE_BUILD_TESTS`（默认 ON）、`EXPRESSIONENGINE_BUILD_BENCHMARKS`（默认 OFF）。
@@ -294,7 +308,8 @@ ctest --test-dir build/release --output-on-failure
   （解包 -> 配置 -> 装包 -> 跑仓库外消费者）；`--verify` 再补上构建与全量用例。CI 的 `dist` 作业跑前者。
 - CI 分两个工作流，都只在 `main` 上跑（免费分钟数有限，日常在 `develop` 上本地跑绿）：
   `.github/workflows/linux-ci.yml` 有六个作业——`style` 跑上面那条样式脚本、`build-and-test` 在
-  GCC 与 Clang 下各跑一遍构建 + 全量用例（Debug 档开 ASan 与 UBSan）并跑一遍装出来的包消费者、
+  GCC 与 Clang 20 下各跑一遍构建 + 全量用例（Debug 档开 ASan 与 UBSan），再另配一份不带插桩的
+  Release 树装出来跑包消费者（插桩过的静态库链不进普通消费者）、
   `tsan` 单独一份 ThreadSanitizer 构建、`tidy` 跑上面那条静态分析判据、`dist` 产分发包并自检、
   `coverage` 跑覆盖率判据；
   `.github/workflows/windows-ci.yml` 跑 Debug + AddressSanitizer 全量用例，之后 `cmake --install`

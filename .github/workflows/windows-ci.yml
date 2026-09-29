@@ -1,6 +1,6 @@
 # Windows CI：构建（Debug + AddressSanitizer）并跑全量用例，另跑基准的分配次数判据与装出来的包消费者。
 #
-# 只覆盖 MSVC 一侧：本仓库当前只在 Windows 上开发，GCC/Linux 作业留到需要时再加。
+# 这一作业只覆盖 MSVC 一侧；Linux 侧的矩阵、TSan、覆盖率、分发包在 linux-ci.yml。
 #
 # 不引编译缓存：库加用例总共几十个翻译单元，依赖里只有 Conan 提供的 gtest 预编译包，
 # 构建时间不足以摊平缓存工具的安装与还原开销。
@@ -74,6 +74,11 @@ jobs:
       # 安装包的接线只有仓库外的消费者工程才看得见：库内用例直接从源码树 include，
       # 导出头漏装、cmake 配置包写错、中文注释缺 /utf-8 这些都不会让它们红。
       # 装的是上面那份带 ASan 插桩的构建，所以运行消费者要照 ctest 那一步补同一行 PATH。
+      # 这一形状只在 MSVC 侧成立：MSVC 的 ASan 是 DLL 运行期，插桩静态库里那些 __asan_* 外部引用
+      # 由 asan DLL 的导入库兜住，补上 PATH 就链得进、跑得动。GCC/Clang 侧走的是静态链接检测运行库，
+      # 同样的做法会让普通消费者当场报 undefined reference to `__asan_report_store1'（Linux CI 首跑
+      # 实测），那边因此另配一份不带插桩的 Release 树来装。本步验的是「插桩 Debug 包的接线」，
+      # Release 交付形态由本地交付门（tools/package-check/run-gate.sh）与 Linux 的 dist 作业覆盖。
       - name: 安装到临时前缀
         run: cmake --install build/debug --prefix "${{ runner.temp }}/ee-install"
 
