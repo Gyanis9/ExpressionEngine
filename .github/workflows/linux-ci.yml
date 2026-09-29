@@ -109,6 +109,9 @@ jobs:
       - name: 安装并运行包消费者
         run: |
           cmake --install build/debug --prefix "${RUNNER_TEMP}/ee-install"
+          # 装出来的头按宿主看到的模样再编一遍，并核「受版本控制的公开头都真的进了包」：
+          # 安装规则的 PATTERN 或目录写错时会漏装，而消费者只 include 两三个头，看不见漏掉的那一个。
+          bash tools/header-selfcheck.sh --prefix "${RUNNER_TEMP}/ee-install"
           cmake -S tools/package-check -B tools/package-check/build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH="${RUNNER_TEMP}/ee-install"
           cmake --build tools/package-check/build
           ./tools/package-check/build/consumerCheck
