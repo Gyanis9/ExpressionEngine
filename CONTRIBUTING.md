@@ -40,6 +40,17 @@ ctest --test-dir build/debug --output-on-failure
 GCOVR=/path/to/gcovr bash tools/coverage.sh build/debug   # 阈值写死在脚本里，改动会进 diff
 ```
 
+静态分析门读的是构建生成的 `compile_commands.json`，所以先配置再跑；判据是零告警，工具版本钉死 22.1.7：
+
+```bash
+cmake --preset release && cmake --build build/release
+CLANG_TIDY=/path/to/clang-tidy bash tools/tidy-check.sh build/release
+```
+
+要报出真缺陷就改实现，不要关检查：`.clang-tidy` 里明确不开的四项每条都写了理由与实测命中数，新增排除项
+必须同样写明为什么。就地豁免用 `NOLINT`/`NOLINTBEGIN`-`NOLINTEND`，并把理由写在紧邻的注释里——
+`NOLINTNEXTLINE` 只作用于紧邻的下一行，解释文字要写在它**上面**，否则豁免落在注释行上而检查照样报。
+
 脚本在三种情况下会当场变红而不是给出一份好看的报告：构建树没开插桩开关、树里没有 `.gcda`（说明用例还没跑）、
 以及 gcovr 版本低于 8——最后这条是因为 7.x 与 8.x 的开关取值形式不同，混用会把判据静默换成另一种含义。
 

@@ -274,16 +274,21 @@ ctest --test-dir build/release --output-on-failure
   C++ 文件，工具版本钉死 clang-format 23.1.1（换大版本会把同一份文件排成另一种形状）。
   本机的可执行文件不在 PATH 上时给 `CLANG_FORMAT` 指路径。自动修复：
   `clang-format -i $(git ls-files '*.h' '*.hpp' '*.cpp')`。
+- 静态分析同样有判据：`bash tools/tidy-check.sh build/release` 用仓库根的 `.clang-tidy`
+  （clang-analyzer + bugprone + performance 三族）扫 `src/` 的全部翻译单元，判据是**零告警**，
+  工具版本钉死 clang-tidy 22.1.7。配置里明确不开的四项各自写了理由；豁免只允许就地 `NOLINT`
+  并附理由，不允许整条检查悄悄关掉。它读的是构建生成的 `compile_commands.json`，所以要先配置。
+  本机工具不在 PATH 上时给 `CLANG_TIDY` 指路径。
 - 覆盖率也有判据：`ENABLE_COVERAGE=ON` 配上插桩、跑完用例，`bash tools/coverage.sh build/debug`
   用 gcovr 出报告并按脚本里写死的阈值判定（行/函数/分支三条各自设线，读数由脚本打印）。
   gcov 只在 GCC/Clang 侧有数据，所以这条门跑在 Linux CI 上。
 - CI 分两个工作流，都只在 `main` 上跑（免费分钟数有限，日常在 `develop` 上本地跑绿）：
-  `.github/workflows/linux-ci.yml` 有四个作业——`style` 跑上面那条样式脚本、`build-and-test` 在
+  `.github/workflows/linux-ci.yml` 有五个作业——`style` 跑上面那条样式脚本、`build-and-test` 在
   GCC 与 Clang 下各跑一遍构建 + 全量用例（Debug 档开 ASan 与 UBSan）并跑一遍装出来的包消费者、
-  `tsan` 单独一份 ThreadSanitizer 构建、`coverage` 跑上面那条覆盖率判据；
+  `tsan` 单独一份 ThreadSanitizer 构建、`tidy` 跑上面那条静态分析判据、`coverage` 跑覆盖率判据；
   `.github/workflows/windows-ci.yml` 跑 Debug + AddressSanitizer 全量用例，之后 `cmake --install`
-  到临时前缀、另起 `tools/package-check/` 工程编译并跑宿主可见行为断言——导出头漏装、包配置写错这类
-  缺陷只有仓库外消费者才看得见。
+  到临时前缀、另起 `tools/package-check/` 工程编译并跑宿主可见行为断言与包配置兼容判定的反面用例——
+  导出头漏装、包配置写错这类缺陷只有仓库外消费者才看得见。
 
 ## 性能
 
