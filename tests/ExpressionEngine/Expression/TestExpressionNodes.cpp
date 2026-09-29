@@ -332,6 +332,37 @@ namespace ExpressionEngine::Expression
         }
 
         /**
+         * @brief 钉住：引用路径上的名字段不接受空文本记号
+         * @details 模糊测试的长跑找到的第二种形状——`<<#>>` 修好之后它换了条路：`.<<>>`、
+         *          `Box.<<>>` 这类「点后面跟空文本」会得到一条属性名为空的引用，
+         *          其持久文本要么是空串，要么把路径少打一段（`Box.<<>>` 打成 `Box.`）。
+         *          判据按名字段必须有内容统一收口，非空的引号写法不受影响。
+         */
+        TEST(ExpressionNodes, ReferenceNameSegmentsRejectEmptyText)
+        {
+            for (const std::string text: {".<<>>", "Box.<<>>", "<<D>>.<<>>.x", "<<D>>.Obj.<<>>"})
+            {
+                auto parsed = ExpressionParser::tryParse(nullptr, text);
+                ASSERT_FALSE(parsed.has_value()) << text << " 不该收下空名字段";
+                EXPECT_FALSE(parsed.error().message.empty()) << text;
+                EXPECT_THROW(static_cast<void>(ExpressionParser::parse(nullptr, text)), Base::ParserError) << text;
+            }
+
+            // 空文本作为**实参**仍然合法：收口只针对引用路径上的名字段
+            const ExpressionPtr argument = ExpressionParser::parse(nullptr, "len(<<>>)");
+            ASSERT_NE(argument, nullptr);
+            EXPECT_EQ(argument->toString(), "len(<<>>)");
+
+            // 非空的引号写法不受影响：属性名整段交给宿主
+            const ExpressionPtr quoted = ExpressionParser::parse(nullptr, "Box.<<a.b>>");
+            ASSERT_NE(quoted, nullptr);
+            const std::vector<VariableReference> paths = quoted->collectReferences();
+            ASSERT_EQ(paths.size(), 1U);
+            EXPECT_EQ(paths.front().objectName, "Box");
+            EXPECT_EQ(paths.front().propertyName, "a.b");
+        }
+
+        /**
          * @brief 钉住：分量的拷贝构造与拷贝赋值都深拷贝子表达式，自赋值不踩内存
          */
         TEST(ExpressionNodes, ComponentsCopyTheirSubExpressions)

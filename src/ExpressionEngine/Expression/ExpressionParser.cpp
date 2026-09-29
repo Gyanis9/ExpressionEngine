@@ -236,7 +236,13 @@ namespace ExpressionEngine::Expression
 
             // String 记号的 text 已由词法器去定界并处理转义，这里不能再剥一层，否则正文本身形如
             // <<...>> 的文本会被啃掉定界符
-            std::string text = m_current.text;
+            const std::string text = m_current.text;
+            if (text.empty())
+            {
+                // 名字段为空（写法只有 .<<>>、Box.<<>> 这类空文本记号）会得到一条属性名为空的引用，
+                // 而它没有「能解析回自身」的文本写法：持久文本要么是空串，要么换掉路径含义。
+                throw Base::ParserError(std::format("{}：{}不能为空，请补上名字", locationOf(m_current), description));
+            }
             advance();
             return text;
         }
