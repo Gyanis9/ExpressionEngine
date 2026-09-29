@@ -1273,6 +1273,10 @@ namespace ExpressionEngine::Expression
      *          序列取值），映射键与名字分量在取值路径上给出明确报错（值模型没有映射类型、
      *          名字指向对象子属性）。更深的路径不靠拆名字表达：带点的名字整段交给宿主解析，
      *          槽位划分见 VariableReference 的说明。
+     *          边界：属性名为空的引用没有「能解析回自身」的文本写法（跨文档写法
+     *          <<文档#单元格>> 两段都要求有内容），所以这类路径只可能由宿主自己构造出来——
+     *          解析器不产出它（空段按解析错拒绝），节点也不在构造期校验，给 setReference
+     *          这种两段式用法留出余地。
      */
     class VariableExpression : public UnitExpression
     {

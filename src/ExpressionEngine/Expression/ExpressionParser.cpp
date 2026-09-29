@@ -429,7 +429,8 @@ namespace ExpressionEngine::Expression
             if (m_current.kind == ExpressionTokenKind::DocumentRef)
             {
                 // <<文档#单元格>>：一次性给出文档与目标；没有 # 时按文档名前缀处理
-                const std::string raw = m_current.text;
+                const ExpressionToken referenceToken = m_current;
+                const std::string     raw            = m_current.text;
                 advance();
                 const auto separator = raw.find('#');
                 if (separator == std::string::npos)
@@ -446,6 +447,14 @@ namespace ExpressionEngine::Expression
                 {
                     reference.documentName = raw.substr(0, separator);
                     reference.propertyName = raw.substr(separator + 1);
+                    if (reference.documentName.empty() || reference.propertyName.empty())
+                    {
+                        // 两头都空的写法既不是引用也当不了文本（文本里的 '#' 要写成 '\#'），
+                        // 放过去会得到一条路径全空的引用：它的持久文本是空串，宿主拿不回原文也重解析不了。
+                        throw Base::ParserError(std::format("{}：<<文档#单元格>> 的文档名与单元格都不能为空；"
+                                                            "要表示含 '#' 的文本请写成 <<a\\#b>>",
+                                                            locationOf(referenceToken)));
+                    }
                 }
             } else if (m_current.kind == ExpressionTokenKind::String && m_next.kind == ExpressionTokenKind::Dot)
             {

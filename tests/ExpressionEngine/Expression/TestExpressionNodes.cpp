@@ -302,6 +302,36 @@ namespace ExpressionEngine::Expression
         }
 
         /**
+         * @brief 钉住：跨文档写法的两段都不允许为空
+         * @details 模糊测试在 <<#>> 上找到的缺陷：解析器照单收下空的文档名与空的目标，得到一条
+         *          路径全空的引用，而它的持久文本是空串——宿主既拿不回原文，也重解析不回来。
+         *          现在按「写法本身不成立」处置：走普通解析错通道并给出列号；含 '#' 的文本仍要
+         *          写成转义形式，那条路不受影响。
+         */
+        TEST(ExpressionNodes, DocumentReferenceRequiresBothSides)
+        {
+            for (const std::string text: {"<<#>>", "<<a#>>", "<<#A1>>"})
+            {
+                auto parsed = ExpressionParser::tryParse(nullptr, text);
+                ASSERT_FALSE(parsed.has_value()) << text << " 不该被当成引用收下";
+                EXPECT_FALSE(parsed.error().message.empty()) << text;
+                EXPECT_TRUE(parsed.error().column.has_value()) << text;
+                EXPECT_THROW(static_cast<void>(ExpressionParser::parse(nullptr, text)), Base::ParserError) << text;
+            }
+
+            // 两段都有内容时照旧可用，文本能原样解析回来
+            const ExpressionPtr cross = ExpressionParser::parse(nullptr, "<<Sheet#A1>>");
+            ASSERT_NE(cross, nullptr);
+            EXPECT_EQ(cross->toString(), "<<Sheet#A1>>");
+            EXPECT_EQ(referenceOf("<<Sheet#A1>>"), referenceOf(cross->toString()));
+
+            // 含 '#' 的文本走转义写法：仍是文本，不会被误判成引用
+            const ExpressionPtr text = ExpressionParser::parse(nullptr, "<<a\\#b>>");
+            ASSERT_NE(text, nullptr);
+            EXPECT_EQ(text->toString(), "<<a\\#b>>");
+        }
+
+        /**
          * @brief 钉住：分量的拷贝构造与拷贝赋值都深拷贝子表达式，自赋值不踩内存
          */
         TEST(ExpressionNodes, ComponentsCopyTheirSubExpressions)
