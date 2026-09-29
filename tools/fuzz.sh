@@ -24,12 +24,18 @@
 
 set -u
 
-root="$(git rev-parse --show-toplevel)"
+# 仓库根取自脚本自身的位置，不用 `git rev-parse --show-toplevel`：源码包与容器里的解包树没有
+# .git，那条命令只留下一行 fatal 和一个空字符串，而 `cd ""` 在 bash 里是成功的空操作——脚本会拿
+# 当前目录继续跑，实测表现为 -dict 拼成 /fuzz/parse.dict、libFuzzer 退出码 1 且不给判据原因。
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+[[ -d "$root/fuzz" ]] || { echo "模糊测试判据：$root 下没有 fuzz/ 目录（脚本被挪出仓库了？）" >&2; exit 1; }
 cd "$root" || exit 1
 
 CC="${CC:-clang}"
 CXX="${CXX:-clang++}"
 BUILD_DIR="${BUILD_DIR:-build/fuzz}"
+# 相对路径一律钉在仓库根上：调用者从别处启动时，构建目录不该跟着当前目录跑
+[[ "$BUILD_DIR" == /* ]] || BUILD_DIR="$root/$BUILD_DIR"
 SECONDS_PER_TARGET="${FUZZ_SECONDS:-60}"
 # 下限取自本机实测（clang 20.1.2，45 秒）：cov=2901 条边缘、exec/s=17257。cov 取约三分之一、
 # exec/s 取不到百分之一：换台慢机器不至于变红，而「根本没走进解析器」必定变红——
@@ -43,11 +49,15 @@ die()
     exit 1
 }
 
-[[ -d fuzz ]] || die "没有 fuzz/ 目录"
 command -v "$CXX" >/dev/null 2>&1 || die "找不到编译器 $CXX（设 CXX 指向 clang++）"
 command -v "$CC" >/dev/null 2>&1 || die "找不到编译器 $CC（设 CC 指向 clang）"
 compiler_banner="$("$CXX" --version | head -1)"
 printf '%s\n' "$compiler_banner" | grep -qi "clang" || die "$CXX 不是 Clang：$compiler_banner"
+# 词典缺了会静默退化成「纯随机字节」：覆盖率照样能过下限，但函数名与关键字那一类形状基本不再出现，
+# 这道门看着还是绿的、实际换成了另一道。缺文件就拒，不悄悄降级
+[[ -s "$root/fuzz/parse.dict" ]] || die "缺 fuzz/parse.dict（或它是空文件）"
+# 语料目录里存着历史崩溃件：缺了它这道门照绿、却不再记得曾经红过的那些形状，因此也算缺判据
+[[ -n "$(ls -A "$root/fuzz/seed" 2>/dev/null)" ]] || die "缺 fuzz/seed/ 语料，或它是空目录"
 
 work="$(mktemp -d "${TMPDIR:-/tmp}/ee-fuzz.XXXXXX")"
 configure_log="$work/configure.log"
@@ -66,7 +76,7 @@ finish()
 }
 trap 'finish $?' EXIT
 
-cmake -S . -B "$BUILD_DIR" -G Ninja \
+cmake -S "$root" -B "$BUILD_DIR" -G Ninja \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_CXX_STANDARD=23 -DCMAKE_CXX_STANDARD_REQUIRED=ON -DCMAKE_CXX_EXTENSIONS=OFF \
     -DCMAKE_C_COMPILER="$CC" -DCMAKE_CXX_COMPILER="$CXX" \
@@ -91,10 +101,8 @@ for target in "${targets[@]}"; do
     name=$(basename "$target")
     corpus="$work/corpus-$name"
     mkdir -p "$corpus"
-    if [[ -d fuzz/seed ]]; then
-        # 种子复制进工作区再喂：libFuzzer 会往语料目录里写它自己发现的输入，不能写回仓库
-        cp fuzz/seed/* "$corpus/" 2>/dev/null
-    fi
+    # 种子复制进工作区再喂：libFuzzer 会往语料目录里写它自己发现的输入，不能写回仓库
+    cp "$root"/fuzz/seed/* "$corpus/" || die "复制 fuzz/seed 进语料目录失败"
 
     log="$work/$name.log"
     # 崩溃件单独落一个空目录：与语料混在一起时分不出「哪个才是 repro」——实测过，
@@ -108,10 +116,7 @@ for target in "${targets[@]}"; do
         -rss_limit_mb=2048
         -artifact_prefix="$artifacts/"
     )
-    if [[ -f fuzz/parse.dict ]]; then
-        # 词典：文本语法靠随机字节很难凑出「一个完整的函数名」，把词元交给变异器
-        run_args+=(-dict="$root/fuzz/parse.dict")
-    fi
+    run_args+=(-dict="$root/fuzz/parse.dict")
     "$target" "${run_args[@]}" "$corpus" >"$log" 2>&1
     run_rc=$?
 
@@ -124,7 +129,11 @@ for target in "${targets[@]}"; do
 
     if [[ "$run_rc" != "0" ]]; then
         echo "FAIL $name 退出码 $run_rc" >&2
-        grep -a -E "^fuzz 判据失败|^ERROR: |^SUMMARY: " "$log" | head -10 >&2
+        reason="$(grep -a -E "^fuzz 判据失败|^ERROR: |^SUMMARY: " "$log" | head -10)"
+        # 崩溃之外的失败（词典读不到、语料目录不存在、参数拼错）不带上面任何前缀；
+        # 没有兜底就会出现「这道门红了但一行原因都没有」——上一轮在解包树里就是这么空的
+        [[ -n "$reason" ]] || reason="$(tail -6 "$log")"
+        printf '%s\n' "$reason" >&2
         repro=$(find "$artifacts" -maxdepth 1 -type f | LC_ALL=C sort | head -1)
         [[ -n "$repro" ]] && echo "复现：$target \"$repro\"" >&2
         rc=1
