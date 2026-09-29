@@ -318,10 +318,17 @@ Release 构建、i5-14600KF、2026-09-20 实测（`ParserBenchmark` 一次运行
 之外还要为序列本身与分量存储分配。词法与解析的分工：319 字节的长链只跑词法 12.1 µs（26.5 MB/s），
 走完整解析 37.0 µs，50 层括号 5.2 µs。
 
+「分配」那一列有判据：`ParserBenchmark --check-allocations` 对同一份语料逐条数单次调用的堆分配次数，
+与编译在基准里的钉值比对，任何一条对不上就以退出码 1 收场，Windows CI 跑的就是这一条。耗时不进判据
+——同一台机器换个负载就能差出几十个百分点，判一个不可复现的数只会让人学会忽略红灯；判的是整数。
+钉值与语料表在同一个文件里，改了语料标签会当场报「钉值找不到对应语料」，不会悄悄少判一条。非 MSVC
+编译器上这一判据**拒绝给出结论**：分配次数是实现细节而非语言保证，没在同一实现上实测过的平台不装成已验。
+
 ```sh
 cmake --preset release -DEXPRESSIONENGINE_BUILD_BENCHMARKS=ON
-cmake --build build/release --target ParserBenchmark
-./build/release/benchmarks/ParserBenchmark
+cmake --build build/release
+./build/release/benchmarks/ParserBenchmark                     # 完整计时与对照
+./build/release/benchmarks/ParserBenchmark --check-allocations # 只核对分配次数，不计时
 ```
 
 对照侧需要本机另备一份生成代码（`Quantity.tab.c` / `Quantity.lex.c`，不随仓库分发），用

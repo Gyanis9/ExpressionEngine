@@ -40,6 +40,19 @@ GCOVR=/path/to/gcovr bash tools/coverage.sh build/debug   # 阈值写死在脚�
 脚本在三种情况下会当场变红而不是给出一份好看的报告：构建树没开插桩开关、树里没有 `.gcda`（说明用例还没跑）、
 以及 gcovr 版本低于 8——最后这条是因为 7.x 与 8.x 的开关取值形式不同，混用会把判据静默换成另一种含义。
 
+README 里「解析 + 求值」那张表的分配次数也有判据（只钉整数，不判耗时——耗时随负载变化，判它等于判一个
+不可复现的断言）：
+
+```bash
+cmake --preset release -DEXPRESSIONENGINE_BUILD_BENCHMARKS=ON
+cmake --build build/release --target ParserBenchmark
+./build/release/benchmarks/ParserBenchmark --check-allocations
+```
+
+改动了单次调用的分配次数就要重新实测并把钉值改到 `benchmarks/ParserBenchmark.cpp` 里那张表上，同时改 README；
+钉值与语料表在同一个文件里，只改一边会当场报「钉值找不到对应语料」。这张表钉的是 MSVC 的读数，别的编译器上
+这一判据直接拒绝给出结论，不会假装通过。
+
 ## 代码规范
 
 - C++23。命名：类与文件名大驼峰，函数与变量小驼峰，成员变量 `m_` 前缀。
