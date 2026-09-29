@@ -52,6 +52,17 @@ CLANG_TIDY=/path/to/clang-tidy bash tools/tidy-check.sh build/release
 必须同样写明为什么。就地豁免用 `NOLINT`/`NOLINTBEGIN`-`NOLINTEND`，并把理由写在紧邻的注释里——
 `NOLINTNEXTLINE` 只作用于紧邻的下一行，解释文字要写在它**上面**，否则豁免落在注释行上而检查照样报。
 
+新增或改动公开头时，本地跑一下导出头自洽性判据（Linux 矩阵的两个编译器各跑一遍，MSVC 用户的机器上
+有 g++/clang++ 就能跑）：
+
+```bash
+CXX=g++ bash tools/header-selfcheck.sh
+```
+
+它把每个公开头单独编一个翻译单元，专抓「这条包含其实是被别的编译单元带进来的」——本库真出过一次
+`std::unique_lock` 没带 `<mutex>`，MSVC 下看不出来，换 GCC 直接编不过。清单取不到时脚本拒绝判定，
+不会把「零个头」报成全绿。
+
 发布前（或改动了版本号之后）跑一次分发包验证：
 
 ```bash

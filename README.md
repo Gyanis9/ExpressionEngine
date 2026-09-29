@@ -282,6 +282,9 @@ ctest --test-dir build/release --output-on-failure
 - 覆盖率也有判据：`ENABLE_COVERAGE=ON` 配上插桩、跑完用例，`bash tools/coverage.sh build/debug`
   用 gcovr 出报告并按脚本里写死的阈值判定（行/函数/分支三条各自设线，读数由脚本打印）。
   gcov 只在 GCC/Clang 侧有数据，所以这条门跑在 Linux CI 上。
+- 导出头必须自洽：`bash tools/header-selfcheck.sh` 把每个公开头单独编一个翻译单元（只 `#include` 它自己），
+  用与非 MSVC 构建相同的告警集，`CXX` 指编译器。库内的整树构建会由别的编译单元把缺的包含凑齐，
+  而宿主是从单个头开始的——这一条挂在 CI 的 GCC 与 Clang 两档上跑。
 - 源码分发包：`bash tools/make-dist.sh` 产出 `dist/ExpressionEngine-<版本>.tar.gz` 与 `SHA256SUMS`，
   并当场自检——版本号在 `CMakeLists.txt` 与 `conanfile.py` 两处必须一致、HEAD 上的标签要与之相符、
   工作树必须干净、包内文件清单与提交逐条相同、必需文件点名核对、校验和可重放。

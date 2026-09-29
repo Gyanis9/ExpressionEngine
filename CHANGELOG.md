@@ -198,6 +198,19 @@
   `--verify` 与 `--check-packaging` 两种模式都实测跑通：解包后的树配置、构建、324 条用例、装包、
   消费者 `checks=46 failed=0` 全绿。
 
+- **导出头自洽性判据**：新增 `tools/header-selfcheck.sh`——把每个公开头单独作为一个翻译单元编一遍
+  （`#include <ExpressionEngine/...>` + `-Wall -Wextra -Wpedantic -Werror`），并挂进 Linux 矩阵，
+  GCC 与 Clang 各跑一遍。库内的整树构建看不见「这条包含是别的编译单元先带进来的」，而宿主是从单个头
+  开始的：本库出过一次 `std::unique_lock` 没包含 `<mutex>`（MSVC 的传递包含把它掩盖了，GCC 直接编不过），
+  同一类缺陷在导出头上还会再出，所以给它一道独立的门。
+  第一次跑就抓到一处：`Base/Precision.h` 用了 `std::abs` 却没包含 `<cmath>`——g++ 与 MSVC 都过
+  （传递包含），clang 22.1.7 报 `no member named 'abs' in namespace 'std'`。补上包含后 32 个头在
+  g++ 13.3 与 clang 22.1.7 下都能独立编译。
+  这道门也贡献了一条反面教材：脚本最初没有空清单判据，在一份没有 `.git` 的解包目录里跑时
+  `git ls-files` 只输出一行 fatal，脚本于是报「**0 个公开头**都能独立编译」并以 0 退出——
+  正是本项目一直防的那种假绿。补上空清单即拒绝判定，并用一个故意缺包含的头文件验证它会报
+  （报 1/33 后恢复全绿）。
+
 ### 变更
 
 - **求值不再把非有限数值交给宿主**：`sqrt(-1)`、`log(0)`、`10^999` 以及宿主给出的无效数量
