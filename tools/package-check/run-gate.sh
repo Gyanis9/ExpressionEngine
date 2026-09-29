@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# 交付门：对**已提交**的树跑一遍完整链路——克隆 -> 构建 -> 全量用例 -> 安装 -> 跑包消费者。
+# 交付门：对**已提交**的树跑一遍完整链路——克隆 -> 构建 -> 全量用例 -> 安装 -> 跑包消费者
+# -> 再确认包配置的兼容判定会拒绝更高的版本。
 #
 # 为什么要克隆而不是用工作树：未提交的改动会搭车，跑绿了不代表别人拿到的那一版能编。
 # 为什么最后一步是仓库外消费者：库内用例从源码树 include，看不见导出头漏装、包配置写错、
@@ -66,6 +67,7 @@ run_step consumer-configure cmake -S "$(native "$clone/tools/package-check")" -B
     -DCMAKE_PREFIX_PATH="$prefix_native"
 run_step consumer-build cmake --build "$(native "$clone/tools/package-check/build")"
 
+
 if [ "$rc" -eq 0 ]; then
     # 产物名与位置随平台、生成器而变（Windows 带 .exe；VS 多配置放进 <配置>/ 子目录），按实际文件找
     exe=$(find "$clone/tools/package-check/build" -maxdepth 3 -type f \( -name consumerCheck -o -name 'consumerCheck.exe' \) -print -quit)
@@ -79,6 +81,12 @@ if [ "$rc" -eq 0 ]; then
         tail -20 "$work/consumer-run.log"
         rc=1
     fi
+fi
+
+# 兼容判定的反面用例：判据与 Windows CI 共用同一条脚本，两套标准迟早分叉。放在最后一步，
+# 因为它要改动装出去的版本文件——消费者跑完之后再动那份包。
+if [ "$rc" -eq 0 ]; then
+    run_step consumer-refuses-mismatched-minor bash "$(native "$root/tools/package-check/compat-refusal-check.sh")" "$prefix_native"
 fi
 
 # 只数真正的编译器诊断：宽松匹配会把 -Werror、EXPRESSIONENGINE_WARNINGS_AS_ERRORS 这类
