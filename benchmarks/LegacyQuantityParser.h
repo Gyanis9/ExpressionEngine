@@ -3,7 +3,7 @@
  * @brief 生成式解析器（flex/bison）的对比入口（仅基准使用）
  * @author Gyanis
  * @date 2026-09-19
- * @version 0.0.2
+ * @version 0.0.3
  * @copyright Copyright (c) 2026 Gyanis. LGPL-2.1-or-later
  */
 

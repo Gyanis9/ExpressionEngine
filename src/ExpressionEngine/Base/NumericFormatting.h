@@ -3,7 +3,7 @@
  * @brief 区域数字格式快照与数字格式化
  * @author Gyanis
  * @date 2026-09-19
- * @version 0.0.2
+ * @version 0.0.3
  * @copyright Copyright (c) 2026 Gyanis. LGPL-2.1-or-later
  */
 

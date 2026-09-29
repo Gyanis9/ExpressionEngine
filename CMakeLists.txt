@@ -2,7 +2,7 @@
 # 避免在一处维护全部文件名而在增删文件时漏改。
 cmake_minimum_required(VERSION 3.28)
 
-project(ExpressionEngine VERSION 0.0.2 LANGUAGES CXX)
+project(ExpressionEngine VERSION 0.0.3 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
