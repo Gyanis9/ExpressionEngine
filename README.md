@@ -351,6 +351,9 @@ cmake/           find_package 的配置模板
 
 - 当前版本 **v0.0.1**。0.x 表示接口仍在收敛：破坏性变更照常记进
   [`CHANGELOG.md`](CHANGELOG.md)，宿主升级前先看那一节。
+- 包配置的兼容判定收到 `SameMinorVersion`：请求 `0.0.1` 的消费者不会被 `0.9.0` 的包装上（`SameMajorVersion`
+  就会）。这一条有反面判据——交付门与 Windows CI 都会把装出去的版本文件自称的版本抬到 `0.9.0`，
+  再要求同一个消费者配不上；策略写坏的那天，红的就是这一步。
 - 按 **LGPL-2.1-or-later** 授权，许可全文见 [`LICENSE`](LICENSE)；`LICENSE` 与 `CHANGELOG.md`
   都会随 `cmake --install` 装到 `share/doc/ExpressionEngine/`。
 - 参与开发：判据与规范见 [`CONTRIBUTING.md`](CONTRIBUTING.md)，issue 与 PR 都带模板。CI 在 `main` 上
