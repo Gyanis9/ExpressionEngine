@@ -85,6 +85,7 @@ if ! diff -u "$outside" "$inside" >"$root/dist/filelist.diff"; then
     rm -f "$inside" "$outside"
     die "清单不一致"
 fi
+rm -f "$root/dist/filelist.diff"
 
 # 缺了这些文件，包就装不出可用产品或跑不了判据：单独点名核一遍，别让上面那条清单比对
 # 在某天改成「只比数量」时静默放过
