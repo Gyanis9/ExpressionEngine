@@ -540,6 +540,41 @@ namespace ExpressionEngine::Expression
             EXPECT_EQ(reversed->getRange().rangeText(), "A1:B2");
         }
 
+        /**
+         * @brief 钉住：区间端点只接受单元格地址
+         * @details `RangeExpression` 存的是两段原文、回写时原样打出（见上一条），所以端点写成文本
+         *          记号或非地址标识时，回写会漏出没有定界的裸串：`sum(A1:<<a.b>>)` 的存盘文本是
+         *          `sum(A1:a.b)`，再解析是一段属性路径而不是文本——树换了。CI 的模糊作业在一支
+         *          含换行的同类输入上报过这条判据（作业只留下判据行与文本，崩溃件不在制品里，
+         *          那一份的确切字节复现不出来；本条用可复现的 `<<a.b>>` 形态钉住同一族）。
+         *          这类树不可表示，放过去就是交给宿主一个读不回来的存档，故在解析期拒。
+         */
+        TEST(ExpressionNodes, RangeEndpointsMustBeCellAddresses)
+        {
+            for (const std::string text: {"sum(x:y)", "sum(A1:B)", "sum(A1:<<a>>)", "sum(<<a>>:B2)", "sum(A1:<<SZh\n>>)"})
+            {
+                const auto parsed = ExpressionParser::tryParse(nullptr, text);
+                ASSERT_FALSE(parsed.has_value()) << text << " 不该收下非单元格地址的区间端点";
+                EXPECT_FALSE(parsed.error().message.empty()) << text;
+                EXPECT_THROW(static_cast<void>(ExpressionParser::parse(nullptr, text)), Base::ParserError) << text;
+            }
+
+            // 起点或结束端落成区间分支的那几条，文案要指名「单元格地址」；
+            // `sum(<<a>>:B2)` 的起点连区间分支都进不去（文本记号不是区间起点），报的是另一条 ParseFailure；
+            // 带裸换行的那条则先被词法器按「<< 没有配对的 >>」拒掉（同一族里更早的一道闸）
+            for (const std::string text: {"sum(x:y)", "sum(A1:B)", "sum(A1:<<a>>)", "sum(A1:<<a.b>>)"})
+            {
+                const auto parsed = ExpressionParser::tryParse(nullptr, text);
+                ASSERT_FALSE(parsed.has_value()) << text;
+                EXPECT_NE(parsed.error().message.find("单元格地址"), std::string::npos) << text << " 的文案：" << parsed.error().message;
+            }
+
+            // 正常写法不受影响
+            const ExpressionPtr fine = ExpressionParser::parse(nullptr, "sum(A1:A10)");
+            ASSERT_NE(fine, nullptr);
+            EXPECT_EQ(fine->toString(true), "sum(A1:A10)");
+        }
+
         /// 造一段「1 + 1 + …」的文本，terms 是项数
         std::string additiveChainText(const std::size_t terms)
         {

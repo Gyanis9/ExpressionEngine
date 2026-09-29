@@ -617,11 +617,25 @@ namespace ExpressionEngine::Expression
             // 聚合函数实参可以是区间写法 A1:B2
             if ((m_current.kind == ExpressionTokenKind::Identifier || m_current.kind == ExpressionTokenKind::CellAddress) && m_next.kind == ExpressionTokenKind::Colon)
             {
-                const std::string begin = m_current.text;
+                // 两端都必须是单元格地址。区间节点只存两段原文（`RangeExpression::appendText`
+                // 原样打出），端点写成文本记号或非地址标识时，回写会漏出没有定界的裸串：
+                // `sum(A1:<<a.b>>)` 的存盘文本是 `sum(A1:a.b)`，再解析是一段属性路径而不是文本，
+                // 树换了。这类树不可表示，放过去等于把「读不回来的存档」交给宿主，故在解析期就拒。
+                const ExpressionToken beginToken = m_current;
+                if (beginToken.kind != ExpressionTokenKind::CellAddress)
+                {
+                    throw Base::ParserError(std::format("{}：区间写法两端都要是单元格地址（如 A1:B2），起点 '{}' 不是", locationOf(beginToken), beginToken.text));
+                }
                 advance();
                 advance();
-                const std::string end = takeIdentifierLike("区间写法冒号后的结束地址");
-                return std::make_unique<RangeExpression>(m_resolver, begin, end);
+                const ExpressionToken endToken = m_current;
+                if (endToken.kind != ExpressionTokenKind::CellAddress)
+                {
+                    throw Base::ParserError(std::format("{}：区间写法两端都要是单元格地址（如 A1:B2），结束端不是单元格地址", locationOf(endToken)));
+                }
+                const std::string end = endToken.text;
+                advance();
+                return std::make_unique<RangeExpression>(m_resolver, beginToken.text, end);
             }
 
             return parseExpression(0);

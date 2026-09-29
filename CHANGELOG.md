@@ -347,6 +347,18 @@
   （`ParenthesesFollowRegroupingSafety`、`ReferenceNameSegmentsRejectEmptyText`、
   `PersistentTextIsAFixpoint`），还原后 `cmp` 确认两份源文件逐字节未变、331 条回到全绿。
 
+- **区间端点只接受单元格地址**：`sum(A1:<<a.b>>)` 这类写法此前能解析成一条区间节点，而
+  `RangeExpression` 存的是两段**原文**、回写时原样打出——存盘文本成了 `sum(A1:a.b)`，再解析那段
+  文本是属性路径而不是文本记号，树换了（同一族里 CI 的模糊作业还在一支含换行的输入上报过红；
+  作业只留下判据行与文本，崩溃件不在制品里，那一份的确切字节复现不出来，用例改用可复现的形态）。
+  这类树本来就没有能解析回来的写法，放过去等于交给宿主一个读不回来的存档，所以现在两端都要求是
+  `CellAddress` 记号，否则按 `ParseFailure` 拒并指名「单元格地址」。
+  `sum(A1:A10)` 等正常写法一字不变（全量用例除了新加的拒绝面以外没有一条改期望）。
+  回归用例：`ExpressionNodes.RangeEndpointsMustBeCellAddresses`（五条非地址端点各自被拒 +
+  一条文案断言 + 正常写法对照）；触发写法进语料（`fuzz/seed/range-endpoint-as-text.expr`）。
+  突变自证：把结束端那道守卫改成永不成立，这条用例立刻变红（其余 331 条不受影响），
+  还原后 `cmp` 确认源文件逐字节未变。
+
 - **同级右操作数的括号按解析器的结合性判，不再按结合律**：`1 + (2 + 3)` 的持久文本曾是 `1 + 2 + 3`
   ——加法满足结合律，取值不变，但解析器按左结合读回来是 `(1 + 2) + 3`，`isSame` 判不同：
   宿主存盘再读回，分组被换掉了。判据原先问的是 `isRightAssociative()`（「这个运算能不能换括号」，
