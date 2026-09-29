@@ -97,7 +97,9 @@ NUL 之类）。生成器是本文件自带的 xorshift64*，不用标准库的�
 
 建好的表达式树只读：`evaluate()`、`tryEvaluate()`、`simplify()`、`toString()`、`copy()` 可以在多个线程上
 对同一棵树并发调用。库内的进程级状态只有两处——`FunctionRegistry::global()` 自带读写锁，`UnitsApi` 的
-当前方案与精度按头文件约定需宿主在运行期切换时自行加锁。宿主实现的 `IObjectResolver` 与 `IProperty`
+当前方案与精度按头文件约定需宿主在运行期切换时自行加锁（这条承诺有专门用例：四条读者线程踩在同一道
+屏障上并发排版，取值必须与单线程基线逐字相同——读路径里任何偷偷写共享状态的缓存都会让它变红，
+本机实测在插桩构建下表现为 heap-use-after-free）。宿主实现的 `IObjectResolver` 与 `IProperty`
 由宿主自己保证线程安全：并发求值会在多个线程上重入同一个实现。CI 的 `tsan` 作业把全量用例在 ThreadSanitizer 下再跑一遍，并把 `halt_on_error` 打开——
 数据竞争因此会让门禁变红，而不是只留一行报告。
 

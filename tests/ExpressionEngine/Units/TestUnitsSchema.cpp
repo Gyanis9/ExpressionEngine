@@ -2,7 +2,11 @@
 
 #include <gtest/gtest.h>
 
+#include <barrier>
 #include <memory>
+#include <string>
+#include <thread>
+#include <utility>
 #include <vector>
 
 #include <ExpressionEngine/Base/Exception.h>
@@ -250,6 +254,77 @@ namespace ExpressionEngine::Units
 
             EXPECT_EQ(UnitsApi::schemaTranslate(Quantity(1.0e-6, Unit::VolumetricThermalExpansionCoefficient)), "1000.00 mm^3/m^3/K");
             EXPECT_EQ(UnitsApi::schemaTranslate(Quantity(1.0e-6, Unit::ThermalExpansionCoefficient)), "1.00 µm/m/K");
+        }
+
+        /**
+         * @brief 钉住：门面的并发只读给出与单线程基线逐字相同的文本
+         * @details 类注释要求宿主「多线程读取前先完成设置」，这里验的是承诺的另一半——只读真的只是
+         *          只读：设置全部排在读者启动之前，之后没有任何写者。屏障让每个线程每一轮同时进入读
+         *          路径（不靠调度碰运气），断言比的是排版文本而不是「没崩」。
+         *          突变自证：在 schemaTranslate 里加一次 setSchema("Imperial")，四条读者线程就会在并发下
+         *          互相踩到同一份方案集合——本机 MSVC Debug 直接死在运行期迭代器注解上（用例以非零退出收场），
+         *          取值不变的隐藏写入则由 ThreadSanitizer 判成数据竞争。
+         */
+        TEST(UnitsApiTest, ConcurrentReadOnlyCallsAgreeWithTheSingleThreadedBaseline)
+        {
+            constexpr int workerCount     = 4;
+            constexpr int roundsPerWorker = 200;
+
+            // 选 Internal：排版是固定小数位的定长文本，逐次可比（英制走分数排版）。
+            // 顺带记一笔实测：精度镜像 s_decimals 不参与这条只读路径的取值，只写它的突变看不见——
+            // 能留下痕迹的是方案集合本身。
+            UnitsApi::setSchema("Internal");
+            UnitsApi::setDecimals(2);
+
+            const std::vector<Quantity> samples{Quantity::Metre, Quantity::MilliMetre, Quantity::KiloMetre, Quantity::Inch};
+            std::vector<std::string>    baselines;
+            baselines.reserve(samples.size());
+            for (const Quantity &sample: samples)
+            {
+                baselines.push_back(UnitsApi::schemaTranslate(sample));
+            }
+            ASSERT_EQ(baselines.size(), samples.size());
+            const std::string expected = baselines.back();
+
+            std::vector<std::string> outputs(static_cast<std::size_t>(workerCount));
+            std::barrier             startLine(workerCount);
+            std::vector<std::thread> workers;
+            workers.reserve(static_cast<std::size_t>(workerCount));
+            for (int workerIndex = 0; workerIndex < workerCount; ++workerIndex)
+            {
+                workers.emplace_back(
+                        [&samples, &outputs, &startLine, workerIndex]
+                        {
+                            startLine.arrive_and_wait();
+                            std::string last;
+                            for (int round = 0; round < roundsPerWorker; ++round)
+                            {
+                                for (const Quantity &sample: samples)
+                                {
+                                    last = UnitsApi::schemaTranslate(sample);
+                                }
+                                static_cast<void>(UnitsApi::getNames().size());
+                                static_cast<void>(UnitsApi::getDescriptions().size());
+                                static_cast<void>(UnitsApi::count());
+                                static_cast<void>(UnitsApi::getDecimals());
+                                static_cast<void>(UnitsApi::isMultiUnitLength());
+                            }
+                            // 每个线程只写自己那一格，且 join 之后才被读
+                            outputs[static_cast<std::size_t>(workerIndex)] = std::move(last);
+                        });
+            }
+            for (std::thread &worker: workers)
+            {
+                worker.join();
+            }
+
+            for (const std::string &output: outputs)
+            {
+                EXPECT_EQ(output, expected) << "并发只读给出了与单线程基线不同的排版文本";
+            }
+
+            UnitsApi::setDecimals(-1);
+            UnitsApi::setSchema(UnitsApi::getDefaultSchemaNumber());
         }
 
     } // namespace
