@@ -96,7 +96,8 @@ required=(
     CMakeLists.txt CMakePresets.json conan_provider.cmake conanfile.py conandata.yml
     LICENSE README.md CHANGELOG.md CONTRIBUTING.md
     .clang-format .clang-tidy .github/workflows/windows-ci.yml .github/workflows/linux-ci.yml
-    tools/format-check.sh tools/tidy-check.sh tools/coverage.sh tools/make-dist.sh
+    tools/format-check.sh tools/tidy-check.sh tools/coverage.sh tools/make-dist.sh tools/fuzz.sh
+    fuzz/CMakeLists.txt fuzz/FuzzParse.cpp fuzz/parse.dict
     tools/package-check/run-gate.sh tools/package-check/compat-refusal-check.sh
     tools/package-check/CMakeLists.txt tools/package-check/main.cpp
 )

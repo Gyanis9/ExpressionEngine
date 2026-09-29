@@ -1,0 +1,21 @@
+# libFuzzer 词典：文本语法靠随机字节很难凑出完整词元，把真实的运算符、关键字与函数名交给变异器。
+# 词元一律取自 src/ExpressionEngine/Expression/ExpressionLexer.cpp 的运算符分支与
+# FunctionRegistry 的内置表（78 个里挑常撞的），单位写法取自词法器的符号表——不自造拼法。
+# 用法见 tools/fuzz.sh：存在 -dict= 这条时会自动带上。
+
+"+" "-" "*" "/" "%" "^" "=" "<" ">" "?" ":" "," ";" "(" ")" "[" "]" "." "!" "&" "|"
+
+"and" "or" "not" "True" "False"
+
+"abs" "sqrt" "cbrt" "pow" "mod" "min" "max" "round" "floor" "ceil" "trunc"
+"sin" "cos" "tan" "exp" "log" "hypot"
+"sum" "average" "count" "stddev" "list" "tuple" "vector" "matrix" "placement" "rotation"
+"vnormalize" "vcross" "vdot" "mtranslate" "mrotate" "mscale"
+"str" "parsequant" "concat" "join" "split" "substr" "len" "lower" "upper" "trim" "replace" "contains"
+"hiddenref" "href"
+
+"1" "2" "0" "1.5" ".5" "1e400" "99999999999999999999" "-1"
+
+"m" "mm" "kg" "deg" "Hz" "GHz" "Pa" "MPa" "Nm" "Ohm" "Torr" "cal"
+
+"A1" "B2:ZZ16384" "Document.Object.Property"

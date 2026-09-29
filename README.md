@@ -296,6 +296,11 @@ GCC 13.3 与 Clang 20.1 都编得过、跑得通，Clang 18 当场报 `no templa
 - 覆盖率也有判据：`ENABLE_COVERAGE=ON` 配上插桩、跑完用例，`bash tools/coverage.sh build/debug`
   用 gcovr 出报告并按脚本里写死的阈值判定（行/函数/分支三条各自设线，读数由脚本打印）。
   gcov 只在 GCC/Clang 侧有数据，所以这条门跑在 Linux CI 上。
+- 模糊测试：`bash tools/fuzz.sh` 配一份 Clang + ASan/UBSan 的构建，把 `fuzz/` 下每个 libFuzzer 目标
+  限时跑一遍（`FUZZ_SECONDS`，默认 60 秒；CI 给 120 秒）。判的还是不变式那一组——不漏异常、公开上限
+  不被越过、交给宿主的取值必有限——差别在输入由覆盖率引导自己长出来，与那两万条随机用例的「按零件
+  拼装」互补。这道门读两个数判空转：覆盖到的边缘数与每秒执行次数，「没崩溃」只有在真走进解析器时
+  才算证据。种子语料在 `fuzz/seed/`，词元在 `fuzz/parse.dict`。
 - 导出头必须自洽：`bash tools/header-selfcheck.sh` 把每个公开头单独编一个翻译单元（只 `#include` 它自己），
   用与非 MSVC 构建相同的告警集，`CXX` 指编译器。库内的整树构建会由别的编译单元把缺的包含凑齐，
   而宿主是从单个头开始的——这一条挂在 CI 的 GCC 与 Clang 两档上跑。
@@ -307,11 +312,11 @@ GCC 13.3 与 Clang 20.1 都编得过、跑得通，Clang 18 当场报 `no templa
   要验「手上这份包能不能装出可用产品」：`bash tools/make-dist.sh --check-packaging`
   （解包 -> 配置 -> 装包 -> 跑仓库外消费者）；`--verify` 再补上构建与全量用例。CI 的 `dist` 作业跑前者。
 - CI 分两个工作流，都只在 `main` 上跑（免费分钟数有限，日常在 `develop` 上本地跑绿）：
-  `.github/workflows/linux-ci.yml` 有六个作业——`style` 跑上面那条样式脚本、`build-and-test` 在
+  `.github/workflows/linux-ci.yml` 有七个作业——`style` 跑上面那条样式脚本、`build-and-test` 在
   GCC 与 Clang 20 下各跑一遍构建 + 全量用例（Debug 档开 ASan 与 UBSan），再另配一份不带插桩的
   Release 树装出来跑包消费者（插桩过的静态库链不进普通消费者）、
-  `tsan` 单独一份 ThreadSanitizer 构建、`tidy` 跑上面那条静态分析判据、`dist` 产分发包并自检、
-  `coverage` 跑覆盖率判据；
+  `tsan` 单独一份 ThreadSanitizer 构建、`tidy` 跑上面那条静态分析判据、`fuzz` 跑上面那条模糊测试判据、
+  `dist` 产分发包并自检、`coverage` 跑覆盖率判据；
   `.github/workflows/windows-ci.yml` 跑 Debug + AddressSanitizer 全量用例，之后 `cmake --install`
   到临时前缀、另起 `tools/package-check/` 工程编译并跑宿主可见行为断言与包配置兼容判定的反面用例——
   导出头漏装、包配置写错这类缺陷只有仓库外消费者才看得见。

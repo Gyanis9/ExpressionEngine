@@ -10,6 +10,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 option(EXPRESSIONENGINE_BUILD_TESTS "构建单元测试" ON)
 option(EXPRESSIONENGINE_BUILD_BENCHMARKS "构建解析器性能基准" OFF)
+option(EXPRESSIONENGINE_BUILD_FUZZ_TARGETS "构建 libFuzzer 模糊测试目标（仅 Clang，跑法见 tools/fuzz.sh）" OFF)
 
 # 零告警是提交硬判据：库与测试共用同一组告警开关，第三方源码不套用
 add_library(ExpressionEngineWarnings INTERFACE)
@@ -109,6 +110,10 @@ endif()
 
 if(EXPRESSIONENGINE_BUILD_BENCHMARKS)
     add_subdirectory(benchmarks)
+endif()
+
+if(EXPRESSIONENGINE_BUILD_FUZZ_TARGETS)
+    add_subdirectory(fuzz)
 endif()
 
 # ---------------------------------------------------------------------------

@@ -58,8 +58,23 @@ ctest --test-dir build/debug --output-on-failure
 GCOVR=/path/to/gcovr bash tools/coverage.sh build/debug   # 阈值写死在脚本里，改动会进 diff
 ```
 
+模糊测试门只在 Clang 上有目标（`-fsanitize=fuzzer` 属 compiler-rt，GCC 没有对应实现），本地有 clang++
+就跑得动，也不必装 Conan——模糊目标只链库本体：
+
+```bash
+bash tools/fuzz.sh                    # 每个目标 60 秒；本地长跑给 FUZZ_SECONDS=600
+CXX=clang++-20 bash tools/fuzz.sh     # 默认 clang++，取别的档用 CXX/CC 指
+```
+
+它自己配一份 `build/fuzz`（Release + ASan/UBSan，**库本体也带 `fuzzer-no-link` 插桩**——只插桩 `fuzz/`
+那一个翻译单元时，覆盖率引导看不见库里的分支，实测 45 秒停在 48 条边缘，那种「没崩溃」不是证据）。
+脚本读 cov 边缘数与 exec/s 两个数防空转，崩溃输入留在临时语料目录并打印复现命令；红了不清理现场。
+新增或改动 `fuzz/` 下任何东西之后，重跑一次突变自证：把 `tryParse` 的实现换成会抛的那条 `parse` 通道，
+脚本必须在几十秒内变红——不变红的判据等于没有判据。
+
 静态分析门读的是构建生成的 `compile_commands.json`，所以先配置再跑；判据是零告警，工具版本钉死 22.1.7。
 它属于 CI 的判据（本机装了同一版本的 clang-tidy 就能跑同样的命令，没装不拦本地提交）：
+
 
 ```bash
 cmake --preset release && cmake --build build/release
