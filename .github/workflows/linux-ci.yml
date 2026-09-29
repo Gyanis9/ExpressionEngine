@@ -92,6 +92,12 @@ jobs:
       - name: 全量用例
         run: ctest --test-dir build/debug --output-on-failure --parallel
 
+      # 导出头自洽性：每个公开头单独作为一个翻译单元编一遍。库内的整树构建看不见「这条包含是
+      # 别的 TU 凑齐的」，而宿主是从单个头开始的——本库出过一次 std::unique_lock 没带 <mutex>
+      # （MSVC 的传递包含掩盖了它）。两个矩阵编译器各跑一遍，告警集与构建一致。
+      - name: 导出头自洽性判据
+        run: bash tools/header-selfcheck.sh
+
       - name: 失败时上传用例日志
         if: failure()
         uses: actions/upload-artifact@v7
