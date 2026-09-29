@@ -184,8 +184,9 @@ install(
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/ExpressionEngine
 )
 
-# LGPL-2.1-or-later 要求随二进制分发许可原文；更新日志一起装上，宿主拿到包就能看到迁移事项。
+# LGPL-2.1-or-later 要求随二进制分发许可原文；NOTICE 里的第三方与上游声明同一条款要求随包，
+# 更新日志一起装上，宿主拿到包就能看到迁移事项。
 install(
-        FILES LICENSE CHANGELOG.md
+        FILES LICENSE NOTICE CHANGELOG.md
         DESTINATION ${CMAKE_INSTALL_DATADIR}/doc/ExpressionEngine
 )

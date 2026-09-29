@@ -1,0 +1,34 @@
+ExpressionEngine
+Copyright (c) 2026 Gyanis. LGPL-2.1-or-later
+
+本库按 GNU LGPL-2.1-or-later 授权发布，许可全文见同目录的 `LICENSE`（与各源文件头里的
+`@copyright` 声明同口径）。`cmake --install` 会把 `LICENSE`、`NOTICE`、`CHANGELOG.md` 一并
+装到 `share/doc/ExpressionEngine/`。
+
+
+第三方组件
+==========
+
+- **GoogleTest 1.18.0** — BSD-3-Clause。
+  只用于 `tests/` 下的测试可执行体，不进入交付的库与头文件；版本记在 `conandata.yml`，
+  由 Conan 在配置期取用。仓库不复制其源码。
+
+- **`conan_provider.cmake`** — MIT，Copyright (c) 2024 JFrog。
+  Conan 官方提供的 CMake 依赖提供者，随源码分发包一起放在仓库根；文件头保留了它的
+  完整 MIT 声明，本文件在此登记一次以便下游打包时不再漏掉。
+
+- **Conan 生成的文件**（`conandata.yml`、`conanfile.py` 里带「managed by Conan」标记的部分）
+  — 由 Conan 覆写管理，本身不构成第三方再分发内容。
+
+
+上游声明与衍生关系
+==================
+
+- 本库词法与语法的**规则先后**取自 `Expression.l` 那份 Flex 语法（源码注释里逐条点名到
+  具体规则，如 `IDENTIFIER`、`FUNC`、`USUNIT`），单位符号表与 `Quantity` 的量纲命名沿用
+  同类参数化 CAD 内核的既有写法，以便宿主把已有公式迁过来。
+- 按 LGPL-2.1 第 4 条，若本库的某部分构成他人作品的衍生作品，需要在此保留其原有的版权与
+  许可声明。**截至本版本，仓库内没有需要另行保留的上游声明**：没有复制他人源码，
+  命名与规则上的对应不构成源码级衍生。这一条如果被以后的大更新推翻（例如直接引入上游代码），
+  必须在本节登记组件名、许可、版权人与来源链接——`tools/make-dist.sh` 的必需文件清单会
+  检查本文件是否随包，但检查不了这里的实质内容，实质判断由评审负责。

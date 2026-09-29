@@ -10,6 +10,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
+#include <format>
 #include <memory>
 #include <string>
 #include <utility>
@@ -90,11 +91,11 @@ namespace ExpressionEngine::Expression
         }
         const std::string &printed = currentText;
 
-        // 持久文本是宿主存盘的内容：必须解析得回来、引用路径逐格相同、且是自身不动点。
-        // 只判「能解析」不够——`Box.<<a.b>>` 打成 `Box.a.b` 也解析得动，却换了路径；
-        // 单位因子链造成的歧义（(5 % m) * m 与 5 % (m * m) 曾打出同一文本）则由不动点那条拦住。
-        // 「解析不回来」这条暂停用：名字段里带 NUL 或某些特殊字节时文本配不上定界（见 CHANGELOG
-        // 「已知边界」），未修之前当判据只会长期红；保留发布形态的底线——解析失败必须给出原因。
+        // 持久文本是宿主存盘的内容：四条判据全启用——解析得回来、引用路径逐格相同、
+        // 重解析后是同一棵树、文本再写一次不变。只判「能解析」不够——`Box.<<a.b>>` 打成
+        // `Box.a.b` 也解析得动，却换了路径；单位因子链与同级分组的歧义由不动点那条拦住。
+        // 「解析不回来」这一条曾因名字段的字节口径暂停：本轮逐字节复测 `Box.<<a<b>>`、
+        // 含 NUL 的名字段与文档名槽三种写法都能原样折回（稳定且同树），那条口径不再卡这条路。
         const auto reparsed = ExpressionParser::tryParse(nullptr, printed);
         if (!reparsed.has_value())
         {
@@ -102,7 +103,8 @@ namespace ExpressionEngine::Expression
             {
                 violate("重新解析库内文本失败却没给出原因");
             }
-            return 0;
+            const std::string reason = std::format("持久文本解析不回来：{}", reparsed.error().message);
+            violate(reason.c_str());
         }
         if (*reparsed == nullptr)
         {

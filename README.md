@@ -318,7 +318,7 @@ GCC 13.3 与 Clang 20.1 都编得过、跑得通，Clang 18 当场报 `no templa
   要验「手上这份包能不能装出可用产品」：`bash tools/make-dist.sh --check-packaging`
   （解包 -> 配置 -> 装包 -> 跑仓库外消费者）；`--verify` 再补上构建与全量用例。CI 的 `dist` 作业跑前者。
 - CI 分两个工作流，都只在 `main` 上跑（免费分钟数有限，日常在 `develop` 上本地跑绿）：
-  `.github/workflows/linux-ci.yml` 有七个作业——`style` 跑上面那条样式脚本与版本号一致性判据、
+  `.github/workflows/linux-ci.yml` 有八个作业——`style` 跑上面那条样式脚本与版本号一致性判据、
   `build-and-test` 在
   GCC 与 Clang 20 下各跑一遍构建 + 全量用例（Debug 档开 ASan 与 UBSan），再另配一份不带插桩的
   Release 树装出来跑包消费者（插桩过的静态库链不进普通消费者）、
@@ -402,7 +402,10 @@ cmake/           find_package 的配置模板
 - 包配置的兼容判定收到 `SameMinorVersion`：请求 `0.0.1` 的消费者不会被 `0.9.0` 的包装上（`SameMajorVersion`
   就会）。这一条有反面判据——交付门与 Windows CI 都会把装出去的版本文件自称的版本抬到 `0.9.0`，
   再要求同一个消费者配不上；策略写坏的那天，红的就是这一步。
-- 按 **LGPL-2.1-or-later** 授权，许可全文见 [`LICENSE`](LICENSE)；`LICENSE` 与 `CHANGELOG.md`
-  都会随 `cmake --install` 装到 `share/doc/ExpressionEngine/`。
+- 按 **LGPL-2.1-or-later** 授权，许可全文见 [`LICENSE`](LICENSE)；`LICENSE`、`NOTICE`（第三方组件
+  与上游声明）与 `CHANGELOG.md` 都会随 `cmake --install` 装到 `share/doc/ExpressionEngine/`，
+  交付门按安装树逐个点名核过。
+- 安全问题按 [`SECURITY.md`](SECURITY.md) 的方式私报（含受支持范围与本库声明的边界：递归深度、
+  区间规模、非异常通道与不把 NaN/inf 交给宿主）。
 - 参与开发：判据与规范见 [`CONTRIBUTING.md`](CONTRIBUTING.md)，issue 与 PR 都带模板。CI 在 `main` 上
-  跑构建与全量用例、排版、ThreadSanitizer 三道门。
+  跑上面列出的八项 Linux 判据与 Windows 交付链；日常在 `develop` 上本地跑绿再合。

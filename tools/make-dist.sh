@@ -91,7 +91,7 @@ rm -f "$root/dist/filelist.diff"
 # 在某天改成「只比数量」时静默放过
 required=(
     CMakeLists.txt CMakePresets.json conan_provider.cmake conanfile.py conandata.yml
-    LICENSE README.md CHANGELOG.md CONTRIBUTING.md
+    LICENSE README.md CHANGELOG.md CONTRIBUTING.md NOTICE SECURITY.md
     .clang-format .clang-tidy .github/workflows/windows-ci.yml .github/workflows/linux-ci.yml
     tools/format-check.sh tools/tidy-check.sh tools/coverage.sh tools/make-dist.sh tools/fuzz.sh
     fuzz/CMakeLists.txt fuzz/FuzzParse.cpp fuzz/parse.dict

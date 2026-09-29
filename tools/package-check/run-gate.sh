@@ -63,6 +63,19 @@ run_step configure cmake -S "$clone_native" --preset "$kind" -B "$(native "$clon
 run_step build cmake --build "$(native "$clone/build/$kind")"
 run_step tests ctest --test-dir "$(native "$clone/build/$kind")" --output-on-failure
 run_step install cmake --install "$(native "$clone/build/$kind")" --prefix "$prefix_native"
+
+# LGPL-2.1 要求随包分发许可原文与第三方声明；缺一个文件就是合规缺口，而不是「文档没写上」：
+# 装完直接按安装树点名核一遍。找不到时退回按名字搜整棵前缀树，避免 CMAKE_INSTALL_DATADIR
+# 被改过造成假红。
+for doc in LICENSE NOTICE CHANGELOG.md; do
+    if [ -f "$prefix/share/doc/ExpressionEngine/$doc" ] || [ -n "$(find "$prefix" -name "$doc" -print -quit 2>/dev/null)" ]; then
+        echo "OK   随包文件 $doc"
+    else
+        echo "FAIL 随包文件 $doc 没装进安装树（期望 share/doc/ExpressionEngine/）"
+        rc=1
+    fi
+done
+
 run_step consumer-configure cmake -S "$(native "$clone/tools/package-check")" -B "$(native "$clone/tools/package-check/build")" -G Ninja -DCMAKE_BUILD_TYPE=Debug \
     -DCMAKE_PREFIX_PATH="$prefix_native"
 run_step consumer-build cmake --build "$(native "$clone/tools/package-check/build")"
