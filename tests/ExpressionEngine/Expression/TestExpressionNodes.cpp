@@ -402,9 +402,9 @@ namespace ExpressionEngine::Expression
          *          `Box.Length.<<A>>` 的名字分量曾裸写成 `.A`，而单独一个 A 会被词法器读成安培
          *          单位，于是文本再解析就报「需要分量名」。判据取最省事的形态：解析→写文本→
          *          再解析→再写文本，两次文本必须相同、中间不得解析失败，且重解析出的树要
-         *          与原树同形。圈子里只放**不含单位并写**的输入：`2 mm` 这类并写会被打平成
-         *          `2 * mm`，那是「按优先级补括号」才覆盖的另一半保证（见 toString 的参数
-         *          说明），与名字段的引号规则是两件事，混在一条判据里会互相遮掩。
+         *          与原树同形。圈子里只放名字段那类（`Box.<<a.b>>`、分量 `.A`）：单位并写与 `%`
+         *          混用的文本还有歧义——`5%m m`（树是 (5 % m) * m）与 `5 % m * m`（树是
+         *          5 % (m * m)）打出同一个文本，成因已定位、修法待选，见 CHANGELOG「已知边界」。
          */
         TEST(ExpressionNodes, PersistentTextIsAFixpoint)
         {
@@ -422,6 +422,8 @@ namespace ExpressionEngine::Expression
 
             // 名字段的引号规则不改裸写形态：能裸写的仍然裸写
             EXPECT_EQ(ExpressionParser::parse(nullptr, "Box.Length")->toString(true), "Box.Length");
+            // 单位并写与 % 混用的文本歧义修好后恢复这一条（届时模糊判据里那两条一起放开）：
+            // EXPECT_EQ(ExpressionParser::parse(nullptr, "5%m m")->toString(true), "(5 % m) * m");
         }
 
         /**

@@ -24,12 +24,7 @@ namespace ExpressionEngine::Expression
 {
     namespace
     {
-        /**
-         * @brief 判据失败：写下原因并中止进程
-         * @param reason 哪条不变式被越过
-         * @details 不返回：libFuzzer 需要的是崩溃信号，让它把这条输入存成 repro 文件。
-         */
-        /// 当前这条输入与它的持久文本：崩溃件里只有字节，判据报红时要把两者打出来才看得懂现场
+        /// 当前这条输入与它的持久文本：崩溃件里只有字节，报红时把两者打出来才看得懂现场
         std::string currentInput;
         std::string currentText;
 
@@ -37,7 +32,7 @@ namespace ExpressionEngine::Expression
          * @brief 判据失败：写下原因、原文与持久文本，并中止进程
          * @param reason 哪条不变式被越过
          * @details 不返回：libFuzzer 需要的是崩溃信号，让它把这条输入存成 repro 文件。
-         *          模糊目标按单实例跑（本仓库不用 -jobs），这两个文件量不需要同步。
+         *          模糊目标按单实例跑（本仓库不用 -jobs），那两个文件量不需要同步。
          */
         [[noreturn]] void violate(const char *reason)
         {
@@ -64,7 +59,7 @@ namespace ExpressionEngine::Expression
         const std::string text(reinterpret_cast<const char *>(data), size);
         currentInput = text;
 
-        // 这一行不设 try：Base::Exception 或 std::exception 从 tryParse 漏出时会穿过本函数,
+        // 这一行不设 try：Base::Exception 或 std::exception 从 tryParse 漏出时会穿过本函数，
         // libFuzzer 于是把它报成崩溃——正是「不抛异常」那条通道的契约内容。
         auto parsed = ExpressionParser::tryParse(nullptr, text);
         if (!parsed.has_value())
@@ -94,9 +89,11 @@ namespace ExpressionEngine::Expression
         }
         const std::string &printed = currentText;
 
-        // 持久文本是宿主存盘的内容：它必须能解析回来，且引用路径逐格相同。
-        // 只判「能解析」是不够的——`Box.<<a.b>>` 打成 `Box.a.b` 也解析得动，但换了路径，
-        // 下次读盘算出来的是另一个值，这类静默漂移正是这一层要拦的。
+        // 「解析不回来」「引用路径逐格相同」「再写一次是自身不动点」三条判据暂停用：它们各自会撞上
+        // CHANGELOG「已知边界」里那四条未修的文本歧义（单位并写与 % 混用、名字段含 NUL、名字段里的
+        // 特殊字节打出配不上的定界）。当成判据只会让这道门长期红、盖住它其它部分的信号；四条都修好后
+        // 连同 fuzz/seed 与用例里留下的触发输入一起放开。这里保留发布时就有的宽松形态：解析失败可以，
+        // 但必须给出原因。
         const auto reparsed = ExpressionParser::tryParse(nullptr, printed);
         if (reparsed.has_value())
         {
@@ -112,12 +109,6 @@ namespace ExpressionEngine::Expression
         {
             violate("重新解析库内文本失败却没给出原因");
         }
-        // 「解析不回来」「路径逐格不等」两条暂不启用：名字段里含 NUL 字节的写法（词法器把它们
-        // 当正文）与单位并写的打平都会撞上它们，而这两条缺陷还没修。把它们当判据只会让这道门
-        // 长期红、盖住其它信号——修好后连同 toString 的括号策略一起恢复。
-        // 见 CHANGELOG 的已知边界与 TestExpressionNodes.cpp 里 PersistentTextIsAFixpoint 的注释。        // 这里不判「再写一次文本相同」：单位并写（`2 mm`）会被打平成 `2 * mm`，那一半属于
-        // 「按优先级补括号」的保证范围（见 toString 的参数说明），还没修——先把它当判据只会让
-        // 这道门长期红，反而盖掉名字段那半边已经有效的信号。
 
         try
         {
