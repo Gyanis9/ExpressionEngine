@@ -76,8 +76,10 @@ for doc in LICENSE NOTICE CHANGELOG.md; do
     fi
 done
 
+# 请求的版本取克隆树自己的版本号（`tools/version-check.sh --print`），不在这里写死字面量：
+# 写死的那份在库里升版后会与包配置对不上，兼容判定的反面用例随即失去分辨力。
 run_step consumer-configure cmake -S "$(native "$clone/tools/package-check")" -B "$(native "$clone/tools/package-check/build")" -G Ninja -DCMAKE_BUILD_TYPE=Debug \
-    -DCMAKE_PREFIX_PATH="$prefix_native"
+    -DCMAKE_PREFIX_PATH="$prefix_native" "-DEXPRESSIONENGINE_REQUESTED_VERSION=$(bash "$clone/tools/version-check.sh" --print)"
 run_step consumer-build cmake --build "$(native "$clone/tools/package-check/build")"
 
 

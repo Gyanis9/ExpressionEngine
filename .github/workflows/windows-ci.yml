@@ -84,7 +84,10 @@ jobs:
 
       - name: 编译包消费者
         run: |
-          cmake -S tools/package-check -B tools/package-check/build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH="${{ runner.temp }}/ee-install"
+          # 请求的版本从 CMakeLists 的 project(VERSION) 取，不写死字面量：写死的那份在升版后
+          # 与包配置对不上，兼容判定的正面用例就再也不判了（本地交付门与反面脚本同样按这个口径取）
+          $eeVersion = (Select-String -Path CMakeLists.txt -Pattern 'project\(ExpressionEngine VERSION ([0-9.]+)').Matches[0].Groups[1].Value
+          cmake -S tools/package-check -B tools/package-check/build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH="${{ runner.temp }}/ee-install" "-DEXPRESSIONENGINE_REQUESTED_VERSION=$eeVersion"
           cmake --build tools/package-check/build
 
       - name: 运行包消费者

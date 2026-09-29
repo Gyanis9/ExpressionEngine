@@ -154,7 +154,8 @@ jobs:
           # 装出来的头按宿主看到的模样再编一遍，并核「受版本控制的公开头都真的进了包」：
           # 安装规则的 PATTERN 或目录写错时会漏装，而消费者只 include 两三个头，看不见漏掉的那一个。
           bash tools/header-selfcheck.sh --prefix "${RUNNER_TEMP}/ee-install"
-          cmake -S tools/package-check -B tools/package-check/build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="${RUNNER_TEMP}/ee-install"
+          # 请求的版本取 CMakeLists/conanfile 里那一份（版本号一致性门已验过它们相等），不写死字面量
+          cmake -S tools/package-check -B tools/package-check/build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="${RUNNER_TEMP}/ee-install" "-DEXPRESSIONENGINE_REQUESTED_VERSION=$(bash tools/version-check.sh --print)"
           cmake --build tools/package-check/build
           ./tools/package-check/build/consumerCheck
 

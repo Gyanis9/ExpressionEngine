@@ -20,7 +20,14 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # 带上版本号，包配置的兼容判定（COMPATIBILITY）才会被走到；不带版本时它根本不被读取。
-find_package(ExpressionEngine 0.0.1 CONFIG REQUIRED)
+# 请求哪个版本由调用方传（交付门与 CI 都传库里那份版本号），这样升版时不必来改这里——
+# 版本号写两处的下场是：库里升到 0.0.2，这一步还在请求 0.0.1，兼容判定的反面用例改不动版本文件。
+set(EXPRESSIONENGINE_REQUESTED_VERSION "" CACHE STRING "消费者向包配置请求的最低版本")
+if (EXPRESSIONENGINE_REQUESTED_VERSION STREQUAL "")
+    find_package(ExpressionEngine CONFIG REQUIRED)
+else()
+    find_package(ExpressionEngine ${EXPRESSIONENGINE_REQUESTED_VERSION} CONFIG REQUIRED)
+endif()
 
 add_executable(consumerCheck main.cpp)
 target_link_libraries(consumerCheck PRIVATE ExpressionEngine::ExpressionEngine)

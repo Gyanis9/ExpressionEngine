@@ -44,11 +44,22 @@ fi
 
 backup="$version_file.compat-refusal.bak"
 cp "$version_file" "$backup"
-sed -i 's/"0\.0\.1"/"0.9.0"/g' "$version_file"
+
+# 装出去的那份文件自称的版本，从这里读而不是写死：升版时写死的字面量会「改不动」，
+# 于是反面用例静默失去分辨力（实测：库里升到 0.0.2 后这一步红过一次）。
+installed="$(sed -n 's/^set(PACKAGE_VERSION "\([0-9][0-9.]*\)").*/\1/p' "$version_file" | head -1)"
+if [ -z "$installed" ]; then
+    mv "$backup" "$version_file"
+    echo "兼容判定：读不出装出来的版本号（生成写法变了？$version_file）" >&2
+    exit 1
+fi
+
+installed_pattern="$(printf '%s' "$installed" | sed 's/\./\\./g')"
+sed -i "s/\"${installed_pattern}\"/\"0.9.0\"/g" "$version_file"
 if ! grep -aq 'set(PACKAGE_VERSION "0.9.0")' "$version_file"; then
     # 版本文件的生成格式变了就拒绝判定，而不是让「改不动」冒充「策略正确」
     mv "$backup" "$version_file"
-    echo "兼容判定：改不动版本文件里的 0.0.1（生成写法变了？$version_file）" >&2
+    echo "兼容判定：改不动版本文件里的 $installed（生成写法变了？$version_file）" >&2
     exit 1
 fi
 
@@ -58,13 +69,14 @@ consumer_dir="$prefix_posix/compat-refusal-consumer"
 rm -rf "$consumer_dir"
 
 cmake -S "$(native "$consumer_src")" -B "$(native "$consumer_dir")" \
-    -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH="$prefix_native" >"$log" 2>&1
+    -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH="$prefix_native" \
+    "-DEXPRESSIONENGINE_REQUESTED_VERSION=$installed" >"$log" 2>&1
 rc=$?
 
 mv "$backup" "$version_file"
 
 if [ "$rc" -eq 0 ]; then
-    echo "兼容判定：版本自称 0.9.0 时请求 0.0.1 竟然配上了——COMPATIBILITY 不再是 SameMinorVersion（日志 $log）" >&2
+    echo "兼容判定：版本自称 0.9.0 时请求 $installed 竟然配上了——COMPATIBILITY 不再是 SameMinorVersion（日志 $log）" >&2
     exit 1
 fi
 if ! grep -aq "requested version" "$log"; then
