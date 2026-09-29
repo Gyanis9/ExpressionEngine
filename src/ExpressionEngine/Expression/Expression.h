@@ -46,6 +46,11 @@ namespace ExpressionEngine::Expression
      *          表达引擎需要交给宿主解析的一切，不需要更大的标识符类型。
      *          可省略的两格把空值写在成员上，指定初始化器只填用到的格子就不会触发 GNU 系的
      *          缺初始化诊断；propertyName 无默认值，漏填必填格仍然会被编译器拦住。
+     *          字节口径是公开契约：三格名字都是**任意字节序列**（含 NUL、控制字节与非 ASCII），
+     *          宿主不必为属性名限制字符集。持久文本靠 `quoteExpressionText()` 的转义规则
+     *          （`\`、`>`、`#` 与 `\n`、`\r`、`\t`）保住这份字节，256 个字节取值逐个钉在用例
+     *          `ExpressionNodes.ReferenceNameSlotsRoundTripEveryByte` 上。空名字段除外——
+     *          它没有可解析回的文本写法，解析器不收，宿主自建这类路径时自己负责。
      */
     struct VariableReference
     {

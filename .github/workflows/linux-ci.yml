@@ -23,6 +23,11 @@ on:
       - '**.md'
       - 'LICENSE'
   workflow_dispatch:
+  # 长时程模糊：main 上的 push 档只跑 240 秒/目标，抓到过的那些形状里有三个是本地 300 秒档
+  # 才撞出来的——窗口太短就是「跑过了」和「跑得够久」两回事。定时档每天单独跑 30 分钟/目标，
+  # 并把语料与崩溃件存成制品（定时任务只在默认分支上跑，所以这里就是 main）。
+  schedule:
+    - cron: '40 19 * * *'
 
 jobs:
   # 样式门：.clang-format 既然随仓库发布，就必须有判据——否则它只是作者本地的偏好，
@@ -248,7 +253,7 @@ jobs:
   # 免费分钟数；本地长跑给 FUZZ_SECONDS=600。这一作业迟早某天会真的找到缺陷，那时红的是 repro 与
   # 判据本身，不要把它关掉。
   fuzz:
-    name: 模糊测试（libFuzzer，每个目标 120 秒）
+    name: 模糊测试（libFuzzer，每个目标 240 秒）
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
@@ -264,7 +269,45 @@ jobs:
 
       # 模糊目标只链库本体（用例关掉后库零外部依赖），因此这一步不装 Conan、也不动包缓存
       - name: 模糊测试判据
-        run: CC=clang-20 CXX=clang++-20 FUZZ_SECONDS=120 bash tools/fuzz.sh
+        run: CC=clang-20 CXX=clang++-20 FUZZ_SECONDS=240 FUZZ_KEEP_DIR=fuzz-scene bash tools/fuzz.sh
+
+      # 红了就把现场（语料、崩溃件、两份日志）存成制品：日志里只有判据行时复现不出来，
+      # 今天为这点吃过两次亏——崩溃件从来不进制品，等于「CI 抓到但没人能重跑」
+      - name: 留存失败现场
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzz-scene-push
+          path: fuzz-scene/
+          retention-days: 14
+
+  # 每天一次的长窗口：30 分钟/目标。判据与 push 档同一条脚本，只是跑得更久、且无论红绿都把
+  # 语料与现场存档（绿的时候也能从制品里看出探索到了什么深度，cov 那一行的读数有地方对）。
+  fuzz-nightly:
+    name: 长时程模糊（每天 30 分钟/目标）
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: 安装钉定的 Clang 20
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y clang-20
+          clang++-20 --version | head -1
+
+      - name: 模糊测试判据
+        run: CC=clang-20 CXX=clang++-20 FUZZ_SECONDS=1800 FUZZ_KEEP_DIR=fuzz-scene bash tools/fuzz.sh
+
+      - name: 留存现场与语料
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzz-scene-nightly
+          path: fuzz-scene/
+          retention-days: 14
 
   # 分发包：产出 tar.gz + SHA256SUMS 并自检（版本两处一致、清单与提交逐条相同、校验和可重放、
   # 必需文件点名核对），再把包解开走一遍「配置（不开用例）-> 装包 -> 仓库外消费者」。

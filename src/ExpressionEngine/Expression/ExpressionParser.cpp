@@ -32,10 +32,17 @@ namespace ExpressionEngine::Expression
         /**
          * @brief 允许的嵌套层数上限
          * @details 解析、求值与文本回写都按 AST 递归，层数过深会栈溢出，而那种故障 try 不住。
-         *          实测约 700 层 abs() 嵌套就能耗尽默认 1 MB 线程栈，取 100 层既宽过 Excel 的
-         *          64 层公式嵌套，又给宿主的小栈线程留出余量。
+         *          这一条必须**宽过**公开的树深上限 `Expression::maxAstDepth`（64）而不是等于它：
+         *          一次递归只走一层 AST，而括号、实参这些「不进树形」的写法各占一层——实测
+         *          `1 - (2 - (3 - …))` 这种右嵌套每层要两格（右操作数 + 括号），64 层树就要 128 格。
+         *          更要紧的是持久文本：打印器为了保住分组与单位链会补括号（见
+         *          `OperatorExpression::appendText`），于是**库自己写出来的文本**比它读进去的写法
+         *          更深。两头对不上的表现是「存的公式读不回来」——模糊门在「持久文本必须解析得回来」
+         *          这条判据上抓到过一次（列 1017 处的「超过 100 层」）。
+         *          取 4 倍：每层「一个右操作数 + 两对括号」也还在门内，而实测约 700 层 abs() 嵌套
+         *          才耗尽默认 1 MB 线程栈，256 仍留 2.7 倍余量；宿主的小栈线程请按这条上限规划。
          */
-        constexpr int maxNestingDepth = 100;
+        constexpr int maxNestingDepth = 4 * static_cast<int>(Expression::maxAstDepth);
 
         /// 二元运算符的记号、运算符节点取值与结合功率
         struct BinaryOperatorInfo

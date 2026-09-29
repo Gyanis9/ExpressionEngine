@@ -11,6 +11,7 @@
 #include <ExpressionEngine/Base/Exception.h>
 #include <ExpressionEngine/Expression/Expression.h>
 #include <ExpressionEngine/Expression/ExpressionParser.h>
+#include <ExpressionEngine/Expression/Value.h>
 #include <ExpressionEngine/Units/Quantity.h>
 #include <ExpressionEngine/Units/Unit.h>
 
@@ -492,6 +493,68 @@ namespace ExpressionEngine::Expression
                 const ExpressionPtr again = ExpressionParser::parse(nullptr, text);
                 EXPECT_TRUE(again->collectReferences().empty()) << text << " 不该解析出变量引用";
                 EXPECT_EQ(again->toString(true), text) << text << " 的写法不稳定";
+            }
+        }
+
+        /**
+         * @brief 钉住：库自己写出的持久文本，库一定还读得回来——嵌套门要宽过公开的树深上限
+         * @details 解析期按递归层数设门，而「一层」不等于「一层 AST」：括号与实参各占一层却不进
+         *          树形（实测 `1 - (2 - (3 - …))` 每层要两格），打印器为了保住分组与单位链还要再补
+         *          括号。两头对不上的表现是宿主存的公式读不回来——模糊门在「持久文本必须解析得回来」
+         *          这条判据上就这么抓到过一次（列 1017 处报「超过 100 层」）。
+         *          这里用 63 层右嵌套把三段都验一遍：读得进、树深在 `maxAstDepth` 内、写出的文本
+         *          括号更多、再读回来仍是同一棵树且写法稳定。
+         */
+        TEST(ExpressionNodes, PrinterTextStaysWithinTheNestingGuard)
+        {
+            std::string text = "63";
+            for (int level = 62; level >= 1; --level)
+            {
+                text = std::to_string(level) + " - (" + text + ")";
+            }
+
+            const auto parsed = ExpressionParser::tryParse(nullptr, text);
+            ASSERT_TRUE(parsed.has_value()) << "63 层右嵌套的读入就被拒：" << parsed.error().message;
+            ASSERT_LE((*parsed)->astDepth(), Expression::maxAstDepth) << "这一族的树深应当还在公开上限内";
+
+            const std::string printed = (*parsed)->toString(true);
+            const auto        again   = ExpressionParser::tryParse(nullptr, printed);
+            ASSERT_TRUE(again.has_value()) << "库自己写出的文本读不回来：" << again.error().message << "（文本 " << printed.size() << " 字节）";
+            EXPECT_TRUE((*parsed)->isSame(**again));
+            EXPECT_EQ((*again)->toString(true), printed);
+        }
+
+        /**
+         * @brief 钉住引用路径名字段的字节口径：任意字节都要能折回原样
+         * @details 这是公开契约，不是探索性测试。旧文档写过两条「已知边界」（名字段含 NUL 会解析
+         *          不回来、名字段里的特殊字节会打出配不上的定界），逐字节扫过后两条都不成立：
+         *          打印器把 `\`、`>`、`#` 与 `\n`、`\r`、`\t` 转义，其余字节原样带出，词法器按同一套
+         *          规则解回来——所以 256 个字节取值（含 NUL 与全部控制字节）每一个都必须满足
+         *          「文本再写一次不变、重解析后同一棵树、属性名字节逐个相同」。
+         *          这一条也是「宿主不需要为属性名限制字符集」的依据；宿主自己的存储层能否放 NUL
+         *          是宿主的事，本库保证的是文本这一层不丢信息。
+         */
+        TEST(ExpressionNodes, ReferenceNameSlotsRoundTripEveryByte)
+        {
+            for (int value = 0; value <= 0xFF; ++value)
+            {
+                const std::string name  = std::string("a") + static_cast<char>(value) + "b";
+                const std::string text  = "Box." + quoteExpressionText(name);
+                const auto        first = ExpressionParser::tryParse(nullptr, text);
+                ASSERT_TRUE(first.has_value()) << "字节 " << value << " 的写法 [" << text << "]：" << first.error().message;
+
+                const std::vector<VariableReference> before = (*first)->collectReferences();
+                ASSERT_EQ(before.size(), 1U) << "字节 " << value;
+                EXPECT_EQ(before.front().propertyName, name) << "字节 " << value << " 解析阶段就没保住名字";
+
+                const std::string printed = (*first)->toString(true);
+                const auto        again   = ExpressionParser::tryParse(nullptr, printed);
+                ASSERT_TRUE(again.has_value()) << "字节 " << value << " 的持久文本 [" << printed << "] 解析不回来：" << again.error().message;
+                EXPECT_EQ((*again)->toString(true), printed) << "字节 " << value << " 的持久文本 [" << printed << "] 再写一次不稳定";
+                EXPECT_TRUE((*first)->isSame(**again)) << "字节 " << value << " 的持久文本 [" << printed << "] 解析成了另一棵树";
+                const std::vector<VariableReference> after = (*again)->collectReferences();
+                ASSERT_EQ(after.size(), 1U) << "字节 " << value;
+                EXPECT_EQ(after.front().propertyName, name) << "字节 " << value << " 折回后名字变了";
             }
         }
 

@@ -128,8 +128,14 @@ namespace
         const auto mismatchedValue = mismatchedTree->tryEvaluate();
         check(!mismatchedValue.has_value() && mismatchedValue.error().kind == ErrorKind::UnitsMismatch, "求值失败给出量纲类别");
 
-        const auto deepText = ExpressionParser::tryParse(nullptr, std::string(150, '(') + "1" + std::string(150, ')'));
+        // 层数超限的输入要越过解析期的层数门（`maxAstDepth` 的 4 倍，见 ExpressionParser.cpp 的注释），
+        // 而不是越过公开的树深上限：括号不进树形，每对只吃掉一层解析递归
+        const std::size_t parenLevels = 4 * Expression::maxAstDepth + 10;
+        const auto        deepText    = ExpressionParser::tryParse(nullptr, std::string(parenLevels, '(') + "1" + std::string(parenLevels, ')'));
         check(!deepText.has_value() && deepText.error().kind == ErrorKind::TooDeep, "解析失败给出层数超限类别");
+        // 反向半条：门内的深度必须读得进来，否则「库写出的文本库自己读不回来」就没人拦
+        const auto nearLimit = ExpressionParser::tryParse(nullptr, std::string(Expression::maxAstDepth, '(') + "1" + std::string(Expression::maxAstDepth, ')'));
+        check(nearLimit.has_value(), "公开树深上限内的括号写法仍然能解析");
 
         // 两条通道同源：换用 try/catch 的宿主拿到同一个类别
         bool sameKindOnBothChannels = false;

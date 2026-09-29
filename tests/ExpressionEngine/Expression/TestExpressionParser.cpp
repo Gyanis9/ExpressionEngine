@@ -794,8 +794,12 @@ namespace ExpressionEngine::Expression
          */
         TEST(ExpressionParserTest, FailureKindsMatchBothChannels)
         {
-            const std::string deepParens = std::string(150, '(') + "1" + std::string(150, ')');
-            std::string       longChain  = "1";
+            // 括号不进树形，但每一对要吃掉一层解析递归，因此这条越过的必须是解析期的层数门
+            // （`maxNestingDepth`，取自 Expression::maxAstDepth 的 4 倍），而不是公开的树深上限：
+            // 门抬高了还按旧的 150 层写，这条就变成「深度大的输入应当被接受」的静默断言
+            const std::size_t parenLevels = 4 * Expression::maxAstDepth + 10;
+            const std::string deepParens  = std::string(parenLevels, '(') + "1" + std::string(parenLevels, ')');
+            std::string       longChain   = "1";
             for (int term = 0; term < 70; ++term)
             {
                 longChain += " + 1";

@@ -8,6 +8,8 @@
 # 用法：
 #   bash tools/fuzz.sh                      每个目标跑 ${FUZZ_SECONDS}（默认 60）秒
 #   FUZZ_SECONDS=600 bash tools/fuzz.sh     本地长跑
+#   FUZZ_KEEP_DIR=... bash tools/fuzz.sh    把现场（语料/repro/日志）放进步方指定的固定目录并留下，
+#                                           CI 靠它上传制品；不给就是临时目录，绿了自动删
 #
 # 编译器取 CXX（默认 clang++）、CC（默认 clang）；不是 Clang 就直接拒——`-fsanitize=fuzzer` 是
 # compiler-rt 的设施，GCC 没有。构建目录独立（build/fuzz）：用例那一档要经 Conan 拉 gtest，
@@ -59,17 +61,28 @@ printf '%s\n' "$compiler_banner" | grep -qi "clang" || die "$CXX 不是 Clang：
 # 语料目录里存着历史崩溃件：缺了它这道门照绿、却不再记得曾经红过的那些形状，因此也算缺判据
 [[ -n "$(ls -A "$root/fuzz/seed" 2>/dev/null)" ]] || die "缺 fuzz/seed/ 语料，或它是空目录"
 
-work="$(mktemp -d "${TMPDIR:-/tmp}/ee-fuzz.XXXXXX")"
+# 现场目录：默认临时目录（红的时候打印路径、绿的时候删掉）。CI 用 FUZZ_KEEP_DIR 指到一个
+# 固定路径，这样「绿了也想把语料存档」成为可能——只看日志判不出探索深度，而崩溃件不在制品里
+# 时连复现都做不到（今天为这点在日志里补过两次）。
+work_is_temp=1
+if [[ -n "${FUZZ_KEEP_DIR:-}" ]]; then
+    work="$FUZZ_KEEP_DIR"
+    work_is_temp=0
+    mkdir -p "$work" || die "建不出 FUZZ_KEEP_DIR=$work"
+else
+    work="$(mktemp -d "${TMPDIR:-/tmp}/ee-fuzz.XXXXXX")"
+fi
 configure_log="$work/configure.log"
 build_log="$work/build.log"
 rc=0
 
-# 只在脚本整体成功时清理工作目录；红的时候语料、repro 与日志就是现场，删了就等于把证据一起销毁。
+# 只在脚本整体成功时清理临时工作目录；红的时候语料、repro 与日志就是现场，删了就等于把证据一起销毁。
+# 调用方给的 FUZZ_KEEP_DIR 不归本脚本清——那是它要上传的目录。
 # 退出码从这里取，不从 rc 取：配置或构建失败走的是 die()，那时 rc 还是 0。
 finish()
 {
     if [[ "$1" == "0" ]]; then
-        rm -rf "$work"
+        [[ "$work_is_temp" == "1" ]] && rm -rf "$work"
     else
         echo "现场留在 $work" >&2
     fi
