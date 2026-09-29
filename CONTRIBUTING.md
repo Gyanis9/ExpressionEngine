@@ -52,6 +52,17 @@ CLANG_TIDY=/path/to/clang-tidy bash tools/tidy-check.sh build/release
 必须同样写明为什么。就地豁免用 `NOLINT`/`NOLINTBEGIN`-`NOLINTEND`，并把理由写在紧邻的注释里——
 `NOLINTNEXTLINE` 只作用于紧邻的下一行，解释文字要写在它**上面**，否则豁免落在注释行上而检查照样报。
 
+发布前（或改动了版本号之后）跑一次分发包验证：
+
+```bash
+bash tools/make-dist.sh --verify     # 产包 -> 核版本一致与清单逐条相同 -> 解包 -> 构建 -> 全量用例 -> 装包 -> 消费者
+```
+
+它在工作树不干净时直接拒绝产出——脏树打出来的包与同一提交的包内容不同，校验和就没有意义。
+版本号同时写在 `CMakeLists.txt` 的 `project(... VERSION)` 与 `conanfile.py` 的 `version` 两处，
+脚本会核它们相等（HEAD 上带标签时还要标签去掉 `v` 前缀后一致）；只想快速验「包自洽且装得出可用产品」
+就用 `--check-packaging`（不开用例）。
+
 脚本在三种情况下会当场变红而不是给出一份好看的报告：构建树没开插桩开关、树里没有 `.gcda`（说明用例还没跑）、
 以及 gcovr 版本低于 8——最后这条是因为 7.x 与 8.x 的开关取值形式不同，混用会把判据静默换成另一种含义。
 
