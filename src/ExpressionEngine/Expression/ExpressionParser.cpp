@@ -578,7 +578,8 @@ namespace ExpressionEngine::Expression
                 // 未命中仍交给 FunctionExpression 的构造函数报出「不是可求值的函数名」
                 if (const auto spec = m_registry.find(name); spec != nullptr)
                 {
-                    return std::make_unique<CustomFunctionExpression>(m_resolver, std::move(spec), std::move(arguments));
+                    // spec 是指针，move 它没有意义（写了反而误导读者以为转移了所有权）
+                    return std::make_unique<CustomFunctionExpression>(m_resolver, spec, std::move(arguments));
                 }
             }
             return std::make_unique<FunctionExpression>(m_resolver, function, std::string{name}, std::move(arguments));

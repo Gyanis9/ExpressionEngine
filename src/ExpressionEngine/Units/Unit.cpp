@@ -232,7 +232,7 @@ namespace ExpressionEngine::Units
         };
 
         const auto [positiveIndexes, negativeIndexes] = nonZeroValueIndexes();
-        const auto numerator                          = buildProduct(positiveIndexes);
+        auto numerator                                = buildProduct(positiveIndexes);
         if (negativeIndexes.empty())
         {
             return numerator;

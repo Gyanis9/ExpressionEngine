@@ -690,7 +690,7 @@ namespace ExpressionEngine::Base
     std::string Matrix4D::toString() const
     {
         std::string text;
-        text.reserve(16 * 25);
+        text.reserve(static_cast<std::size_t>(16) * 25);
         for (int row = 0; row < 4; ++row)
         {
             for (int column = 0; column < 4; ++column)
