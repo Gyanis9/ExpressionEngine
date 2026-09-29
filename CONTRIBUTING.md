@@ -61,7 +61,12 @@ CXX=g++ bash tools/header-selfcheck.sh
 
 它把每个公开头单独编一个翻译单元，专抓「这条包含其实是被别的编译单元带进来的」——本库真出过一次
 `std::unique_lock` 没带 `<mutex>`，MSVC 下看不出来，换 GCC 直接编不过。清单取不到时脚本拒绝判定，
-不会把「零个头」报成全绿。
+不会把「零个头」报成全绿。改过安装规则（`install(DIRECTORY src/ExpressionEngine ...)`）之后再加一步：
+
+```bash
+cmake --install build/release --prefix /tmp/ee-pfx
+CXX=g++ bash tools/header-selfcheck.sh --prefix /tmp/ee-pfx   # 装出来的头逐个编，并核该装的都装到
+```
 
 发布前（或改动了版本号之后）跑一次分发包验证：
 
