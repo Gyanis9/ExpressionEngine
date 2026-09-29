@@ -146,6 +146,8 @@ else
     run_step configure cmake -S "$src_native" --preset debug -B "$(native "$src/build/debug")"
     run_step build cmake --build "$(native "$src/build/debug")"
     run_step tests ctest --test-dir "$(native "$src/build/debug")" --output-on-failure
+    # 报出实际跑了多少条：只说「OK tests」的人看不出这一步是空跑还是全量
+    grep -a -h "tests passed" "$work/tests.log" | tail -1
     run_step install cmake --install "$(native "$src/build/debug")" --prefix "$prefix_native"
 fi
 
