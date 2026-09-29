@@ -40,7 +40,8 @@ ctest --test-dir build/debug --output-on-failure
 GCOVR=/path/to/gcovr bash tools/coverage.sh build/debug   # 阈值写死在脚本里，改动会进 diff
 ```
 
-静态分析门读的是构建生成的 `compile_commands.json`，所以先配置再跑；判据是零告警，工具版本钉死 22.1.7：
+静态分析门读的是构建生成的 `compile_commands.json`，所以先配置再跑；判据是零告警，工具版本钉死 22.1.7。
+它属于 CI 的判据（本机装了同一版本的 clang-tidy 就能跑同样的命令，没装不拦本地提交）：
 
 ```bash
 cmake --preset release && cmake --build build/release
