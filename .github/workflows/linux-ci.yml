@@ -189,6 +189,29 @@ jobs:
       - name: 静态分析判据
         run: CLANG_TIDY="${RUNNER_TEMP}/tidy-venv/bin/clang-tidy" bash tools/tidy-check.sh build/tidy
 
+  # 分发包：产出 tar.gz + SHA256SUMS 并自检（版本两处一致、清单与提交逐条相同、校验和可重放、
+  # 必需文件点名核对），再把包解开走一遍「配置（不开用例）-> 装包 -> 仓库外消费者」。
+  # 全量用例不在这里重复跑：脚本已经证明包内文件清单与 HEAD 的受版本控制清单逐条相同，
+  # 而用例由上面的 build-and-test 在同一提交上跑——这一作业因此只需要证明「包自洽且装得出可用产品」。
+  dist:
+    name: 源码分发包与校验和
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: 产出并自检分发包，再从包里装出可用的包
+        run: bash tools/make-dist.sh --check-packaging
+
+      - name: 上传分发包与校验和
+        uses: actions/upload-artifact@v7
+        with:
+          name: source-dist
+          path: |
+            dist/ExpressionEngine-*.tar.gz
+            dist/SHA256SUMS
+
   # 覆盖率门：README 与 CONTRIBUTING 里「用例覆盖库本体」这句话要有可判定的形式，
   # 否则它只是一句自评。阈值与判据都写死在 tools/coverage.sh 里（本地同一条脚本），
   # 这里只负责提供插桩构建与 gcovr 那件工具。
