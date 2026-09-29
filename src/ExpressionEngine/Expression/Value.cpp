@@ -310,7 +310,7 @@ namespace ExpressionEngine::Expression
         return std::string(buffer.data(), static_cast<std::size_t>(result.ptr - buffer.data()));
     }
 
-    std::string quoteExpressionText(const std::string_view text)
+    std::string escapeExpressionText(const std::string_view text)
     {
         std::string body;
         body.reserve(text.size());
@@ -343,7 +343,12 @@ namespace ExpressionEngine::Expression
                     break;
             }
         }
-        return "<<" + body + ">>";
+        return body;
+    }
+
+    std::string quoteExpressionText(const std::string_view text)
+    {
+        return "<<" + escapeExpressionText(text) + ">>";
     }
 
     std::string toExpressionText(const Value &value)

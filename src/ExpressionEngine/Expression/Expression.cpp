@@ -23,6 +23,7 @@
 #include <ExpressionEngine/Base/Tools.h>
 #include <ExpressionEngine/Base/Vector3D.h>
 #include <ExpressionEngine/Expression/ComponentAccess.h>
+#include <ExpressionEngine/Expression/ExpressionLexer.h>
 #include <ExpressionEngine/Expression/Range.h>
 #include <ExpressionEngine/Expression/Value.h>
 #include <ExpressionEngine/Units/Quantity.h>
@@ -33,6 +34,49 @@ namespace ExpressionEngine::Expression
 
     namespace
     {
+
+        /**
+         * @brief 这个名字能否按裸写法出现在引用路径里
+         * @details 判据交给词法器本身，而不是另抄一份字符表：把名字单独喂给词法器，只有当它恰好
+         *          被切成一个 Identifier（或 CellAddress）记号、且记号内容就是这个名字时，
+         *          「对象.名字」那样的写法才会解析回同一条路径。单位符号（mm）、常量（pi、e）、
+         *          关键字（True）、含点或空格的名字都不满足——它们要么被切成别的记号，要么切不出
+         *          一个完整名字，裸写就会让持久文本指向另一条路径甚至直接解析失败。
+         */
+        bool canWriteBareName(const std::string &name)
+        {
+            if (name.empty())
+            {
+                return false;
+            }
+            try
+            {
+                ExpressionLexer       lexer{std::string_view{name}};
+                const ExpressionToken first = lexer.next();
+                const ExpressionToken tail  = lexer.next();
+                if (first.kind != ExpressionTokenKind::Identifier && first.kind != ExpressionTokenKind::CellAddress)
+                {
+                    return false;
+                }
+                return first.text == name && tail.kind == ExpressionTokenKind::End;
+            } catch (const Base::Exception &)
+            {
+                // 词法器连读都读不下去的名字，更不能裸写
+                return false;
+            }
+        }
+
+        /// 引用路径里一个名字段的写法：能裸写就裸写，否则退回 <<...>> 文本记号（内容按文本规则转义）
+        std::string nameSegmentText(const std::string &name)
+        {
+            // 空名字段没有「能解析回来」的写法（解析器已拒绝空名字段），而打成一个 <<>> 只会让
+            // 文本更像内容而不是缺口：这种路径只可能由宿主自己构造，按原样留空，边界写在类注释里
+            if (name.empty())
+            {
+                return name;
+            }
+            return canWriteBareName(name) ? name : quoteExpressionText(name);
+        }
 
         /// 角度与弧度的换算：库内角度量一律以度存储
         double toRadians(const double degrees)
@@ -1037,9 +1081,10 @@ namespace ExpressionEngine::Expression
         switch (kind)
         {
             case ComponentKind::Name:
-                // 名字分量用点号连接，如 .Rotation
+                // 名字分量用点号连接，如 .Rotation；引号规则与引用路径的名字段同一条：
+                // 单独一个 A 会被词法器读成安培单位，裸写出去就不再是那个分量名
                 text += '.';
-                text += name;
+                text += nameSegmentText(name);
                 return;
             case ComponentKind::MapKey:
                 text += '[';
@@ -1215,7 +1260,12 @@ namespace ExpressionEngine::Expression
         std::string text;
         if (m_components.empty())
         {
-            // 优先级不足的节点补括号，保证文本能原样解析回同一棵树
+            // 优先级不足的节点补括号，保证文本能原样解析回同一棵树。
+            // 这份保证只在 checkPriority 为真时给出；persistent 单独并不带它——判据
+            // 「priority() < 默认值」不区分父节点需要到哪一档，一律开启会把
+            // `2 * 3 + 4` 打成 `(2 * 3) + 4`、`(2 + 3) * 4` 打成 `((2 + 3)) * 4`。
+            // 想让持久文本按最小括号数还原树形，需要的是「父节点向下传所需最低优先级」的
+            // 打印器，而不是把这一判据全局打开（台账里记着这条待办）。
             const bool needsParentheses = checkPriority && priority() < s_defaultPriority;
             if (needsParentheses)
             {
@@ -3318,17 +3368,25 @@ namespace ExpressionEngine::Expression
             if (m_reference.documentName.empty())
             {
                 // 未限定对象与文档：按局部作用域的写法显示
-                return m_reference.propertyName;
+                return nameSegmentText(m_reference.propertyName);
             }
-            // 只给了文档与目标（跨文档读单元格）：必须回到 <<文档#目标>> 的写法，
-            // 否则文本丢了文档，再解析就落到当前文档上
-            return "<<" + m_reference.documentName + "#" + m_reference.propertyName + ">>";
+            if (canWriteBareName(m_reference.documentName))
+            {
+                // 只给了文档与目标（跨文档读单元格）：必须回到 <<文档#目标>> 的写法，
+                // 否则文本丢了文档，再解析就落到当前文档上。目标里的特殊字符按正文规则转义；
+                // 解析器在**解码后**的第一个 '#' 处切分，因此文档名（裸写法）保证不含 '#'。
+                return "<<" + m_reference.documentName + "#" + escapeExpressionText(m_reference.propertyName) + ">>";
+            }
+            // 文档名本身含 '#'：<<文档#目标>> 会在第一个 '#' 处切错，而这个模型里没有第三种
+            // 写法能表达「带 # 的文档名 + 无对象名的目标」。按最接近的形态打出来，
+            // 并把失配留在文档里说明（见 VariableExpression 的类注释）。
+            return quoteExpressionText(m_reference.documentName) + "#" + nameSegmentText(m_reference.propertyName);
         }
         if (m_reference.documentName.empty())
         {
-            return m_reference.objectName + "." + m_reference.propertyName;
+            return nameSegmentText(m_reference.objectName) + "." + nameSegmentText(m_reference.propertyName);
         }
-        return "<<" + m_reference.documentName + ">>." + m_reference.objectName + "." + m_reference.propertyName;
+        return "<<" + escapeExpressionText(m_reference.documentName) + ">>." + nameSegmentText(m_reference.objectName) + "." + nameSegmentText(m_reference.propertyName);
     }
 
     IProperty *VariableExpression::resolveProperty() const

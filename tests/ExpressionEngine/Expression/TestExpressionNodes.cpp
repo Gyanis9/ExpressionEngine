@@ -363,6 +363,68 @@ namespace ExpressionEngine::Expression
         }
 
         /**
+         * @brief 钉住：任何属性名经持久文本都能带回同一条路径
+         * @details 属性名允许是宿主登记的任何字符串——包括带点的 "a.b"，以及与单位符号、常量、
+         *          关键字同名的 "mm"、"pi"、"True"。此前 pathText() 一律裸写，于是
+         *          `Box.<<a.b>>` 打成 `Box.a.b`，重解析得到的是「属性 a 的 b 分量」；
+         *          `Box.<<mm>>` 打成 `Box.mm`，重解析干脆失败。静默换路径比报错危险，
+         *          因此这些名字现在都改写成 <<...>> 形式。裸写法仍然保留给确认可裸写的名字，
+         *          常见形态的文本不变（"Box.Length" 仍是 "Box.Length"）。
+         */
+        TEST(ExpressionNodes, NameSegmentsSurviveThePersistentText)
+        {
+            for (const std::string name: {"Length", "a.b", "mm", "pi", "e", "True", "False", "x y", "sqrt", "A1", "$A$1", "x@y", "π", "µm", "1a"})
+            {
+                const std::string input = "Box.<<" + name + ">>";
+                auto              first = ExpressionParser::tryParse(nullptr, input);
+                ASSERT_TRUE(first.has_value() && *first != nullptr) << input << " 这种写法本来就该被接受";
+                const std::vector<VariableReference> original = (*first)->collectReferences();
+                ASSERT_EQ(original.size(), 1U) << input;
+
+                const std::string written = (*first)->toString(true);
+                auto              again   = ExpressionParser::tryParse(nullptr, written);
+                ASSERT_TRUE(again.has_value() && *again != nullptr) << input << " 的持久文本 [" << written << "] 解析不回来";
+                const std::vector<VariableReference> roundTripped = (*again)->collectReferences();
+                ASSERT_EQ(roundTripped.size(), 1U) << input << " 的持久文本 [" << written << "]";
+                EXPECT_EQ(roundTripped.front(), original.front()) << input << " 打成 [" << written << "] 后换了路径";
+            }
+
+            // 常见形态不变：可裸写的名字不额外加引号
+            EXPECT_EQ(ExpressionParser::parse(nullptr, "Box.Length")->toString(true), "Box.Length");
+            EXPECT_EQ(ExpressionParser::parse(nullptr, "Box.A1")->toString(true), "Box.A1");
+            EXPECT_EQ(ExpressionParser::parse(nullptr, "<<Sheet#A1>>")->toString(true), "<<Sheet#A1>>");
+            EXPECT_EQ(ExpressionParser::parse(nullptr, "<<Doc>>.Box.Length")->toString(true), "<<Doc>>.Box.Length");
+        }
+
+        /**
+         * @brief 钉住：持久文本再写一次还是同一串（文本是自身不动点）
+         * @details 上一条钉住的是「引用路径」逐格相同；这一条覆盖分量与整棵树的写法：
+         *          `Box.Length.<<A>>` 的名字分量曾裸写成 `.A`，而单独一个 A 会被词法器读成安培
+         *          单位，于是文本再解析就报「需要分量名」。判据取最省事的形态：解析→写文本→
+         *          再解析→再写文本，两次文本必须相同、中间不得解析失败，且重解析出的树要
+         *          与原树同形。圈子里只放**不含单位并写**的输入：`2 mm` 这类并写会被打平成
+         *          `2 * mm`，那是「按优先级补括号」才覆盖的另一半保证（见 toString 的参数
+         *          说明），与名字段的引号规则是两件事，混在一条判据里会互相遮掩。
+         */
+        TEST(ExpressionNodes, PersistentTextIsAFixpoint)
+        {
+            for (const std::string input: {"Box.Length.<<A>>", "Box.Length.<<mm>>", "Box.Length.<<True>>", "Box.<<a.b>>.<<pi>>", "Ф.<<A>>.<<A>>", "(vector(1; 2; 3))[0]", "sum(A1:A10)", "sqrt(16) + abs(-7)", "1 ? 2 : 3 + 4",
+                                           "Box.<<x y>>[1]", "<<Doc>>.Box.Length.<<A>>"})
+            {
+                auto first = ExpressionParser::tryParse(nullptr, input);
+                ASSERT_TRUE(first.has_value() && *first != nullptr) << input;
+                const std::string once  = (*first)->toString(true);
+                auto              again = ExpressionParser::tryParse(nullptr, once);
+                ASSERT_TRUE(again.has_value() && *again != nullptr) << input << " 的持久文本 [" << once << "] 解析不回来";
+                EXPECT_EQ((*again)->toString(true), once) << input << " 的持久文本 [" << once << "] 不稳定";
+                EXPECT_TRUE((*again)->isSame(**first)) << input << " 的持久文本 [" << once << "] 解析成了另一棵树";
+            }
+
+            // 名字段的引号规则不改裸写形态：能裸写的仍然裸写
+            EXPECT_EQ(ExpressionParser::parse(nullptr, "Box.Length")->toString(true), "Box.Length");
+        }
+
+        /**
          * @brief 钉住：分量的拷贝构造与拷贝赋值都深拷贝子表达式，自赋值不踩内存
          */
         TEST(ExpressionNodes, ComponentsCopyTheirSubExpressions)

@@ -168,6 +168,15 @@ namespace ExpressionEngine::Expression
     [[nodiscard]] std::string quoteExpressionText(std::string_view text);
 
     /**
+     * @brief 只转义、不加定界符：得到可以放进 <<...>> 中间的正文
+     * @details 引用路径的跨文档写法 <<文档#目标>> 需要把名字嵌在同一对定界符里，
+     *          因此转义规则与 quoteExpressionText() 共用一份，不另写一遍。
+     * @param text 待转义的正文，可含任意字节
+     * @return 转义后的正文（不含左右定界符）
+     */
+    [[nodiscard]] std::string escapeExpressionText(std::string_view text);
+
+    /**
      * @brief 取值的表达式写法，保证能被解析器读回同一个值
      * @details 与面向用户的 toString() 不同：几何值写成 vector()、matrix()、rotation()、
      *          placement() 构造调用，序列写成 list(...)，数量在非纯数时带上单位符号，

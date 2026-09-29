@@ -284,8 +284,13 @@ namespace ExpressionEngine::Expression
 
         /**
          * @brief 转成文本
-         * @param persistent true 时生成可回填、可持久化的文本
-         * @param checkPriority true 时按优先级补括号，使文本能原样解析回同一棵树
+         * @param persistent true 时生成可持久化的文本：取值按能解析回的写法展开（几何值展开成构造
+         *                   调用、文本加 <<>>、名字段按需加引号）；它保证值能解析回来，
+         *                   **不保证树形**——树形那一半见 checkPriority
+         * @param checkPriority true 时按优先级补括号，使文本能原样解析回同一棵树。这层保证不随
+         *                      persistent 附带：补括号的判据只看节点自身优先级、不看父节点需要到
+         *                      哪一档，一律开启会打出 (2 * 3) + 4 这种多余括号。要存盘后仍按树形
+         *                      比较，请显式调用 toString(true, true)
          * @param indent 缩进层级，预留给多行排版
          * @return 表达式文本
          */
@@ -1276,7 +1281,11 @@ namespace ExpressionEngine::Expression
      *          边界：属性名为空的引用没有「能解析回自身」的文本写法（跨文档写法
      *          <<文档#单元格>> 两段都要求有内容），所以这类路径只可能由宿主自己构造出来——
      *          解析器不产出它（空段按解析错拒绝），节点也不在构造期校验，给 setReference
-     *          这种两段式用法留出余地。
+     *          这种两段式用法留出余地。文档名本身含 '#' 时同样没有可解析回的写法
+     *          （解析器在解码后的第一个 '#' 处切分文档与目标），宿主若要用这种名字，
+     *          请换成不含 '#' 的文档标识。名字段能否裸写由词法器判定：与单位符号、常量名
+     *          或关键字同名（mm、pi、True）以及含点、空格的名字，都会改写成 <<...>> 形式，
+     *          以免持久文本被重新切成另一条路径。
      */
     class VariableExpression : public UnitExpression
     {
