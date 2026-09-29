@@ -1,6 +1,8 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <cmath>
+#include <limits>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -96,6 +98,35 @@ TEST(ExpressionLexerTest, IntegerOverflowThrows)
     const std::vector<ExpressionToken> tokens = tokenize("9223372036854775807");
     ASSERT_EQ(tokens.size(), 1U);
     EXPECT_EQ(tokens[0].kind, ExpressionTokenKind::Integer);
+}
+
+/**
+ * @brief 钉住双精度越界的两个方向：太大折成无穷大、太小折成 0，且只看文本的数量级
+ * @details `from_chars` 报 result_out_of_range 时把输出参数写成什么，各家实现并不一致：实测
+ *          MSVC 14.51 写 ±inf，libstdc++ 13（GCC 13.3 与 Clang 20.1 同）原样保留传进去的值。
+ *          修之前同一个字面量在两个平台上取值不同——`1e400` 在 Windows 上是无穷大、在 Linux 上是
+ *          0，而 0 会让 `1e400 + 1` 算出一个「成功」的错值。现在方向由文本的十进制数量级决定，
+ *          两侧必然给出同一个结果，所以这几条断言在任何一台机器上都得成立。
+ *          逗号小数与超长指数各钉一条：前者是「按文本定值」最容易漏的入口（词法器接受 `1,5`，
+ *          交给 strtod 定值会在非 "C" locale 下停在点号前），后者要撞指数解析的夹紧。
+ */
+TEST(ExpressionLexerTest, DoubleRangeOverflowAndUnderflowSaturateByTheText)
+{
+    EXPECT_TRUE(std::isinf(singleNumberValue("1e400")));
+    EXPECT_GT(singleNumberValue("1e400"), 0.0);
+    // 恰好是 double 最大值的写法不算越界：越界判据是「表示不了」，不是「很大」
+    EXPECT_DOUBLE_EQ(singleNumberValue("1.7976931348623157e308"), std::numeric_limits<double>::max());
+    // 超出最大值一丁点：上溢
+    EXPECT_TRUE(std::isinf(singleNumberValue("1.7976931348623159e308")));
+    // 小于最小次正规数：下溢到 0
+    EXPECT_DOUBLE_EQ(singleNumberValue("1e-400"), 0.0);
+    // 前导零必须跳过：整数位数看着不少，但值仍然小得表示不出来（按整数位数判会读成上溢）
+    EXPECT_DOUBLE_EQ(singleNumberValue("0." + std::string(330, '0') + "1"), 0.0);
+    // 逗号小数写法同样按越界处理
+    EXPECT_TRUE(std::isinf(singleNumberValue("1,5e400")));
+    // 长指数：夹紧后方向不变
+    EXPECT_TRUE(std::isinf(singleNumberValue("1e99999999999999999999")));
+    EXPECT_DOUBLE_EQ(singleNumberValue("1e-99999999999999999999"), 0.0);
 }
 
 /// @brief 钉住单位的最长匹配：mm 不能被拆成两个 m，m 仍单独成记号

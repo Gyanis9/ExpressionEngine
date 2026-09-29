@@ -299,6 +299,18 @@ namespace ExpressionEngine::Expression
 
     std::string formatExpressionNumber(const double value)
     {
+        // 非有限值不能直接打 `inf`/`nan`：这两个词再解析是**变量引用**，宿主存盘的公式读回来
+        // 会凭空多出一条对 inf / nan 属性的依赖（`1e400` 折成无穷大是能被解析出来的，所以
+        // 用字面量本身表示它，NaN 用同样能解析的差式表示）。取负由一元负号承担。
+        if (std::isinf(value))
+        {
+            return value < 0.0 ? "-1e400" : "1e400";
+        }
+        if (std::isnan(value))
+        {
+            return "1e400 - 1e400";
+        }
+
         // to_chars 的默认浮点格式给出「能往返的最短写法」：既不多打一串无意义尾数，
         // 也不会像固定 16 位那样把 0.1 + 0.2 写成 0.3 后解析回另一个数
         std::array<char, 40>       buffer{};

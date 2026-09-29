@@ -861,10 +861,13 @@ namespace ExpressionEngine::Expression
          * @details 数量层遵守 IEEE 语义（0/0 就是 NaN，Quantity 也用 NaN 表示无效），那是数值库的
          *          事实；但表达式的取值是宿主拿去当参数用的，交出去就是让它在几何与表格里静默扩散。
          *          同一套里除零早已报错，非有限结果不能反而放行。
+         *          `1e400` 与 `1e400 + 1` 各钉一条：字面量本身的越界方向曾随实现而变
+         *          （见 `ExpressionLexerTest.DoubleRangeOverflowAndUnderflowSaturateByTheText`），
+         *          在 Linux 上折成 0 之后 `1e400 + 1` 算出 1——一个「成功」的错值，比报错难查得多。
          */
         TEST(ExpressionParserTest, NonFiniteResultsAreRejected)
         {
-            for (const std::string text: {"sqrt(-1)", "log(-1)", "log(0)", "10^999", "1e308 * 1e308"})
+            for (const std::string text: {"sqrt(-1)", "log(-1)", "log(0)", "10^999", "1e308 * 1e308", "1e400", "1e400 + 1"})
             {
                 const auto parsed = ExpressionParser::tryParse(nullptr, text);
                 ASSERT_TRUE(parsed.has_value()) << text << " 的文案：" << parsed.error().message;

@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <format>
 #include <iterator>
+#include <limits>
 #include <numbers>
 #include <string>
 #include <string_view>
@@ -267,6 +268,68 @@ namespace ExpressionEngine::Expression
             return normalized;
         }
 
+        /**
+         * @brief 判定数字文本的绝对值是否不小于 1，用来区分越界的两个方向
+         * @param text 已把逗号规范成点号的数字原文（数字记号不含正负号）
+         * @return 绝对值不小于 1 时为 true
+         * @details 记整数部分位数为 I、去掉小数点后第一个非零数字的下标为 f、十的指数为 e，
+         *          该数就落在 [10^(I-f+e-1), 10^(I-f+e))：I-f+e ≥ 1 时不小于 1，否则小于 1。
+         *          第一个非零数字必须跳过前导零——`0.` 后面跟几百个零的字面量是小数，
+         *          只看整数位数会把它读成「不小于 1」。
+         *          指数只取到前六位，超出部分按 10^6 夹紧：本函数只分方向，夹紧不影响判定，
+         *          而长指数（`1e999999999999`）先把加法溢出走掉才是要防的事。
+         */
+        bool magnitudeAtLeastOne(const std::string_view text)
+        {
+            const std::size_t      exponentPos   = text.find_first_of("eE");
+            const std::string_view mantissa      = exponentPos == std::string_view::npos ? text : text.substr(0, exponentPos);
+            const std::size_t      dotPos        = mantissa.find('.');
+            const std::size_t      integerDigits = dotPos == std::string_view::npos ? mantissa.size() : dotPos;
+
+            std::size_t firstSignificant = 0;
+            std::size_t digitIndex       = 0;
+            bool        found            = false;
+            for (const char character: mantissa)
+            {
+                if (character != '.' && !found && character != '0')
+                {
+                    firstSignificant = digitIndex;
+                    found            = true;
+                }
+                if (character != '.')
+                {
+                    ++digitIndex;
+                }
+            }
+            if (!found)
+            {
+                return false; // 全零：取值就是 0，谈不上越界
+            }
+
+            long long exponent = 0;
+            if (exponentPos != std::string_view::npos)
+            {
+                std::size_t position = exponentPos + 1;
+                const bool  negative = position < text.size() && text[position] == '-';
+                if (position < text.size() && (text[position] == '+' || text[position] == '-'))
+                {
+                    ++position;
+                }
+                for (; position < text.size() && exponent < 1000000; ++position)
+                {
+                    if (text[position] >= '0' && text[position] <= '9')
+                    {
+                        exponent = exponent * 10 + (text[position] - '0');
+                    }
+                }
+                if (negative)
+                {
+                    exponent = -exponent;
+                }
+            }
+            return static_cast<long long>(integerDigits) - static_cast<long long>(firstSignificant) + exponent >= 1;
+        }
+
         /// 解析 Number 的数值
         double parseNumberValue(const std::string_view raw, const int column)
         {
@@ -280,8 +343,19 @@ namespace ExpressionEngine::Expression
                 // 数字写法已被词法规则限定，走到这里说明实现与规则不一致：宁可报错也不给出可疑数值
                 throw Base::ParserError(std::format("数字 '{}' 无法解析，请检查表达式第 {} 列", raw, column));
             }
-            // 超出 double 范围时（如 1e999）from_chars 报 out_of_range 并把 value 写成饱和值，
-            // 与 strtod 的行为一致，因此不报错
+            if (result.ec == std::errc::result_out_of_range)
+            {
+                // 越界时 from_chars 把 value 写成什么，各家实现并不一致：实测 MSVC 14.51 写 ±inf，
+                // libstdc++ 13 干脆不动传进去的值——跟着实现走，同一个字面量会在两个平台上算出
+                // 不同的取值（`1e400` 在 Windows 上是无穷大、在 Linux 上是 0）。IEEE 舍入下越界只有
+                // 上溢（无穷大）与下溢（0）两种结果，按文本的数量级定方向即可，不采信实现写出的值
+                // （`Base::parseCanonicalDouble` 对越界也是同一立场：只出诊断、不回读 value）。
+                // 不走 strtod：它按 C 当前 locale 认小数点，而本仓库允许逗号写法（`1,5e400`），
+                // locale 不是 "C" 时它会停在点号前，静默给出另一个值。
+                value = magnitudeAtLeastOne(normalized) ? std::numeric_limits<double>::infinity() : 0.0;
+                return value;
+            }
+            // 其余情况数值与文本语义相符：不报错
             return value;
         }
 

@@ -219,9 +219,13 @@ namespace ExpressionEngine::Expression
             const Probe reparsed = probeParse(printed);
             EXPECT_TRUE(reparsed.escapedWithMessage.empty()) << "重新解析库内文本漏出异常: " << reparsed.escapedWithMessage;
 
-            // 待办（本轮量到、还没修）：这里本应再加一条「重解析回来的引用路径逐格相同」，
-            // 它当场抓到非有限常量的写法——`1e400` 折成常量后打成 `inf`，再解析却是一个名叫
-            // `inf` 的变量引用（见 CHANGELOG「已知边界」）。等那一支修好再把判据加回来。
+            // 持久文本是宿主存盘的内容：能解析回来还不够，引用路径要逐格相同——
+            // `Box.<<a.b>>` 打成 `Box.a.b` 也解析得动，读回来却是另一条路径；
+            // 非有限常量曾打成 `inf`，读回来变成一个变量引用（现在折回 `1e400` 写法）。
+            if (reparsed.tree != nullptr)
+            {
+                EXPECT_EQ(reparsed.tree->collectReferences(), probe.tree->collectReferences()) << "持久文本 [" << printed << "] 重解析后引用路径变了";
+            }
 
             return true;
         }

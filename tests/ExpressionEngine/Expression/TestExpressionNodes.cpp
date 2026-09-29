@@ -3,6 +3,7 @@
 #include <gtest/gtest.h>
 
 #include <cstddef>
+#include <limits>
 #include <memory>
 #include <string>
 #include <vector>
@@ -452,6 +453,19 @@ namespace ExpressionEngine::Expression
             EXPECT_EQ(ExpressionParser::parse(nullptr, "5%m m")->toString(true), "(5 % m) * m");
             // 「当前对象上的带点名字」必须保留开头那个点：去掉点就成了一段字符串字面量
             EXPECT_EQ(ExpressionParser::parse(nullptr, ".<<a.b>>")->toString(true), ".<<a.b>>");
+            // 非有限常量不能打成 `inf`/`nan`——那两个字再解析是变量引用
+            const auto infinityNode = std::make_unique<NumberExpression>(nullptr, Units::Quantity(std::numeric_limits<double>::infinity()));
+            EXPECT_EQ(infinityNode->toString(true), "1e400");
+            const auto negatedNode = std::make_unique<NumberExpression>(nullptr, Units::Quantity(-std::numeric_limits<double>::infinity()));
+            EXPECT_EQ(negatedNode->toString(true), "-1e400");
+            const auto notANumberNode = std::make_unique<NumberExpression>(nullptr, Units::Quantity(std::numeric_limits<double>::quiet_NaN()));
+            EXPECT_EQ(notANumberNode->toString(true), "1e400 - 1e400");
+            for (const std::string text: {"1e400", "-1e400", "1e400 - 1e400"})
+            {
+                const ExpressionPtr again = ExpressionParser::parse(nullptr, text);
+                EXPECT_TRUE(again->collectReferences().empty()) << text << " 不该解析出变量引用";
+                EXPECT_EQ(again->toString(true), text) << text << " 的写法不稳定";
+            }
         }
 
         /**
