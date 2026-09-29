@@ -17,10 +17,6 @@ set -uo pipefail
 root="$(git rev-parse --show-toplevel)"
 cd "$root" || exit 1
 mode="${1:-pack}"
-case "$mode" in
-    pack | --check-packaging | --verify) ;;
-    *) die "未知模式 $mode（可用：不带参数、--check-packaging、--verify）" ;;
-esac
 
 die()
 {
@@ -36,6 +32,13 @@ native()
         printf '%s\n' "$1"
     fi
 }
+
+# 模式校验要放在 die 定义之后：放在前面时 die 还不存在，bash 只会报「command not found」然后
+# 继续往下跑——未知模式于是被当成 --verify 执行，本该拒绝判定的门变成了放行。
+case "$mode" in
+    pack | --check-packaging | --verify) ;;
+    *) die "未知模式 $mode（可用：不带参数、--check-packaging、--verify）" ;;
+esac
 
 # ---------------------------------------------------------------------------
 # 版本与来历：同一份版本信息写在两个文件里（CMakeLists 与 conanfile.py），
