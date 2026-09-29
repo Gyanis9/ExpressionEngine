@@ -20,7 +20,7 @@ bash tools/package-check/run-gate.sh
 交付门看的是**提交出去的那一版**：工作树里的未提交改动不会参与，所以「本地绿了」不等于别人拿到的那一版能编。
 它能抓到导出头漏装、包配置写错、导出头里的中文注释缺 `/utf-8` 让 MSVC 消费者编译失败这类只有仓库外才看得见的缺陷。
 最后一步（`consumer-refuses-mismatched-minor`）是包配置兼容判定的反面用例：它把临时安装前缀里那份版本文件自称的
-版本抬到 `0.9.0`，再要求同一个消费者按 `0.0.1` 配不上——`tools/package-check/compat-refusal-check.sh` 与
+版本抬到 `0.9.0`，再要求同一个消费者按 `0.0.2` 配不上——`tools/package-check/compat-refusal-check.sh` 与
 Windows CI 调的是同一条脚本。
 
 有 sanitizer 与线程检测两种插桩构建，互斥（同时开会被配置期拒绝）：

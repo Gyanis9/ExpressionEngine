@@ -26,7 +26,7 @@ body:
     attributes:
       label: 环境与版本
       description: 编译器与版本、构建档（Debug/Release、是否开 sanitizer）、CMake/Conan 版本、库版本或提交号。
-      placeholder: MSVC 14.51 / Debug + ENABLE_SANITIZERS=ON / v0.0.1 或 96b94ef
+      placeholder: MSVC 14.51 / Debug + ENABLE_SANITIZERS=ON / v0.0.2 或 <提交号>
     validations:
       required: true
   - type: textarea

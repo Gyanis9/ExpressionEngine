@@ -3,7 +3,7 @@
  * @brief 单个单位方案：把量换算成该方案偏好的单位并排版
  * @author Gyanis
  * @date 2026-09-19
- * @version 0.0.1
+ * @version 0.0.2
  * @copyright Copyright (c) 2026 Gyanis. LGPL-2.1-or-later
  */
 

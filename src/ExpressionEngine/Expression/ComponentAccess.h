@@ -3,7 +3,7 @@
  * @brief 把分量作用到值上：单个分量取子值，区间分量取多个子值
  * @author Gyanis
  * @date 2026-09-19
- * @version 0.0.1
+ * @version 0.0.2
  * @copyright Copyright (c) 2026 Gyanis. LGPL-2.1-or-later
  */
 

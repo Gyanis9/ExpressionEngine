@@ -170,10 +170,10 @@ target_link_libraries(your_app PRIVATE ExpressionEngine::ExpressionEngine)   # �
 仓库自带配方，包内容与手工安装同源（不含用例与基准）：
 
 ```sh
-conan create . -s build_type=Release --build=missing     # 产出 expressionengine/0.0.1
+conan create . -s build_type=Release --build=missing     # 产出 expressionengine/0.0.2
 ```
 
-`requires("expressionengine/0.0.1")` 之后 CMake 侧仍是 `find_package(ExpressionEngine)`，配方已把
+`requires("expressionengine/0.0.2")` 之后 CMake 侧仍是 `find_package(ExpressionEngine)`，配方已把
 目标名映射好。
 
 ## 三个扩展点
@@ -397,9 +397,9 @@ cmake/           find_package 的配置模板
 
 ## 版本与许可
 
-- 当前版本 **v0.0.1**。0.x 表示接口仍在收敛：破坏性变更照常记进
+- 当前版本 **v0.0.2**。0.x 表示接口仍在收敛：破坏性变更照常记进
   [`CHANGELOG.md`](CHANGELOG.md)，宿主升级前先看那一节。
-- 包配置的兼容判定收到 `SameMinorVersion`：请求 `0.0.1` 的消费者不会被 `0.9.0` 的包装上（`SameMajorVersion`
+- 包配置的兼容判定收到 `SameMinorVersion`：请求 `0.0.2` 的消费者不会被 `0.9.0` 的包装上（`SameMajorVersion`
   就会）。这一条有反面判据——交付门与 Windows CI 都会把装出去的版本文件自称的版本抬到 `0.9.0`，
   再要求同一个消费者配不上；策略写坏的那天，红的就是这一步。
 - 按 **LGPL-2.1-or-later** 授权，许可全文见 [`LICENSE`](LICENSE)；`LICENSE`、`NOTICE`（第三方组件
