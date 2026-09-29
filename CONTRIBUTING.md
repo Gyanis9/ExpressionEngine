@@ -101,6 +101,17 @@ cmake --install build/release --prefix /tmp/ee-pfx
 CXX=g++ bash tools/header-selfcheck.sh --prefix /tmp/ee-pfx   # 装出来的头逐个编，并核该装的都装到
 ```
 
+升版时四处版本号由同一条脚本判（`CMakeLists.txt` 的 `project(VERSION)`、`conanfile.py` 的 `version`、
+每个头文件文件头的 `@version`、指向 HEAD 的 `v*` 标签）：
+
+```bash
+bash tools/version-check.sh          # 判定，不符项逐条点名
+bash tools/version-check.sh --print  # 只吐规范版本号（tools/make-dist.sh 用它取包名）
+```
+
+新增头文件忘了写 `@version` 同样会红（报「出现 0 次」）；清单取自 `git ls-files`，不受工作树里
+未跟踪的残留文件影响，取不到清单时脚本拒绝判定而不是报成全绿。
+
 发布前（或改动了版本号之后）跑一次分发包验证：
 
 ```bash

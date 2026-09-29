@@ -288,6 +288,10 @@ GCC 13.3 与 Clang 20.1 都编得过、跑得通，Clang 18 当场报 `no templa
   C++ 文件，工具版本钉死 clang-format 23.1.1（换大版本会把同一份文件排成另一种形状）。
   本机的可执行文件不在 PATH 上时给 `CLANG_FORMAT` 指路径。自动修复：
   `clang-format -i $(git ls-files '*.h' '*.hpp' '*.cpp')`。
+- 版本号也有判据：`bash tools/version-check.sh` 判四处写在不同地方的同一个版本号——`CMakeLists.txt` 的
+  `project(VERSION)`、`conanfile.py` 的 `version`、每个头文件文件头的 `@version`、以及指向 HEAD 的
+  `v*` 标签。漏一处不会让构建或用例变红，只会让宿主两头对不上；`--print` 只吐规范版本号，
+  `tools/make-dist.sh` 用它取包名版本（同一份口径不在两个脚本里各写一遍）。
 - 静态分析同样有判据：`bash tools/tidy-check.sh build/release` 用仓库根的 `.clang-tidy`
   （clang-analyzer + bugprone + performance 三族）扫 `src/` 的全部翻译单元，判据是**零告警**，
   工具版本钉死 clang-tidy 22.1.7。配置里明确不开的四项各自写了理由；豁免只允许就地 `NOLINT`
@@ -312,7 +316,8 @@ GCC 13.3 与 Clang 20.1 都编得过、跑得通，Clang 18 当场报 `no templa
   要验「手上这份包能不能装出可用产品」：`bash tools/make-dist.sh --check-packaging`
   （解包 -> 配置 -> 装包 -> 跑仓库外消费者）；`--verify` 再补上构建与全量用例。CI 的 `dist` 作业跑前者。
 - CI 分两个工作流，都只在 `main` 上跑（免费分钟数有限，日常在 `develop` 上本地跑绿）：
-  `.github/workflows/linux-ci.yml` 有七个作业——`style` 跑上面那条样式脚本、`build-and-test` 在
+  `.github/workflows/linux-ci.yml` 有七个作业——`style` 跑上面那条样式脚本与版本号一致性判据、
+  `build-and-test` 在
   GCC 与 Clang 20 下各跑一遍构建 + 全量用例（Debug 档开 ASan 与 UBSan），再另配一份不带插桩的
   Release 树装出来跑包消费者（插桩过的静态库链不进普通消费者）、
   `tsan` 单独一份 ThreadSanitizer 构建、`tidy` 跑上面那条静态分析判据、`fuzz` 跑上面那条模糊测试判据、

@@ -29,8 +29,9 @@ jobs:
   # 谁改一行代码都能顺手换一种排版而没人看得见。工具版本钉死：不同 clang-format 大版本
   # 会把同一份文件排成两种形状，不钉版本这道门会在某天全体变红。判据本身复用仓库里的
   # tools/format-check.sh，本地与 CI 走同一条脚本，不会出现「本地过了 CI 红」的两套标准。
+  # 同一作业里另挂版本号一致性判据：那也是一条不需要构建的静态判据，没必要为它单开一个作业。
   style:
-    name: 代码格式（clang-format 23.1.1）
+    name: 静态判据（clang-format 23.1.1 与版本号一致）
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
@@ -45,6 +46,11 @@ jobs:
 
       - name: 检查全部受版本控制的 C++ 文件
         run: CLANG_FORMAT="${RUNNER_TEMP}/format-venv/bin/clang-format" bash tools/format-check.sh
+
+      # 版本号写在四处（project(VERSION)、conanfile.py、每个头文件的 @version、HEAD 上的标签），
+      # 靠手工同步；漏掉一处不会让构建或用例变红，只会让宿主两头对不上。判据与本地同一条脚本。
+      - name: 版本号一致性判据
+        run: bash tools/version-check.sh
 
   build-and-test:
     runs-on: ubuntu-latest

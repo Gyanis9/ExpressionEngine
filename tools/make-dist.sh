@@ -44,15 +44,12 @@ esac
 # 版本与来历：同一份版本信息写在两个文件里（CMakeLists 与 conanfile.py），
 # 没有任何东西保证它们一致——发出去才发现包名与包配置的版本号不同，宿主两头对不上。
 # ---------------------------------------------------------------------------
-cmake_version="$(sed -n 's/^project(ExpressionEngine VERSION \([0-9.]*\).*/\1/p' CMakeLists.txt)"
-conan_version="$(sed -n 's/^[[:space:]]*version = "\([0-9.]*\)".*/\1/p' conanfile.py)"
-[[ -n "$cmake_version" ]] || die "读不到 CMakeLists.txt 里的 project(... VERSION)"
-[[ -n "$conan_version" ]] || die "读不到 conanfile.py 里的 version"
-[[ "$cmake_version" == "$conan_version" ]] || die "两处版本号不一致：CMakeLists 是 $cmake_version，conanfile.py 是 $conan_version"
-
-for tag in $(git tag --points-at HEAD); do
-    [[ "${tag#v}" == "$cmake_version" ]] || die "标签 $tag 与版本号 $cmake_version 不符"
-done
+# 版本判定上收到 tools/version-check.sh：两处配置源、每个头文件的 @version、HEAD 上的标签一次判完。
+# 同一份口径不该在两个脚本里各写一遍——写两遍就会有一天只改一遍。
+cmake_version="$(bash tools/version-check.sh --print)" || die "取不到规范版本号（tools/version-check.sh 读不出配置源）"
+[[ -n "$cmake_version" ]] || die "tools/version-check.sh --print 给出空版本号"
+# 红的时候把逐条点名的清单原样打出去，绿的时候保持安静：判据的输出不该被包一层日志再让人翻
+version_report="$(bash tools/version-check.sh 2>&1)" || { printf '%s\n' "$version_report" >&2; die "版本一致性门未过"; }
 
 # 包必须对应一个提交：脏工作树打出来的包与同一个提交的包内容不同，校验和就失去意义
 git diff --quiet HEAD -- || die "工作树有未提交的改动，分发包必须是某个提交的内容"
