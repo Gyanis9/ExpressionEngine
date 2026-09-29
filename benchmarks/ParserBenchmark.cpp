@@ -8,6 +8,7 @@
  */
 
 #include <algorithm>
+#include <array>
 #include <atomic>
 #include <bit>
 #include <chrono>
@@ -398,10 +399,124 @@ namespace
             return false;
         }
     }
+    /**
+         * @brief 一条求值语料的「每次调用堆分配次数」钉值
+         * @details README 把「解析 + 求值」这条链路的分配次数写在文档里，写出去的数字就是承诺；
+         *          只靠人翻文档迟早和代码分叉。这里把同一份读数变成判据：跑固定次数的调用，数全局
+         *          `operator new` 计到的分配，与钉值不符就退出码变红。耗时不参与判定（同机抖动 5%~20%），
+         *          判的是可复现的整数。
+         */
+    struct AllocationPin
+    {
+        std::string_view label;   ///< 语料标签，必须能在求值语料表里找到
+        std::size_t      perCall; ///< 单次调用的堆分配次数
+    };
+
+    /// 钉值来自 MSVC Release 实测（2026-09-29）：八行与计时那一路打印的「分配 N.00 次/次」逐条一致，
+    /// 两条独立的测量路径（预热后按批累计 ÷ 迭代数、与固定 200 次直接计数）给出同一个整数。
+    /// 换编译器或换标准库实现就得重新实测这张表——分配次数是实现细节，不是语言保证。
+    constexpr std::array<AllocationPin, 8> evaluationAllocationPins{
+            AllocationPin{"求值/纯算术 1+2*3", 5},    AllocationPin{"求值/数量加法 2 mm + 3 mm", 7}, AllocationPin{"求值/内置函数 sqrt+abs", 10},  AllocationPin{"求值/自定义函数 taxed(100 mm)", 5},
+            AllocationPin{"求值/序列构建与下标", 13}, AllocationPin{"求值/序列区间聚合", 24},        AllocationPin{"求值/字典引用 Length * 2", 3}, AllocationPin{"求值/字典多名字", 5},
+    };
+
+    /**
+         * @brief 数一段固定次数的调用里发生了多少次堆分配
+         * @details 先单跑一次当预热：首调用会触发惰性初始化（locale、全局登记表），那些分配不属于
+         *          单次调用的稳态成本，计入会把钉值抬高。计数区间内只有被测调用与原子读，本身不分配。
+         * @param iterations 计入的调用次数
+         * @param callable 每次调用返回一个值，供防止优化用的汇聚点使用
+         * @return 计入的分配总次数
+         */
+    template<typename Callable>
+    [[nodiscard]] std::size_t countAllocations(const std::size_t iterations, Callable &&callable)
+    {
+        g_resultSink = callable();
+
+        const std::size_t before = g_allocationCount.load(std::memory_order_relaxed);
+        std::uintptr_t    sink   = 0;
+        for (std::size_t iteration = 0; iteration < iterations; ++iteration)
+        {
+            sink ^= callable();
+        }
+        const std::size_t after = g_allocationCount.load(std::memory_order_relaxed);
+        g_resultSink            = sink;
+
+        return after - before;
+    }
+
+    /**
+         * @brief 逐条核对钉值：标签找不到、语料解析不了、分配次数对不上，都算失败
+         * @param evaluationCases 求值语料表（与计时用的是同一份，不另立一份语料）
+         * @return 全对上为 0，任何一条对不上为 1
+         */
+    int checkAllocationPins(const std::vector<BenchmarkCase> &evaluationCases)
+    {
+#if !defined(_MSC_VER)
+        static_cast<void>(evaluationCases);
+        std::printf("分配次数判据：钉值表有 %zu 条，钉的是 MSVC 的实测读数；当前编译器没有对应的表，"
+                    "拒绝给出结论——分配次数是实现细节而不是语言保证，把「没在本平台量过」当成「通过」"
+                    "就是假绿。要在这个编译器上启用这一判据，先按计时那一路实测并把钉值按实现分开列。\n",
+                    evaluationAllocationPins.size());
+        return 1;
+#else
+        constexpr std::size_t iterations = 200;
+        std::printf("== 分配次数判据（每次调用计 %zu 次）==\n\n", iterations);
+
+        int failures = 0;
+        for (const AllocationPin &pin: evaluationAllocationPins)
+        {
+            const auto found = std::ranges::find(evaluationCases, pin.label, &BenchmarkCase::label);
+            if (found == evaluationCases.end())
+            {
+                std::printf("%s钉值找不到对应语料：标签被改过或语料表少了一条\n", padLabel(std::string(pin.label), 34).c_str());
+                ++failures;
+                continue;
+            }
+
+            if (!validate(std::string(pin.label), [&found] { return parseAndEvaluate(found->text); }))
+            {
+                ++failures;
+                continue;
+            }
+
+            const std::size_t total   = countAllocations(iterations, [&found] { return parseAndEvaluate(found->text); });
+            const std::size_t perCall = total / iterations;
+            // 总数必须整除：不整除说明单次成本本身在漂（例如冷热缓存决定要不要扩容），那种情况下
+            // 整数钉值没有意义，要当成失败报出来而不是四舍五入过去
+            const bool evenlySplit = total == perCall * iterations;
+
+            if (evenlySplit && perCall == pin.perCall)
+            {
+                std::printf("%s分配 %zu 次/次 与钉值一致\n", padLabel(std::string(pin.label), 34).c_str(), perCall);
+            } else
+            {
+                std::printf("%s分配 %zu 次/次（共 %zu 次 ÷ %zu） 钉值 %zu 次%s\n", padLabel(std::string(pin.label), 34).c_str(), perCall, total, iterations, pin.perCall, evenlySplit ? "" : "，且单次成本不恒定");
+                ++failures;
+            }
+        }
+
+        return failures == 0 ? 0 : 1;
+#endif
+    }
 } // namespace
 
-int main()
+int main(const int argc, char **const argv)
 {
+    bool checkAllocationsOnly = false;
+    for (int index = 1; index < argc; ++index)
+    {
+        const std::string_view argument(argv[index]);
+        if (argument == "--check-allocations")
+        {
+            checkAllocationsOnly = true;
+        } else
+        {
+            std::printf("未知参数: %s\n用法: ParserBenchmark [--check-allocations]（只核对分配次数钉值，不计时）\n", std::string(argument).c_str());
+            return 2;
+        }
+    }
+
     prepareEvaluationFixtures();
 
     std::printf("== ExpressionEngine 解析器吞吐基准 ==\n");
@@ -448,6 +563,13 @@ int main()
             {"表达式词法/典型输入 Box.Length*2", expressionCases[0].text},
             {"表达式词法/长输入(>300 字符)", expressionCases[7].text},
     };
+
+    if (checkAllocationsOnly)
+    {
+        // 判据模式下不计时：耗时随机器与负载抖动，判它等于判一个不可复现的断言。
+        // 语料表用的就是计时那一套，钉值与语料不会分叉。
+        return checkAllocationPins(evaluationCases);
+    }
 
 #if defined(BENCH_HAS_LEGACY_QUANTITY)
     /// 数量用例的标签前缀：生成侧只替换这一截，两张表的列宽保持一致

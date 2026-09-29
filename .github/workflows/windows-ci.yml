@@ -1,4 +1,4 @@
-# Windows CI：构建（Debug + AddressSanitizer）并跑全量用例。
+# Windows CI：构建（Debug + AddressSanitizer）并跑全量用例，另跑基准的分配次数判据与装出来的包消费者。
 #
 # 只覆盖 MSVC 一侧：本仓库当前只在 Windows 上开发，GCC/Linux 作业留到需要时再加。
 #
@@ -88,12 +88,17 @@ jobs:
           tools/package-check/build/consumerCheck.exe
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      # 基准默认不开（EXPRESSIONENGINE_BUILD_BENCHMARKS=OFF），没有任何构建会碰
-      # benchmarks/ 下的代码。这里单独配置一个 Release 构建目录（基准只在 Release
-      # 下有意义，见 benchmarks/CMakeLists.txt）并只编译不运行——跑数字要同源语料
-      # 对照，不适合放进 CI；这一步只保证它随主库一起仍能编过。
+      # 基准默认不开（EXPRESSIONENGINE_BUILD_BENCHMARKS=OFF），没有任何构建会碰 benchmarks/ 下的代码。
+      # 这里单独配置一个 Release 构建目录（基准只在 Release 下有意义，见 benchmarks/CMakeLists.txt），
+      # 编译它并跑分配次数判据。耗时不进判据：它随负载变化（README 那张表自己写着 ±5%~20% 抖动），
+      # 判一个不可复现的数只会让人学会忽略红灯。判的是 README「解析 + 求值」那八行的分配次数——
+      # 整数、同一份语料、两条独立测量路径已经对过账，钉值与语料表在同一个文件里，改标签会当场报
+      # 「钉值找不到对应语料」而不是悄悄少判一条。
       - name: 配置基准构建（Release，不构建用例）
         run: cmake --preset release -DEXPRESSIONENGINE_BUILD_TESTS=OFF -DEXPRESSIONENGINE_BUILD_BENCHMARKS=ON
 
       - name: 编译基准
         run: cmake --build build/release --target ParserBenchmark
+
+      - name: 分配次数判据
+        run: build/release/benchmarks/ParserBenchmark.exe --check-allocations
