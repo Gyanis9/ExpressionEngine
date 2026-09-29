@@ -2030,17 +2030,17 @@ namespace ExpressionEngine::Expression
         }
 
         needsParentheses = false;
-        if (m_right->priority() < priority() || isConditional(m_right.get()) || (continuesUnitFactorChain(m_operator) && absorbsIntoUnitChain(m_right.get())))
+        // 右操作数补括号的三种情形，合成一条判据（三条动作相同，分写会被 bugprone-branch-clone 报重复分支）：
+        //   ①优先级更低；②三元写法（结合力最低，任何操作数位置都要包）；
+        //   ③乘除档上「含单位的复合节点」——它后面的因子会被并进自己的单位链；
+        //   ④同级但不是真右结合。第四条是按**解析器怎么写**判，而不是按 `isRightAssociative()`
+        //     （那是取值层面的结合律：乘法认为 a*(b*c) 与 (a*b)*c 等价，于是把右嵌套压平成
+        //      `a * b * c`）。压平后的文本再解析回来是 (a*b)*c——**取值相同而树不同**，`isSame`
+        //     判不同，宿主存盘的分组也确实换了。幂是唯一真右结合的运算符（`2 ^ 3 ^ 2` 读回
+        //     `2^(3^2)`），所以只有它不需要给右操作数补括号。
+        if (m_right->priority() < priority() || isConditional(m_right.get()) || (m_right->priority() == priority() && !isRightAssociativeInGrammar(m_operator)) ||
+            (continuesUnitFactorChain(m_operator) && absorbsIntoUnitChain(m_right.get())))
         {
-            // 右操作数同理：乘除档上「含单位的复合节点」会把它后面的因子并进自己的单位链
-            needsParentheses = true;
-        } else if (m_right->priority() == priority() && !isRightAssociativeInGrammar(m_operator))
-        {
-            // 同级右操作数按「解析器怎么写」判，而不是按 `isRightAssociative()`（那是取值层面的
-            // 结合律：乘法认为 a*(b*c) 与 (a*b)*c 等价，于是把右嵌套压平成 `a * b * c`）。
-            // 压平后的文本再解析回来是 (a*b)*c——**取值相同而树不同**，`isSame` 就判不同，
-            // 宿主存盘的分组也确实换了。幂是唯一真右结合的运算符（`2 ^ 3 ^ 2` 读回 2^(3^2)），
-            // 所以只有它不需要给右操作数补括号。
             needsParentheses = true;
         }
 
