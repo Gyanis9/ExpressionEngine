@@ -48,6 +48,10 @@ namespace ExpressionEngine::Expression
         m_readOnly = readOnly;
     }
 
+    // 键和 Entry 内部都要放这个名字，两份拷贝省不掉；按值传参是公开签名的一部分（宿主可以传临时串），
+    // 不改成 const 引用。也不在这里 move 进 try_emplace：两个实参读的是同一个 name，而函数实参的
+    // 求值顺序未定序，移动其中一个就可能让另一个读到空串。
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
     Dictionary::Entry &Dictionary::define(std::string name, Value value)
     {
         const auto [position, inserted] = m_entries.try_emplace(name, Entry{name, value});

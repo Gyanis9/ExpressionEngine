@@ -484,6 +484,8 @@ namespace ExpressionEngine::Expression
                 {
                     using LeftType  = std::decay_t<T0>;
                     using RightType = std::decay_t<T1>;
+                    // NOLINTBEGIN(bugprone-branch-clone) 下面几个变体的动作都是「转给各自的相等判定」，
+                    // 逐变体列出是为了让每档的口径（==、essentiallyEqual、带容差的 isEqual）一眼可辨
                     if constexpr (!std::is_same_v<LeftType, RightType>)
                     {
                         // 备选下标相同保证了不会走到这里，兜底返回不相等以免掩盖实现错误
@@ -501,6 +503,7 @@ namespace ExpressionEngine::Expression
                     } else if constexpr (std::is_same_v<LeftType, std::string>)
                     {
                         return leftValue == rightValue;
+                        // NOLINTEND(bugprone-branch-clone)
                     } else if constexpr (std::is_same_v<LeftType, Base::Vector3d>)
                     {
                         return leftValue.isEqual(rightValue, Base::Precision::confusion());

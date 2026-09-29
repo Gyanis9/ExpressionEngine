@@ -1858,6 +1858,7 @@ namespace ExpressionEngine::Expression
         {
             leftOperator = leftOperatorExpression->getOperator();
         }
+        // NOLINTBEGIN(bugprone-branch-clone) 两条判据不同、动作相同，合成 || 反而更难读，刻意保留两个分支
         if (m_left->priority() < priority())
         {
             // 优先级更低的操作数必须加括号，否则文本会被解析成另一棵树
@@ -1866,6 +1867,7 @@ namespace ExpressionEngine::Expression
         {
             needsParentheses = true;
         }
+        // NOLINTEND(bugprone-branch-clone)
         if (m_operator == Operator::UnitScale && !m_left->isConstantNumeric())
         {
             // 单位写法只在左边是数值时才不加括号，如 2 mm
@@ -2233,7 +2235,7 @@ namespace ExpressionEngine::Expression
             }
             case Function::TextReplace:
             {
-                const std::string text = textArgument(arguments, 0, label);
+                std::string       text = textArgument(arguments, 0, label);
                 const std::string from = textArgument(arguments, 1, label);
                 const std::string to   = textArgument(arguments, 2, label);
                 if (from.empty())
@@ -2756,6 +2758,12 @@ namespace ExpressionEngine::Expression
             case Function::CubeRoot:
                 unit = firstQuantity.getUnit().cbrt();
                 break;
+            // NOLINTBEGIN(bugprone-unchecked-optional-access)
+            // 往下一段里的 secondQuantity / thirdQuantity 解引用由类型自身的不变式兜住：
+            // FunctionExpression 的构造函数就调过 validateFunctionCall，参数个数不符的调用根本构造不出来，
+            // 因此走到需要两、三个实参的这些分支时那两个 optional 必定有值。这条依据跨语句（校验在另一个
+            // 函数里），分析器跟不上，所以只在这一段局部豁免，而不关整条检查——别处新出现的「不判空就解引用
+            // optional」仍然会被报出来。
             case Function::ArcTangent2:
                 if (firstQuantity.getUnit() != secondQuantity->getUnit())
                 {
@@ -2919,6 +2927,7 @@ namespace ExpressionEngine::Expression
                 matrix.move(firstQuantity.getValue(), secondQuantity->getValue(), thirdQuantity->getValue());
                 return matrix;
             }
+            // NOLINTEND(bugprone-unchecked-optional-access)
             case Function::LogicalNot:
                 output = asBoolean(value) ? 0.0 : 1.0;
                 break;

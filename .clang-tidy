@@ -1,0 +1,30 @@
+# 静态分析门的配置。检查集刻意收窄：一次性打开整套默认规则，报出来的多半是没人会改的噪声，
+# 几天后所有人都在忽略这条门——判据要能咬住真缺陷，就得先只留下咬得动的部分。
+# 工具版本钉成 LLVM 22.1.7（本机与 CI 的 pip 包同一个发布号），判据见 tools/tidy-check.sh。
+#
+# 明确不开的四项，以及为什么（这三项都被实测过命中数，写在这里是为了让人能重新裁决）：
+# - bugprone-easily-swappable-parameters：本库有意的相邻同类型参数很多（向量三分量、矩阵下标、
+#   比较的两侧），命中 24 处。换签名换不来正确性，纯属噪声。
+# - bugprone-throwing-static-initialization：内置单位表与方案数据是 namespace 作用域的 inline const
+#   对象，构造可能抛（命中 126 处）。这是刻意的：它们必须在首次使用前就绪，失败后果是 std::terminate；
+#   改成惰性构造只是把失败点挪到更难复现的位置。
+# - performance-enum-size：公开 enum class 一律保持默认的 int 底层类型（命中 16 处）。收窄到底层类型
+#   会改变 std::underlying_type_t 的结果，宿主拿它做序列化或整型输出时的行为跟着变，属公开接口。
+#
+# 真缺陷按代码收，不靠关检查。本轮实测命中里 4 处改了实现：两处 const 局部量挡住自动移动
+# （Unit.cpp 的单位串拼接、Expression.cpp 的文本替换）、一处对指针写 std::move（误导所有权转移）、
+# 一处 int 乘法隐式拓宽（Matrix4D::toString 的 reserve）。其余按就地豁免处理并写明理由：
+# 两处「分支体重复」是刻意写法（运算符加括号的两个判据、按变体列出的相等判定），用 NOLINTBEGIN/NOLINTEND
+# 圈出；Dictionary::define 的按值传参同样就地豁免（键与 Entry 都要放名字，两个实参读同一个 name 不能移动）；
+# Expression.cpp 求值分支里那一串 optional 解引用由 FunctionExpression 构造函数的参数个数校验保证，
+# 依据跨语句、分析器跟不上，因此只圈住那一段，整条检查在别处仍然生效。
+Checks: >-
+  -*,
+  clang-analyzer-*,
+  bugprone-*,
+  performance-*,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-throwing-static-initialization,
+  -performance-enum-size
+HeaderFilterRegex: 'src/ExpressionEngine/'
+FormatStyle: file

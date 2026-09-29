@@ -163,6 +163,32 @@ jobs:
           path: build/tsan/Testing/Temporary/LastTest.log
           if-no-files-found: ignore
 
+  # 静态分析门：clang-analyzer + bugprone + performance 三族，配置用仓库根的 .clang-tidy（与本地同一份），
+  # 工具版本钉成 pip 的 clang-tidy==22.1.7 —— 与本机验证用的那份是同一个 LLVM 发布号。
+  # 判据是「零告警」，豁免只允许就地 NOLINT 或写在 .clang-tidy 里并附理由。
+  # 这一作业不装 Conan：tests 关掉后库零外部依赖，配置只是为了拿 compile_commands.json，
+  # 把 gtest 的下载与编译拉进来纯属浪费。
+  tidy:
+    name: 静态分析（clang-tidy 22.1.7）
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: 安装钉定版本的 clang-tidy
+        run: |
+          python3 -m venv "${RUNNER_TEMP}/tidy-venv"
+          "${RUNNER_TEMP}/tidy-venv/bin/pip" install "clang-tidy==22.1.7"
+
+      # 导出不写这一行就没有 compile_commands.json，判据脚本会当场拒绝（本机容器实测过这个失败形状：
+      # 配置成功、但没有数据库，脚本以「不存在」变红而不是给出一份空的绿灯）
+      - name: 配置（只要编译数据库，不构建用例）
+        run: cmake -S . -B build/tidy -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_STANDARD=23 -DCMAKE_CXX_STANDARD_REQUIRED=ON -DCMAKE_CXX_EXTENSIONS=OFF -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DEXPRESSIONENGINE_BUILD_TESTS=OFF
+
+      - name: 静态分析判据
+        run: CLANG_TIDY="${RUNNER_TEMP}/tidy-venv/bin/clang-tidy" bash tools/tidy-check.sh build/tidy
+
   # 覆盖率门：README 与 CONTRIBUTING 里「用例覆盖库本体」这句话要有可判定的形式，
   # 否则它只是一句自评。阈值与判据都写死在 tools/coverage.sh 里（本地同一条脚本），
   # 这里只负责提供插桩构建与 gcovr 那件工具。

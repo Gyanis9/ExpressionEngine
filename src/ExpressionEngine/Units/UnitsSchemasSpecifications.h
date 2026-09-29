@@ -36,6 +36,9 @@ namespace ExpressionEngine::Units
      * @brief 一个单位方案的完整定义
      * @details 以数据形式描述方案（如 "Internal"、"ImperialDecimal"）：行为由 UnitsSchema 按本结构解释，数据本身不带逻辑。
      */
+    // 纯数据定义：隐式特殊成员函数在内存不足时会抛出（成员是 std::string、std::map 与 std::function），
+    // 这是 C++ 的正常行为，不是要在此兜住的缺陷；把它标成 noexcept 只会把抛出变成 std::terminate。
+    // NOLINTNEXTLINE(bugprone-exception-escape)
     struct UnitsSchemaSpecification
     {
         std::size_t number;                   ///< 方案编号
