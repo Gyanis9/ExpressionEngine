@@ -129,7 +129,9 @@ for target in "${targets[@]}"; do
 
     if [[ "$run_rc" != "0" ]]; then
         echo "FAIL $name 退出码 $run_rc" >&2
-        reason="$(grep -a -E "^fuzz 判据失败|^ERROR: |^SUMMARY: " "$log" | head -10)"
+        # -A2 是必须的：violate() 把「原文=[..] 持久文本=[..]」写在第二行，只匹配首行就会
+        # 报出一条没有输入可复现的判据——CI 上把这条 grep 贴进日志才发现丢的就是那一行
+        reason="$(grep -a -E -A2 "^fuzz 判据失败|^ERROR: |^SUMMARY: " "$log" | head -16)"
         # 崩溃之外的失败（词典读不到、语料目录不存在、参数拼错）不带上面任何前缀；
         # 没有兜底就会出现「这道门红了但一行原因都没有」——上一轮在解包树里就是这么空的
         [[ -n "$reason" ]] || reason="$(tail -6 "$log")"

@@ -312,7 +312,22 @@ namespace ExpressionEngine::Expression
         }
 
         // to_chars 的默认浮点格式给出「能往返的最短写法」：既不多打一串无意义尾数，
-        // 也不会像固定 16 位那样把 0.1 + 0.2 写成 0.3 后解析回另一个数
+        // 也不会像固定 16 位那样把 0.1 + 0.2 写成 0.3 后解析回另一个数。
+        // 但绝对值到 2^63 及以上时这一条会打出词法器接不下的写法：`9223372036854775808`
+        // 数字位数已经超出 Integer 记号的 long long 上界，存盘文本再解析直接报
+        // OverflowError——最短写法在这种量上反而是「定宽」的。这一档改走科学计数法，
+        // 同一取值仍然精确往返，而 `9.2233720368547758e18` 是解析器认得的 Number。
+        constexpr double integerLiteralLimit = 9223372036854775808.0; // 2^63，double 可精确表示
+        if (std::fabs(value) >= integerLiteralLimit)
+        {
+            std::array<char, 40>       scientific{};
+            const std::to_chars_result sciResult = std::to_chars(scientific.data(), scientific.data() + scientific.size(), value, std::chars_format::scientific);
+            if (sciResult.ec == std::errc())
+            {
+                return std::string(scientific.data(), static_cast<std::size_t>(sciResult.ptr - scientific.data()));
+            }
+        }
+
         std::array<char, 40>       buffer{};
         const std::to_chars_result result = std::to_chars(buffer.data(), buffer.data() + buffer.size(), value);
         if (result.ec != std::errc())

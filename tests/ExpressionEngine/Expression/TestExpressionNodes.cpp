@@ -49,6 +49,7 @@ namespace ExpressionEngine::Expression
         /**
          * @brief 钉住：幂是右结合，左结合的写法必须保住括号
          * @details (2^3)^4 是 4096，而 2^3^4 会解析成 2^(3^4)，回写丢了括号就等于换了值。
+         *          反过来，`2^(3^4)` 的括号可以省：幂本来就右结合，`2 ^ 3 ^ 4` 读回同一棵树。
          */
         TEST(ExpressionNodes, LeftGroupedPowerKeepsItsParentheses)
         {
@@ -56,20 +57,31 @@ namespace ExpressionEngine::Expression
             EXPECT_DOUBLE_EQ(evaluateText("(2^3)^4"), 4096.0);
             EXPECT_DOUBLE_EQ(evaluateText(roundTrip("(2^3)^4")), 4096.0);
 
-            EXPECT_EQ(roundTrip("2^(3^4)"), "2 ^ (3 ^ 4)");
+            EXPECT_EQ(roundTrip("2^(3^4)"), "2 ^ 3 ^ 4");
             EXPECT_DOUBLE_EQ(evaluateText(roundTrip("2^(3^4)")), evaluateText("2^81"));
         }
 
         /**
-         * @brief 钉住：可自由换括号的运算不被多包，不能换括号的必须包
+         * @brief 钉住：分组改变取值的写法必须包，分组只是换树的也要包——幂除外
+         * @details 这一条判的是「树形」而不是「取值」：加法与乘法满足结合律，`1 + (2 + 3)` 压平成
+         *          `1 + 2 + 3` 取值不变，可解析器按左结合读回来是 `(1 + 2) + 3`，`isSame` 判不同，
+         *          宿主存盘再读回的分组也确实变了。所以同级右操作数只有真右结合的幂能省括号。
+         *          左操作数那一侧不受影响：左结合的链本来就按写的顺序读回。
          */
         TEST(ExpressionNodes, ParenthesesFollowRegroupingSafety)
         {
-            // 加法与乘法可交换可重组合，两侧同类运算都不用额外括号
+            // 左结合的链：左侧同级不需要括号
             EXPECT_EQ(roundTrip("(8 - 3) - 2"), "8 - 3 - 2");
             EXPECT_EQ(roundTrip("(8 / 4) / 2"), "8 / 4 / 2");
-            EXPECT_EQ(roundTrip("1 + (2 + 3)"), "1 + 2 + 3");
-            EXPECT_EQ(roundTrip("2 * (3 * 4)"), "2 * 3 * 4");
+            EXPECT_EQ(roundTrip("1 + 2 + 3"), "1 + 2 + 3");
+            // 右侧同级：取值等价但分组不同，括号要留下
+            EXPECT_EQ(roundTrip("1 + (2 + 3)"), "1 + (2 + 3)");
+            EXPECT_EQ(roundTrip("2 * (3 * 4)"), "2 * (3 * 4)");
+            // 幂真右结合：括号是多余的
+            EXPECT_EQ(roundTrip("2 * 3 ^ 4 * 5"), "2 * 3 ^ 4 * 5");
+            // 三元写法当操作数时必须包：`A >= B ? 1 : C` 读回来的条件挂在整条比较上
+            EXPECT_EQ(roundTrip("A>=(B?1:C)"), "A >= (B ? 1 : C)");
+            EXPECT_EQ(roundTrip("(A?B:1)?2:3"), "(A ? B : 1) ? 2 : 3");
 
             // 换了分组就换结果的写法必须带括号回来
             EXPECT_EQ(roundTrip("8 - (3 - 2)"), "8 - (3 - 2)");
@@ -341,12 +353,21 @@ namespace ExpressionEngine::Expression
          */
         TEST(ExpressionNodes, ReferenceNameSegmentsRejectEmptyText)
         {
-            for (const std::string text: {".<<>>", "Box.<<>>", "<<D>>.<<>>.x", "<<D>>.Obj.<<>>"})
+            for (const std::string text: {".<<>>", "Box.<<>>", "<<D>>.<<>>.x", "<<D>>.Obj.<<>>", "<<>>.Box.Length", "<<>>.<<a>>.<<b>>"})
             {
                 auto parsed = ExpressionParser::tryParse(nullptr, text);
                 ASSERT_FALSE(parsed.has_value()) << text << " 不该收下空名字段";
                 EXPECT_FALSE(parsed.error().message.empty()) << text;
                 EXPECT_THROW(static_cast<void>(ExpressionParser::parse(nullptr, text)), Base::ParserError) << text;
+            }
+
+            // 文档名槽为空的那两条是模糊门在「引用路径逐格相同」判据上找到的：放过去会得到一条
+            // 首格为空的引用，而它的持久文本打不出 `<<>>.`，读回来路径少一格
+            for (const std::string text: {"<<>>.Box.Length", "<<>>.<<a>>.<<b>>"})
+            {
+                const auto parsed = ExpressionParser::tryParse(nullptr, text);
+                ASSERT_FALSE(parsed.has_value()) << text;
+                EXPECT_NE(parsed.error().message.find("文档名"), std::string::npos) << parsed.error().message;
             }
 
             // 空文本作为**实参**仍然合法：收口只针对引用路径上的名字段
@@ -409,34 +430,17 @@ namespace ExpressionEngine::Expression
          */
         TEST(ExpressionNodes, PersistentTextIsAFixpoint)
         {
-            for (const std::string input: {"Box.Length.<<A>>",
-                                           "Box.Length.<<mm>>",
-                                           "Box.Length.<<True>>",
-                                           "Box.<<a.b>>.<<pi>>",
-                                           "Ф.<<A>>.<<A>>",
-                                           "(vector(1; 2; 3))[0]",
-                                           "sum(A1:A10)",
-                                           "sqrt(16) + abs(-7)",
-                                           "1 ? 2 : 3 + 4",
-                                           "Box.<<x y>>[1]",
-                                           "<<Doc>>.Box.Length.<<A>>",
-                                           "5%m m",
-                                           "2 mm",
-                                           "1/2 mm",
-                                           "2 m/s",
-                                           "3 mm * 4 mm",
-                                           "1 m + 2 mm",
-                                           "5 * (2 mm)",
-                                           "10 - 2 mm",
-                                           "1 m m m",
-                                           "2' 6\"",
-                                           "1 m^2",
-                                           "100 / 2 m",
-                                           "1 - 2 - 3",
-                                           "2 ^ 3 ^ 2",
-                                           ".<<a.b>>",
-                                           "<<Sheet#A1>> + .<<x y>>",
-                                           "Box.<<a.b>>.<<True>>"})
+            for (const std::string input: {"Box.Length.<<A>>", "Box.Length.<<mm>>", "Box.Length.<<True>>", "Box.<<a.b>>.<<pi>>", "Ф.<<A>>.<<A>>", "(vector(1; 2; 3))[0]", "sum(A1:A10)", "sqrt(16) + abs(-7)", "1 ? 2 : 3 + 4",
+                                           "Box.<<x y>>[1]", "<<Doc>>.Box.Length.<<A>>", "5%m m", "2 mm", "1/2 mm", "2 m/s", "3 mm * 4 mm", "1 m + 2 mm", "5 * (2 mm)", "10 - 2 mm", "1 m m m", "2' 6\"", "1 m^2", "100 / 2 m", "1 - 2 - 3",
+                                           "2 ^ 3 ^ 2", ".<<a.b>>", "<<Sheet#A1>> + .<<x y>>", "Box.<<a.b>>.<<True>>",
+                                           // 一元正负号贴在单位上的一族：不补括号就会被单位因子链吸走
+                                           "5++ m\"", "+mm mm", "-m mm", "5 * -m * s", "(5 + 2 * -m) * s", "5 % -m * m", "-m^2", "--m * s", "2 * -m / s",
+                                           // 单位的幂仍在因子链里：链跨过 `^ 2` 继续吸收后面的因子
+                                           "8/F^2h", "(8 / F ^ 2) * h", "1 / m ^ 2 * s", "5 % m ^ 2 * m", "m / s * 2",
+                                           // 链外面还接着因子：交换律救不了树形（同族第十一条）
+                                           "8A/F^82h", "2 m/s * 3", "1 kg / m * s",
+                                           // 三元写法结合力最低：它当任何操作数时都要带括号
+                                           "A>=(B?1:C)", "x=(A?1:Z)", "(A?B:1)?2:3", "1?(2?3:4):5"})
             {
                 auto first = ExpressionParser::tryParse(nullptr, input);
                 ASSERT_TRUE(first.has_value() && *first != nullptr) << input;
@@ -451,6 +455,29 @@ namespace ExpressionEngine::Expression
             EXPECT_EQ(ExpressionParser::parse(nullptr, "Box.Length")->toString(true), "Box.Length");
             // 单位并写与 % 混用的文本歧义：左操作数落在单位上时必须带括号，否则读回来换一棵树
             EXPECT_EQ(ExpressionParser::parse(nullptr, "5%m m")->toString(true), "(5 % m) * m");
+            // 同一族里的另一支：一元正负号把符号贴在单位前，后面的乘除因子会被这条单位链吸走。
+            // `5++ m"` 的树是 5 + (+m * ")，不加括号打出的 `5 + +m * "` 读回来是 5 + +(m * ")
+            EXPECT_EQ(ExpressionParser::parse(nullptr, "5++ m\"")->toString(true), "5 + (+m) * \"");
+            EXPECT_EQ(ExpressionParser::parse(nullptr, "-m mm")->toString(true), "(-m) * mm");
+            EXPECT_EQ(ExpressionParser::parse(nullptr, "5 * -mm")->toString(true), "5 * (-mm)");
+            EXPECT_EQ(ExpressionParser::parse(nullptr, "2 * -m / s")->toString(true), "2 * (-(m / s))");
+            // 右操作数在乘除档上同样会被吸：`5 - -m` 的父层是减号，接不进单位链，故不补括号
+            EXPECT_EQ(ExpressionParser::parse(nullptr, "5 - -m")->toString(true), "5 - -m");
+            // 父层是加减档时后面的因子接不进单位链，不该多打括号
+            EXPECT_EQ(ExpressionParser::parse(nullptr, "-m / s + 1")->toString(true), "-(m / s) + 1");
+            EXPECT_EQ(ExpressionParser::parse(nullptr, "1 + 2 mm")->toString(true), "1 + 2 * mm");
+            // 同一族的第十个形状（模糊门在启用「文本是自身不动点」后找到，6 字节）：
+            // 单位链会跨过 `^ 2` 继续吸收后面的因子，所以 `8 / F ^ 2 * h` 读回来是 8 / (F ^ 2 * h)，
+            // 与 Mul(Div(8, Pow(F,2)), h) 不是同一棵树——左操作数虽然以数字收尾，仍在链里
+            EXPECT_EQ(ExpressionParser::parse(nullptr, "8/F^2h")->toString(true), "(8 / (F ^ 2)) * h");
+            EXPECT_EQ(ExpressionParser::parse(nullptr, "1 / m ^ 2 * s")->toString(true), "1 / ((m ^ 2) * s)");
+            EXPECT_EQ(ExpressionParser::parse(nullptr, "5 % m ^ 2 * m")->toString(true), "5 % ((m ^ 2) * m)");
+            // 同族第十一条：单位链外面还接着因子时，可交换的乘法也不再等价——取值相同而树不同
+            EXPECT_EQ(ExpressionParser::parse(nullptr, "8A/F^82h")->toString(true), "(8 * (A / (F ^ 82))) * h");
+            EXPECT_EQ(ExpressionParser::parse(nullptr, "2 m/s * 3")->toString(true), "(2 * (m / s)) * 3");
+            // 纯数字的同级左结合不受影响：`1 / 2 * 3` 不多打括号；幂那一档括号本来就是多余的
+            EXPECT_EQ(ExpressionParser::parse(nullptr, "1 / 2 * 3")->toString(true), "1 / 2 * 3");
+            EXPECT_EQ(ExpressionParser::parse(nullptr, "2 ^ 3 ^ 2")->toString(true), "2 ^ 3 ^ 2");
             // 「当前对象上的带点名字」必须保留开头那个点：去掉点就成了一段字符串字面量
             EXPECT_EQ(ExpressionParser::parse(nullptr, ".<<a.b>>")->toString(true), ".<<a.b>>");
             // 非有限常量不能打成 `inf`/`nan`——那两个字再解析是变量引用

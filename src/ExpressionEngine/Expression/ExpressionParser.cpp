@@ -441,6 +441,12 @@ namespace ExpressionEngine::Expression
                 const auto separator = raw.find('#');
                 if (separator == std::string::npos)
                 {
+                    if (raw.empty())
+                    {
+                        // 空的文档名槽位（写法只有 `<<>>.对象.属性`）没有能解析回来的文本：
+                        // 持久文本会整段丢掉 `<<>>.`，读回来的引用路径少一格
+                        throw Base::ParserError(std::format("{}：<<文档>> 的文档名不能为空，请补上文档名", locationOf(referenceToken)));
+                    }
                     reference.documentName = raw;
                     if (m_current.kind == ExpressionTokenKind::Dot)
                     {
@@ -465,7 +471,13 @@ namespace ExpressionEngine::Expression
             } else if (m_current.kind == ExpressionTokenKind::String && m_next.kind == ExpressionTokenKind::Dot)
             {
                 // <<文档>>.对象.属性
-                reference.documentName = m_current.text;
+                const ExpressionToken documentToken = m_current;
+                reference.documentName              = m_current.text;
+                if (reference.documentName.empty())
+                {
+                    // 同上：`<<>>.对象.属性` 的文档名槽是空的，持久文本打不出这一格，读回来路径就变了
+                    throw Base::ParserError(std::format("{}：<<文档>> 的文档名不能为空，请补上文档名", locationOf(documentToken)));
+                }
                 advance();
                 expect(ExpressionTokenKind::Dot, "文档名后的 '.'");
                 reference.objectName = takeIdentifierLike("文档中的对象名");

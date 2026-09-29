@@ -59,7 +59,7 @@ namespace ExpressionEngine::Expression
 
         std::string text;            ///<去定界与转义后的内容
         double      numberValue{0};  ///< Number/Integer/Constant 的数值
-        int         integerValue{0}; ///< Integer 的整数值；数值超出 int 时以 numberValue 为准
+        long long   integerValue{0}; ///< Integer 的整数值；词法器已按 long long 校过越界（更大或更小的整数走 Number 那条通道）
         std::size_t offset{0};       ///< 在输入中的字节偏移，供报错定位
         int         column{1};       ///< 1 起的列号，按 UTF-8 码点计数
     };

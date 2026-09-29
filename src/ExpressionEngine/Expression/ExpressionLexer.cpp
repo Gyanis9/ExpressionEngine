@@ -821,8 +821,9 @@ namespace ExpressionEngine::Expression
             {
                 const long long value = parseIntegerValue(rawText, tokenColumn);
                 token.numberValue     = static_cast<double>(value);
-                // 记号里的整数字段是 int；更大的整数由 numberValue 携带，越界已在上面按 long long 校过
-                token.integerValue = static_cast<int>(value);
+                // 整数字段按 long long 原样带出：收窄成 int 会把 `3888888888` 这类字面量变成
+                // 另一个数（实测 -406078408），而解析器读 Integer 记号走的正是这个字段
+                token.integerValue = value;
                 break;
             }
             case ExpressionTokenKind::String:

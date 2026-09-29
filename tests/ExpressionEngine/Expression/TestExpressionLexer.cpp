@@ -5,11 +5,14 @@
 #include <limits>
 #include <string>
 #include <string_view>
+#include <variant>
 #include <vector>
 
 #include <ExpressionEngine/Base/Exception.h>
+#include <ExpressionEngine/Expression/Expression.h>
 #include <ExpressionEngine/Expression/ExpressionLexer.h>
 #include <ExpressionEngine/Expression/ExpressionParser.h>
+#include <ExpressionEngine/Units/Quantity.h>
 #include <ExpressionEngine/Units/QuantityParser.h>
 
 namespace
@@ -98,6 +101,46 @@ TEST(ExpressionLexerTest, IntegerOverflowThrows)
     const std::vector<ExpressionToken> tokens = tokenize("9223372036854775807");
     ASSERT_EQ(tokens.size(), 1U);
     EXPECT_EQ(tokens[0].kind, ExpressionTokenKind::Integer);
+}
+
+/**
+ * @brief 钉住超出 int 的整数字面量不被收窄
+ * @details `integerValue` 原先是 int：`3888888888` 存进去成了 -406078408，而解析器读 Integer 记号
+ *          走的正是这个字段——于是同一个字面量的求值与持久文本都是另一个数（`4294967296` 打成 `0`）。
+ *          这条是模糊门在「重解析后是同一棵树」那一条上找到的（10 字节 repro）：文本自己「稳定」，
+ *          因为两次都错得一样，只有拿原节点与重解析节点比值才露出来。
+ */
+TEST(ExpressionLexerTest, IntegersWiderThanIntAreNotNarrowed)
+{
+    for (const auto &[text, expected]: {std::pair{"2147483648", 2147483648LL}, std::pair{"3888888888", 3888888888LL}, std::pair{"4294967296", 4294967296LL}, std::pair{"9007199254740991", 9007199254740991LL}})
+    {
+        const std::vector<ExpressionToken> tokens = tokenize(text);
+        ASSERT_EQ(tokens.size(), 1U) << text;
+        EXPECT_EQ(tokens[0].kind, ExpressionTokenKind::Integer) << text;
+        EXPECT_EQ(tokens[0].integerValue, expected) << text;
+        EXPECT_DOUBLE_EQ(tokens[0].numberValue, static_cast<double>(expected)) << text;
+
+        // 端到端：存盘的文本与读回来的取值都得是原数（这一组都在 double 能精确表示的范围内）
+        const ExpressionEngine::Expression::ExpressionPtr node = ExpressionEngine::Expression::ExpressionParser::parse(nullptr, text);
+        ASSERT_TRUE(node != nullptr) << text;
+        EXPECT_EQ(node->toString(true), text) << text << " 的持久文本不是原数";
+        const auto value = node->evaluate();
+        EXPECT_DOUBLE_EQ(std::get<ExpressionEngine::Units::Quantity>(value).getValue(), static_cast<double>(expected)) << text;
+    }
+
+    // long long 上界的写法仍要按 long long 收下（不收窄），但取值走的是 double：
+    // 9223372036854775807 最近的 double 是 2^63，而这一档不能再打定宽整数——那段位数的
+    // Integer 记号会被词法器按 long long 上界拒掉，存盘文本就解析不回来了。改走科学计数法后
+    // 同一取值仍能精确往返（这是值模型的精度界：`Quantity` 存 double）
+    const std::vector<ExpressionToken> widest = tokenize("9223372036854775807");
+    ASSERT_EQ(widest.size(), 1U);
+    EXPECT_EQ(widest[0].integerValue, std::numeric_limits<long long>::max());
+    const ExpressionEngine::Expression::ExpressionPtr widestNode = ExpressionEngine::Expression::ExpressionParser::parse(nullptr, "9223372036854775807");
+    ASSERT_TRUE(widestNode != nullptr);
+    const std::string                                 widestText = widestNode->toString(true);
+    const ExpressionEngine::Expression::ExpressionPtr again      = ExpressionEngine::Expression::ExpressionParser::parse(nullptr, widestText);
+    ASSERT_TRUE(again != nullptr) << "持久文本 [" << widestText << "] 解析不回来";
+    EXPECT_TRUE(widestNode->isSame(*again)) << widestText;
 }
 
 /**

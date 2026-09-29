@@ -219,12 +219,14 @@ namespace ExpressionEngine::Expression
             const Probe reparsed = probeParse(printed);
             EXPECT_TRUE(reparsed.escapedWithMessage.empty()) << "重新解析库内文本漏出异常: " << reparsed.escapedWithMessage;
 
-            // 持久文本是宿主存盘的内容：能解析回来还不够，引用路径要逐格相同——
-            // `Box.<<a.b>>` 打成 `Box.a.b` 也解析得动，读回来却是另一条路径；
+            // 持久文本是宿主存盘的内容：能解析回来还不够，引用路径要逐格相同、文本要再写一次还是
+            // 同一串、树形要比得过——`Box.<<a.b>>` 打成 `Box.a.b` 也解析得动，读回来却是另一条路径；
             // 非有限常量曾打成 `inf`，读回来变成一个变量引用（现在折回 `1e400` 写法）。
             if (reparsed.tree != nullptr)
             {
                 EXPECT_EQ(reparsed.tree->collectReferences(), probe.tree->collectReferences()) << "持久文本 [" << printed << "] 重解析后引用路径变了";
+                EXPECT_EQ(reparsed.tree->toString(true), printed) << "持久文本 [" << printed << "] 再写一次不稳定";
+                EXPECT_TRUE(probe.tree->isSame(*reparsed.tree)) << "持久文本 [" << printed << "] 重解析后成了另一棵树";
             }
 
             return true;

@@ -66,16 +66,8 @@ namespace ExpressionEngine::Expression
             }
         }
 
-        /**
-         * @brief 这条表达式文本的右端是不是落在一个单位上
-         * @details 解析器把「单位因子链」按同级左结合吸收：`5 % m * m` 会读成 5 % (m * m)，
-         *          因为 '%' 的右操作数 `m` 是单位，紧跟其后的 `* m` 被吸进单位链。于是
-         *          (5 % m) * m 与 5 % (m * m) 打出同一个文本 `5 % m * m`。
-         *          这种节点当左操作数时必须带括号，才能让持久文本唯一地解析回同一棵树。
-         * @param node 待判节点，可为空指针（视作不落在单位上）
-         * @return 文本最右端是单位节点时为 true
-         */
-        bool endsWithUnit(const Expression *node)
+        /// 这棵子树的文本里出现过单位记号吗（单位因子链的吸收只在链上某个位置出现单位时才发生）
+        bool containsUnit(const Expression *node)
         {
             if (node == nullptr)
             {
@@ -83,10 +75,63 @@ namespace ExpressionEngine::Expression
             }
             if (const auto *operation = node->asOperatorExpression())
             {
-                const Expression *right = operation->getRight();
-                return right != nullptr ? endsWithUnit(right) : endsWithUnit(operation->getLeft());
+                return containsUnit(operation->getLeft()) || containsUnit(operation->getRight());
             }
             return node->nodeName() == "Unit";
+        }
+
+        /**
+         * @brief 这个节点当二进制操作数时，后面的单位因子会被吸进它自己的链里吗
+         * @details 解析器的单位后置是一条「贴着左值往上添因子」的规则（`parseExpression` 的循环里：
+         *          当前记号是单位且 `unitPostfixBinding >= minimumBinding` 就并入左值），所以只要
+         *          一段文本里带单位、又处在这一档下面，它后面紧跟的因子就会并进它的链里，与这段文本
+         *          自己是什么形状无关。实测撞到的几种都是这一条：
+         *          `5 % m * m`（→ 5 % (m * m)）、`8 / F ^ 2 * h`（→ 8 / (F ^ 2 * h)）、
+         *          `5++ m"`（→ 5 + +(m * ")）、`8A/F^82h`（→ 8 * ((A / F ^ 82) * h)）、
+         *          `7^'F`（→ 7 ^ (' * F)）。前一版按「文本右端落在单位上」逐个形状打补丁，
+         *          每修一个模糊门就再找一个；这条判据按「含单位 + 处在乘除档」一次覆盖整族。
+         *          裸的单位节点（`mm`）不算：它本身就是那条链，给它打括号只是噪声。
+         * @param node 待判节点，可为空指针（视作不会被吸）
+         * @return 节点是复合表达式且它的文本里含单位时为 true
+         */
+        bool absorbsIntoUnitChain(const Expression *node)
+        {
+            return node != nullptr && node->asOperatorExpression() != nullptr && containsUnit(node);
+        }
+
+        /**
+         * @brief 这个二元运算符会把紧跟其后的因子并进操作数的单位链吗
+         * @details 单位后置的结合档就是乘除档（`unitPostfixBinding == multiplicativeBinding == 4`），
+         *          所以只有 `*` `/` `%` 三档会这样接住后面的因子；加减与比较那几档隔得开，
+         *          不需要为此多打括号。
+         */
+        bool continuesUnitFactorChain(const OperatorExpression::Operator op)
+        {
+            return op == OperatorExpression::Operator::Multiply || op == OperatorExpression::Operator::Divide || op == OperatorExpression::Operator::Modulo;
+        }
+
+        /**
+         * @brief 解析器把这个运算符的右操作数按右结合读吗
+         * @details 只有幂是右结合的（`2 ^ 3 ^ 2` 读回 `2 ^ (3 ^ 2)`）；加、减、乘、除、取余都按
+         *          左结合读，所以它们的同级右操作数必须带括号才能保住分组。
+         *          这与 `OperatorExpression::isRightAssociative()` 不是一回事：后者说的是
+         *          **取值**能不能结合（加法与乘法满足结合律与交换律），而持久文本要保的是树形。
+         */
+        bool isRightAssociativeInGrammar(const OperatorExpression::Operator op)
+        {
+            return op == OperatorExpression::Operator::Power;
+        }
+
+        /**
+         * @brief 这个节点是条件运算符（三元 `? :`）吗
+         * @details 三元写法结合力最低：它出现在任何操作数位置上，后面同级的记号都会被它的条件段
+         *          吞回去——`A >= (B ? 1 : C)` 打成 `A >= B ? 1 : C`，读回来的条件挂在整条比较上，
+         *          取值随之改变（`A=1、B=0、C=0` 时原式是 1 >= 0 = True，压平后是 (1>=0) ? 1 : 0 = 1）。
+         *          所以这种节点当操作数时一律带括号，不看父层运算符是哪一档。
+         */
+        bool isConditional(const Expression *node)
+        {
+            return node != nullptr && node->nodeName() == "Conditional";
         }
 
         /// 引用路径里一个名字段的写法：能裸写就裸写，否则退回 <<...>> 文本记号（内容按文本规则转义）
@@ -1932,14 +1977,10 @@ namespace ExpressionEngine::Expression
             leftOperator = leftOperatorExpression->getOperator();
         }
         // NOLINTBEGIN(bugprone-branch-clone) 两条判据不同、动作相同，合成 || 反而更难读，刻意保留两个分支
-        if (m_left->priority() < priority())
+        if (m_left->priority() < priority() || isConditional(m_left.get()) || (continuesUnitFactorChain(m_operator) && absorbsIntoUnitChain(m_left.get())))
         {
-            // 优先级更低的操作数必须加括号，否则文本会被解析成另一棵树
-            needsParentheses = true;
-        } else if (m_left->priority() == priority() && leftOperator != m_operator && endsWithUnit(m_left.get()))
-        {
-            // 同级、异运算符、且左操作数的文本落在单位上：不括就会被单位因子链重排
-            // （(5 % m) * m 与 5 % (m * m) 会打成同一串）
+            // 优先级更低的操作数必须加括号，否则文本会被解析成另一棵树；
+            // 后半条是单位因子链：处在乘除档、自身含单位的复合节点会把后面的因子并进自己的链
             needsParentheses = true;
         } else if (leftOperator == m_operator && !isLeftAssociative())
         {
@@ -1988,28 +2029,19 @@ namespace ExpressionEngine::Expression
                 throw EvaluationError(std::format("运算符 '{}' 没有文本写法；请检查表达式构造过程", operatorText(m_operator)));
         }
 
-        needsParentheses       = false;
-        Operator rightOperator = Operator::None;
-        if (const auto *rightOperatorExpression = m_right->asOperatorExpression())
+        needsParentheses = false;
+        if (m_right->priority() < priority() || isConditional(m_right.get()) || (continuesUnitFactorChain(m_operator) && absorbsIntoUnitChain(m_right.get())))
         {
-            rightOperator = rightOperatorExpression->getOperator();
-        }
-        if (m_right->priority() < priority())
-        {
+            // 右操作数同理：乘除档上「含单位的复合节点」会把它后面的因子并进自己的单位链
             needsParentheses = true;
-        } else if (rightOperator == m_operator)
+        } else if (m_right->priority() == priority() && !isRightAssociativeInGrammar(m_operator))
         {
-            // 同一运算符下左右结合性决定右操作数是否需要括号
-            if (!isRightAssociative() || !isCommutative())
-            {
-                needsParentheses = true;
-            }
-        } else if (m_right->priority() == priority())
-        {
-            if (!isRightAssociative() || rightOperator == Operator::Modulo)
-            {
-                needsParentheses = true;
-            }
+            // 同级右操作数按「解析器怎么写」判，而不是按 `isRightAssociative()`（那是取值层面的
+            // 结合律：乘法认为 a*(b*c) 与 (a*b)*c 等价，于是把右嵌套压平成 `a * b * c`）。
+            // 压平后的文本再解析回来是 (a*b)*c——**取值相同而树不同**，`isSame` 就判不同，
+            // 宿主存盘的分组也确实换了。幂是唯一真右结合的运算符（`2 ^ 3 ^ 2` 读回 2^(3^2)），
+            // 所以只有它不需要给右操作数补括号。
+            needsParentheses = true;
         }
 
         if (needsParentheses)
@@ -2103,7 +2135,17 @@ namespace ExpressionEngine::Expression
 
     void ConditionalExpression::appendText(std::string &text, const bool persistent, int) const
     {
-        text += m_condition->toString(persistent);
+        // 条件本身是三元写法时必须带括号：`(a ? b : c) ? d : e` 压平成 `a ? b : c ? d : e`
+        // 会被读成 `a ? b : (c ? d : e)`——分支挂到了错误的一边
+        if (isConditional(m_condition.get()))
+        {
+            text += '(';
+            text += m_condition->toString(persistent);
+            text += ')';
+        } else
+        {
+            text += m_condition->toString(persistent);
+        }
         text += " ? ";
 
         // 分支优先级不高于条件运算符时补括号，保证文本能原样解析回来
