@@ -795,15 +795,11 @@ namespace ExpressionEngine::Expression
                 return std::make_unique<UnitExpression>(m_resolver, *unitQuantity, symbol);
             }
 
-            if (m_current.kind == ExpressionTokenKind::LeftParen)
-            {
-                advance();
-                ExpressionPtr nested = parseUnitExpression();
-                expect(ExpressionTokenKind::RightParen, "与左括号匹配的右括号 ')'");
-                return nested;
-            }
-
-            throw Base::ParserError(std::format("{}：这里需要单位符号或左括号，请检查写法", locationOf(m_current)));
+            // 这里不留「单位组可以打括号」的分支：parseUnitExpression 的三个入口都要求当前记号是单位符号
+            // （startsUnit() 只认 Unit/UsUnit，另一处是词法给出的 Unit 记号），左括号进不到这一层，那条分支
+            // 谁也到不了。带括号的单位组合走表达式的括号路，实测 `5 m*(m/s)` 与 `5 m/(m/s)` 都能解析，
+            // 而 `5 (m/s)` 这种「数字直接接括号」本就不在写法里（数字后只有单位符号才算隐式相乘）。
+            throw Base::ParserError(std::format("{}：这里需要单位符号，请检查写法", locationOf(m_current)));
         }
 
     } // namespace
