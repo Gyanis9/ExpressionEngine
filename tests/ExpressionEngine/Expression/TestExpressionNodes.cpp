@@ -58,7 +58,13 @@ namespace ExpressionEngine::Expression
             EXPECT_DOUBLE_EQ(evaluateText("(2^3)^4"), 4096.0);
             EXPECT_DOUBLE_EQ(evaluateText(roundTrip("(2^3)^4")), 4096.0);
 
-            EXPECT_EQ(roundTrip("2^(3^4)"), "2 ^ 3 ^ 4");
+            // 旧断言：`2^(3^4)` 压平成 `2 ^ 3 ^ 4`。新语义：同级幂一律带括号 → `2 ^ (3 ^ 4)`。
+            // 依据：压平后的文本只要左端落在单位符号上，单位幂规则就会抢走第一个 `^ 数字`
+            // （`(K)^82^A` 读回来变成 `(K ^ 82) ^ A`，结合方向换了）；而「抢不抢得动」取决于左端
+            // 打出来的样子（裸单位、`+K`、`-m ^ 2` 都会被动到，收了括号才动不到），逐形判定太脆。
+            // 于是取形状无关的规则：幂套幂就显式分组。纯数字那一档多的一对括号是这条规则的代价，
+            // 取值不变（下面两条断言就是证：evaluateText 前后同为 2^81）。
+            EXPECT_EQ(roundTrip("2^(3^4)"), "2 ^ (3 ^ 4)");
             EXPECT_DOUBLE_EQ(evaluateText(roundTrip("2^(3^4)")), evaluateText("2^81"));
         }
 
@@ -443,6 +449,9 @@ namespace ExpressionEngine::Expression
                                            // ——打印器给作为左操作数的幂补括号后会写出 `(F ^ Box.a) / s` 这种
                                            // 「单位符号直接挨着 ^」的形状。夜间长时程模糊门（1800 秒/目标）连抓四晚的就是它。
                                            "F ^ Box.a", "F ^ Box.a / s", "m ^ len(<<abc>>)", "s ^ -Box.a", "2 * m ^ Box.a",
+                                           // 幂套幂且最外层是裸单位符号：单位幂规则会抢走紧跟单位的 `^ 数字`，
+                                           // 右结合被读成左结合，于是同一段文本第二次写出来不一样（模糊门抓到）
+                                           "(K)^82^A", "K^82^A", "F^-2^x", "s^-2^-A", "F^(2^3)", "1/(K)^82^A", "+(K)^9", "-(K)^9", "+(K)^9*m",
                                            // 链外面还接着因子：交换律救不了树形（同族第十一条）
                                            "8A/F^82h", "2 m/s * 3", "1 kg / m * s",
                                            // 三元写法结合力最低：它当任何操作数时都要带括号
@@ -481,9 +490,10 @@ namespace ExpressionEngine::Expression
             // 同族第十一条：单位链外面还接着因子时，可交换的乘法也不再等价——取值相同而树不同
             EXPECT_EQ(ExpressionParser::parse(nullptr, "8A/F^82h")->toString(true), "(8 * (A / (F ^ 82))) * h");
             EXPECT_EQ(ExpressionParser::parse(nullptr, "2 m/s * 3")->toString(true), "(2 * (m / s)) * 3");
-            // 纯数字的同级左结合不受影响：`1 / 2 * 3` 不多打括号；幂那一档括号本来就是多余的
+            // 纯数字的同级左结合不受影响：`1 / 2 * 3` 不多打括号；幂那一档则一律显式分组（见
+            // LeftGroupedPowerKeepsItsParentheses：单位幂规则会抢走紧跟单位的 `^ 数字`，压平不安全）
             EXPECT_EQ(ExpressionParser::parse(nullptr, "1 / 2 * 3")->toString(true), "1 / 2 * 3");
-            EXPECT_EQ(ExpressionParser::parse(nullptr, "2 ^ 3 ^ 2")->toString(true), "2 ^ 3 ^ 2");
+            EXPECT_EQ(ExpressionParser::parse(nullptr, "2 ^ 3 ^ 2")->toString(true), "2 ^ (3 ^ 2)");
             // 「当前对象上的带点名字」必须保留开头那个点：去掉点就成了一段字符串字面量
             EXPECT_EQ(ExpressionParser::parse(nullptr, ".<<a.b>>")->toString(true), ".<<a.b>>");
             // 非有限常量不能打成 `inf`/`nan`——那两个字再解析是变量引用
@@ -508,6 +518,46 @@ namespace ExpressionEngine::Expression
             EXPECT_EQ(ExpressionParser::parse(nullptr, "2 * m ^ Box.a")->toString(true), "2 * (m ^ Box.a)");
             // 指数前带负号也不是数字面量时同样退回（负号跟着一起退回，不能只退一半）
             EXPECT_EQ(ExpressionParser::parse(nullptr, "s ^ -Box.a")->toString(true), "s ^ -Box.a");
+        }
+
+        /**
+         * @brief 钉住：幂套幂且最外层是裸单位符号时，右结合必须靠括号保住
+         * @details 表达式层把幂当真右结合（`2 ^ 3 ^ 2` 读回 `2 ^ (3 ^ 2)`），同级右操作数 normally 不补括号。
+         *          但左操作数是裸单位符号时，单位因子链的幂规则（`unit_exp '^' integer`，指数带负号也算）
+         *          会先抢走紧跟它的那个 `^ 数字`，于是 `K ^ 82 ^ A` 读回来是 `(K ^ 82) ^ A`——结合方向换了，
+         *          同一棵树第二次写出的文本与第一次不同。模糊门在「持久文本再写一次不再相同」这条判据上
+         *          抓到（240 秒档实测命中），最小形状 9 字节 `(K)^82^A`。
+         *          两种拼写法必须分别保住各自的树，所以这一条同时钉打印形状与往返闭环。
+         */
+        TEST(ExpressionNodes, PowerChainsOnUnitBasesKeepTheirGrouping)
+        {
+            // 打印形状按实测钉住：括号加在右操作数上，单位幂规则就抢不走第一个 `^`
+            EXPECT_EQ(ExpressionParser::parse(nullptr, "(K)^82^A")->toString(true), "K ^ (82 ^ A)");
+            EXPECT_EQ(ExpressionParser::parse(nullptr, "K^82^A")->toString(true), "(K ^ 82) ^ A");
+            EXPECT_EQ(ExpressionParser::parse(nullptr, "(K)^-2^A")->toString(true), "K ^ ((-2) ^ A)");
+            EXPECT_EQ(ExpressionParser::parse(nullptr, "s^-2^-A")->toString(true), "(s ^ -2) ^ -A");
+            // 一元前缀贴在单位上、以及三位幂链：都是第一版「只看裸单位节点」漏掉的形状
+            EXPECT_EQ(ExpressionParser::parse(nullptr, "+K^82^B")->toString(true), "(+(K ^ 82)) ^ B");
+            // 一元作用在「括号里的单位」上再被幂取：`+K ^ 9` 读回来是一元吃掉整个幂，必须显式分组
+            EXPECT_EQ(ExpressionParser::parse(nullptr, "+(K)^9")->toString(true), "(+K) ^ 9");
+            EXPECT_EQ(ExpressionParser::parse(nullptr, "-(K)^9")->toString(true), "(-K) ^ 9");
+            EXPECT_EQ(ExpressionParser::parse(nullptr, "+K^9")->toString(true), "+(K ^ 9)");
+            EXPECT_EQ(ExpressionParser::parse(nullptr, "+(K)^9*m")->toString(true), "((+K) ^ 9) * m");
+            EXPECT_EQ(ExpressionParser::parse(nullptr, "m^2^3^4")->toString(true), "(m ^ 2) ^ (3 ^ 4)");
+
+            for (const std::string input: {"(K)^82^A", "K^82^A", "(K)^-2^A", "s^-2^-A", "F^-2^x", "F^(2^3)", "1/(K)^82^A", "A^B^(m^2)",
+                                           // 第一版规则只认「左端是裸单位节点」，这三条都是漏网的：一元前缀
+                                           // 与三位幂链一样会被单位幂规则抢走第一个 `^`
+                                           "+K^82^B", "-K^82^B", "m^2^3^4", "+(K)^9", "-(K)^9", "+K^9", "+(K)^9*m", "1+(K)^9"})
+            {
+                const auto first = ExpressionParser::tryParse(nullptr, input);
+                ASSERT_TRUE(first.has_value() && *first != nullptr) << input << " 应当解析成功：" << first.error().message;
+                const std::string once  = (*first)->toString(true);
+                const auto        again = ExpressionParser::tryParse(nullptr, once);
+                ASSERT_TRUE(again.has_value() && *again != nullptr) << input << " 的持久文本 [" << once << "] 解析不回来：" << again.error().message;
+                EXPECT_EQ((*again)->toString(true), once) << input << " 的持久文本 [" << once << "] 再写一次不再相同";
+                EXPECT_TRUE((*again)->isSame(**first)) << input << " 的持久文本 [" << once << "] 解析成了另一棵树";
+            }
         }
 
         /**

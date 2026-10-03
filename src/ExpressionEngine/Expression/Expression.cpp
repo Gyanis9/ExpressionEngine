@@ -134,6 +134,58 @@ namespace ExpressionEngine::Expression
             return node != nullptr && node->nodeName() == "Conditional";
         }
 
+        /**
+         * @brief 这段幂的文本要不要给同级右操作数补括号
+         * @details 表达式层把幂当真右结合（`2 ^ 3 ^ 2` 读回 `2 ^ (3 ^ 2)`），所以同级右操作数照常
+         *          不补括号。但单位因子链的幂规则（`unit_exp '^' integer`，指数带负号也算）会在
+         *          「单位符号紧跟 `^` 再跟数字」时把第一个 `^` 抢走，于是右结合被读成左结合：
+         *          `K ^ (82 ^ A)` 压平成 `K ^ 82 ^ A` 后读回来是 `(K ^ 82) ^ A`——同一棵树第二次写出的
+         *          文本与第一次不同（模糊门「持久文本再写一次不再相同」抓到，最小形状 9 字节 `(K)^82^A`）。
+         *          抢不抢得动取决于左操作数**打出来长什么样**：裸单位 `K`、一元前缀下的 `+K`、
+         *          带负指数的 `-m ^ 2` 都会被抢，而 `(m + s) ^ ...` 因为左端已经收了括号就抢不动。
+         *          逐条判左操作数的文本形态要覆盖的分支太多，所以这里一律给同级的右操作数补括号：
+         *          多的一对括号换来一条形状无关的判据，与本文件里「宁可多括号也要保住分组」的既有取向一致。
+         * @param op 本节点的运算符
+         * @param right 右操作数，可为空
+         * @return 需要补括号时为 true
+         */
+        bool powerChainNeedsParentheses(const OperatorExpression::Operator op, const Expression *right)
+        {
+            if (op != OperatorExpression::Operator::Power || right == nullptr)
+            {
+                return false;
+            }
+            const OperatorExpression *rightOperation = right->asOperatorExpression();
+            return rightOperation != nullptr && rightOperation->getOperator() == OperatorExpression::Operator::Power;
+        }
+
+        /**
+         * @brief 幂的左操作数是一元正负号时要不要补括号
+         * @details 一元比幂结合更紧（`-2^2` 是 `(-2)^2`），所以 Pow(Negate(2), 2) 打成 `-2 ^ 2` 读回来还是它。
+         *          可一旦一元作用的是**单位符号**，`+K ^ 9` 里那个 `^ 9` 就会被单位因子链的幂规则抢进
+         *          一元的作用域，读回来变成 Positive(Pow(K, 9))——树换了，同一段文本第二次写出来也不一样
+         *          （模糊门实测最小形状 6 字节 `+(K)^9`：第一次写 `+K ^ 9`，再读再写变成 `+(K ^ 9)`）。
+         *          抢不抢得动取决于一元里面是不是单位，逐形判定要跟着左操作数打出来的样子走，太脆，所以这里一律补括号：
+         *          `(+K) ^ 9` 与 `(-2) ^ 2` 都读得回同一棵树，取值也不变。
+         * @param op 本节点的运算符
+         * @param left 左操作数，可为空
+         * @return 需要补括号时为 true
+         */
+        bool unaryOperandOfPowerNeedsParentheses(const OperatorExpression::Operator op, const Expression *left)
+        {
+            if (op != OperatorExpression::Operator::Power || left == nullptr)
+            {
+                return false;
+            }
+            const OperatorExpression *leftOperation = left->asOperatorExpression();
+            if (leftOperation == nullptr)
+            {
+                return false;
+            }
+            const OperatorExpression::Operator unary = leftOperation->getOperator();
+            return unary == OperatorExpression::Operator::Negate || unary == OperatorExpression::Operator::Positive;
+        }
+
         /// 引用路径里一个名字段的写法：能裸写就裸写，否则退回 <<...>> 文本记号（内容按文本规则转义）
         std::string nameSegmentText(const std::string &name)
         {
@@ -1977,10 +2029,12 @@ namespace ExpressionEngine::Expression
             leftOperator = leftOperatorExpression->getOperator();
         }
         // NOLINTBEGIN(bugprone-branch-clone) 两条判据不同、动作相同，合成 || 反而更难读，刻意保留两个分支
-        if (m_left->priority() < priority() || isConditional(m_left.get()) || (continuesUnitFactorChain(m_operator) && absorbsIntoUnitChain(m_left.get())))
+        if (m_left->priority() < priority() || isConditional(m_left.get()) || (continuesUnitFactorChain(m_operator) && absorbsIntoUnitChain(m_left.get())) || unaryOperandOfPowerNeedsParentheses(m_operator, m_left.get()))
         {
             // 优先级更低的操作数必须加括号，否则文本会被解析成另一棵树；
-            // 后半条是单位因子链：处在乘除档、自身含单位的复合节点会把后面的因子并进自己的链
+            // 第二条是单位因子链：处在乘除档、自身含单位的复合节点会把后面的因子并进自己的链；
+            // 第三条是幂带一元左操作数：`+K ^ 9` 里的一元作用域会被单位幂规则撑大（见
+            // unaryOperandOfPowerNeedsParentheses）
             needsParentheses = true;
         } else if (leftOperator == m_operator && !isLeftAssociative())
         {
@@ -2030,7 +2084,7 @@ namespace ExpressionEngine::Expression
         }
 
         needsParentheses = false;
-        // 右操作数补括号的三种情形，合成一条判据（三条动作相同，分写会被 bugprone-branch-clone 报重复分支）：
+        // 右操作数补括号的五条判据，合成一条 if（五条动作相同，分写会被 bugprone-branch-clone 报重复分支）：
         //   ①优先级更低；②三元写法（结合力最低，任何操作数位置都要包）；
         //   ③乘除档上「含单位的复合节点」——它后面的因子会被并进自己的单位链；
         //   ④同级但不是真右结合。第四条是按**解析器怎么写**判，而不是按 `isRightAssociative()`
@@ -2038,8 +2092,10 @@ namespace ExpressionEngine::Expression
         //      `a * b * c`）。压平后的文本再解析回来是 (a*b)*c——**取值相同而树不同**，`isSame`
         //     判不同，宿主存盘的分组也确实换了。幂是唯一真右结合的运算符（`2 ^ 3 ^ 2` 读回
         //     `2^(3^2)`），所以只有它不需要给右操作数补括号。
+        //   ⑤本节点是幂、右操作数本身也是幂——单位幂规则会把紧跟单位符号的 `^ 数字` 抢走，
+        //     右结合被读成左结合（见 powerChainNeedsParentheses）。
         if (m_right->priority() < priority() || isConditional(m_right.get()) || (m_right->priority() == priority() && !isRightAssociativeInGrammar(m_operator)) ||
-            (continuesUnitFactorChain(m_operator) && absorbsIntoUnitChain(m_right.get())))
+            (continuesUnitFactorChain(m_operator) && absorbsIntoUnitChain(m_right.get())) || powerChainNeedsParentheses(m_operator, m_right.get()))
         {
             needsParentheses = true;
         }
