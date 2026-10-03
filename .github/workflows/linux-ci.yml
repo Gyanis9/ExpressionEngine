@@ -275,7 +275,7 @@ jobs:
       # 今天为这点吃过两次亏——崩溃件从来不进制品，等于「CI 抓到但没人能重跑」
       - name: 留存失败现场
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: fuzz-scene-push
           path: fuzz-scene/
@@ -303,7 +303,7 @@ jobs:
 
       - name: 留存现场与语料
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: fuzz-scene-nightly
           path: fuzz-scene/
