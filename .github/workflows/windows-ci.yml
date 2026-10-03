@@ -97,8 +97,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       # 兼容判定的反面用例，与本地交付门跑同一条脚本（两套标准迟早分叉）。它把装出去的包里那份
-      # ExpressionEngineConfigVersion.cmake 自称的版本抬到 0.9.0（主次与请求的 0.0.3 不同、且更新），
-      # 再让同一个消费者按 0.0.3 配一次：SameMinorVersion 必须拒绝；换成 SameMajorVersion 就会配上，
+      # ExpressionEngineConfigVersion.cmake 自称的版本抬到 0.9.0（主次与请求的 0.0.4 不同、且更新），
+      # 再让同一个消费者按 0.0.4 配一次：SameMinorVersion 必须拒绝；换成 SameMajorVersion 就会配上，
       # 这一步因此分辨的是策略本身，而不是「请求更高版本会被拒」那种任何策略都通过的写法。
       - name: 包配置兼容判定（反面用例）
         run: bash tools/package-check/compat-refusal-check.sh "${{ runner.temp }}/ee-install"

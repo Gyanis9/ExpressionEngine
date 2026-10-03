@@ -3,7 +3,7 @@
  * @brief 按首字节分组的关键字查表
  * @author Gyanis
  * @date 2026-09-19
- * @version 0.0.3
+ * @version 0.0.4
  * @copyright Copyright (c) 2026 Gyanis. LGPL-2.1-or-later
  */
 
