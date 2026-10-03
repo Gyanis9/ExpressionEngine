@@ -755,9 +755,17 @@ namespace ExpressionEngine::Expression
 
             if (m_current.kind == ExpressionTokenKind::Caret)
             {
+                // unit_exp '^' integer 与 unit_exp '^' MINUSSIGN integer 两条规则。指数不是数字字面量时
+                // 这条边**不消费**：把游标退回 `^` 之前交回上层，由表达式的二元幂运算处理。
+                // 先吞掉 `^`（和可选负号）才知道指数是什么，因此要能退回——词法器与两个记号都可值拷贝。
+                // 拒掉而不是退回的表现是「库自己写出的文本库自己读不回来」：打印器给右操作数补括号后会
+                // 写出 `(F ^ Box.a)` 这种「单位符号直接挨着 ^」的形状，夜间长时程模糊门连抓四晚。
+                const ExpressionLexer savedLexer   = m_lexer;
+                const ExpressionToken savedCurrent = m_current;
+                const ExpressionToken savedNext    = m_next;
                 advance();
 
-                // unit_exp '^' integer 与 unit_exp '^' MINUSSIGN integer 两条规则
+                // 上面退回时 m_current 会重新落在 `^` 上，外层循环照常按二元幂运算继续
                 bool isNegativeExponent = false;
                 if (m_current.kind == ExpressionTokenKind::Minus)
                 {
@@ -766,7 +774,10 @@ namespace ExpressionEngine::Expression
                 }
                 if (m_current.kind != ExpressionTokenKind::Integer && m_current.kind != ExpressionTokenKind::Number)
                 {
-                    throw Base::ParserError(std::format("{}：单位幂次需要整数，请把指数写成整数", locationOf(m_current)));
+                    m_lexer   = savedLexer;
+                    m_current = savedCurrent;
+                    m_next    = savedNext;
+                    return base;
                 }
 
                 const double exponentValue = m_current.kind == ExpressionTokenKind::Integer ? static_cast<double>(m_current.integerValue) : m_current.numberValue;

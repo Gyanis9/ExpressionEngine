@@ -438,6 +438,11 @@ namespace ExpressionEngine::Expression
                                            "5++ m\"", "+mm mm", "-m mm", "5 * -m * s", "(5 + 2 * -m) * s", "5 % -m * m", "-m^2", "--m * s", "2 * -m / s",
                                            // 单位的幂仍在因子链里：链跨过 `^ 2` 继续吸收后面的因子
                                            "8/F^2h", "(8 / F ^ 2) * h", "1 / m ^ 2 * s", "5 % m ^ 2 * m", "m / s * 2",
+                                           // 指数不是数字面量：这条边必须**退回**，把 `^` 交回表达式层的二元幂。
+                                           // 抢过来按「单位幂次需要整数」拒绝，就把库自己写出的文本堵在读不回来的路上
+                                           // ——打印器给作为左操作数的幂补括号后会写出 `(F ^ Box.a) / s` 这种
+                                           // 「单位符号直接挨着 ^」的形状。夜间长时程模糊门（1800 秒/目标）连抓四晚的就是它。
+                                           "F ^ Box.a", "F ^ Box.a / s", "m ^ len(<<abc>>)", "s ^ -Box.a", "2 * m ^ Box.a",
                                            // 链外面还接着因子：交换律救不了树形（同族第十一条）
                                            "8A/F^82h", "2 m/s * 3", "1 kg / m * s",
                                            // 三元写法结合力最低：它当任何操作数时都要带括号
@@ -494,6 +499,44 @@ namespace ExpressionEngine::Expression
                 EXPECT_TRUE(again->collectReferences().empty()) << text << " 不该解析出变量引用";
                 EXPECT_EQ(again->toString(true), text) << text << " 的写法不稳定";
             }
+
+            // 单位符号当幂的底、指数不是数字面量：单位链那条边必须退回，让表达式层的二元幂接住。
+            // 抢过来按「单位幂次需要整数」拒绝，等于把 `(F ^ Box.a) / s` 这类**库自己写出的文本**
+            // 堵在读不回来的路上（下面两条实测的打印形状就是它）
+            EXPECT_EQ(ExpressionParser::parse(nullptr, "F ^ Box.a")->toString(true), "F ^ Box.a");
+            EXPECT_EQ(ExpressionParser::parse(nullptr, "F ^ Box.a / s")->toString(true), "(F ^ Box.a) / s");
+            EXPECT_EQ(ExpressionParser::parse(nullptr, "2 * m ^ Box.a")->toString(true), "2 * (m ^ Box.a)");
+            // 指数前带负号也不是数字面量时同样退回（负号跟着一起退回，不能只退一半）
+            EXPECT_EQ(ExpressionParser::parse(nullptr, "s ^ -Box.a")->toString(true), "s ^ -Box.a");
+        }
+
+        /**
+         * @brief 钉住：幂的底是单位符号、指数是变量或函数时，按表达式幂解析而不是被单位链吞掉
+         * @details 单位因子链只在指数是数字字面量时才成立（`unit_exp '^' integer` 那两条规则）；
+         *          指数换成引用或函数调用时，`^` 属于整个表达式，与 `8 ^ Box.a` 同一条路。
+         *          这条区分不是锦上添花：打印器会给作为左操作数的幂补括号，补出来的文本让单位符号
+         *          直接挨着 `^`，若此时按「单位幂次需要整数」拒绝，宿主存的公式就读不回来了
+         *          （每日 30 分钟/目标的长时程模糊门连抓四晚）。
+         */
+        TEST(ExpressionNodes, UnitBaseWithNonNumericExponentIsAnExpressionPower)
+        {
+            for (const std::string input: {"F ^ Box.a", "s ^ -Box.a", "m ^ len(<<abc>>)", "2 * m ^ Box.a", "F ^ Box.a / s"})
+            {
+                const auto parsed = ExpressionParser::tryParse(nullptr, input);
+                ASSERT_TRUE(parsed.has_value() && *parsed != nullptr) << input << " 应当解析成功：" << parsed.error().message;
+
+                // 打的文本再读回来必须是同一棵树、写法稳定
+                const std::string once  = (*parsed)->toString(true);
+                const auto        again = ExpressionParser::tryParse(nullptr, once);
+                ASSERT_TRUE(again.has_value() && *again != nullptr) << input << " 的持久文本 [" << once << "] 解析不回来";
+                EXPECT_EQ((*again)->toString(true), once) << input << " 的持久文本 [" << once << "] 不稳定";
+                EXPECT_TRUE((*again)->isSame(**parsed)) << input << " 的持久文本 [" << once << "] 解析成了另一棵树";
+            }
+
+            // 指数是数字面量时仍走单位幂那条规则：负指数折成字面量，不留一个一元负号节点
+            const auto integerExponent = ExpressionParser::tryParse(nullptr, "m ^ -2");
+            ASSERT_TRUE(integerExponent.has_value() && *integerExponent != nullptr);
+            EXPECT_EQ((*integerExponent)->toString(true), "m ^ -2");
         }
 
         /**
